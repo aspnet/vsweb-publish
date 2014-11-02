@@ -1,6 +1,6 @@
 ﻿[cmdletbinding()]
 param(
-    $versionToInstall = '0.0.1-beta',
+    $versionToInstall = '0.0.2-beta',
     $toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),
     $nugetDownloadUrl = 'http://nuget.org/nuget.exe'
 )
@@ -44,7 +44,7 @@ function Get-Nuget(){
 function GetPublishModuleFile{
     [cmdletbinding()]
     param(
-        $versionToInstall = '0.0.1-beta',
+        $versionToInstall = '0.0.2-beta',
         $toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),
         $nugetDownloadUrl = 'http://nuget.org/nuget.exe'
     )
@@ -79,6 +79,6 @@ function GetPublishModuleFile{
 # Begin script
 ###########################################
 
-$publishModuleFile = GetPublishModuleFile
+$publishModuleFile = GetPublishModuleFile -versionToInstall $versionToInstall -toolsDir $toolsDir -nugetDownloadUrl $nugetDownloadUrl
 'Importing publish-module from [{0}]' -f $publishModuleFile | Write-Verbose
 Import-Module $publishModuleFile -DisableNameChecking -Force

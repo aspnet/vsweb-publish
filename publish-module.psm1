@@ -95,7 +95,18 @@ function AspNet-PublishFileSystem{
         # do a file system copy
         # TODO: Add exclude statements based on skips from $PublishProperties
         # TODO: Add support for retryAttempts?
-        Get-ChildItem -Path $OutputPath | % {
+
+        $excludeList = @()
+        if($PublishProperties['ExcludeFiles']){
+            foreach($exclude in $PublishProperties['ExcludeFiles']){
+                $excludePath = $exclude['Filepath']
+                $excludeList += $excludePath
+            }
+        }
+        
+        'exclude list: [{0}]' -f ($excludeList -join (',')) | Write-Verbose
+
+        Get-ChildItem -Path $OutputPath -Exclude $excludeList | % {
           Copy-Item $_.fullname "$pubOut" -Recurse -Force
         }
     }

@@ -4,7 +4,7 @@
 
 function Ensure-PublishModuleLoaded{
     [cmdletbinding()]
-    param($versionToInstall = '0.0.1-beta',
+    param($versionToInstall = '0.0.2-beta',
         $installScriptUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/GetPublishModule.ps1',
         $toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),
         $installScriptPath = (Join-Path $toolsDir 'GetPublishModule.ps1'))
@@ -17,8 +17,8 @@ function Ensure-PublishModuleLoaded{
             'Downloading from [{0}] to [{1}]' -f $installScriptUrl, $installScriptPath| Write-Verbose
             (new-object Net.WebClient).DownloadFile($installScriptUrl,$installScriptPath) | Out-Null
         }
-        
-        &($installScriptPath)
+        $installargs = @("$versionToInstall","$toolsDir")
+        &($installScriptPath) $installargs
     }
 }
 
