@@ -64,6 +64,15 @@ function AspNet-PublishMSDeploy{
             $publishArgs += '-enableLink:contentLibExtension'
             $publishArgs += '-retryAttempts=2'
 
+            # see if there are any skips in $PublishProperties.
+            $excludeFiles = $PublishProperties['ExcludeFiles']
+            if($excludeFiles){
+                foreach($exclude in $excludeFiles){
+                    $excludePath = $exclude['Filepath']
+                    $publishArgs += ('-skip:objectName=filePath,absolutePath={0}$' -f $excludePath)
+                }
+            }
+
             'Calling msdeploy with the call {0}' -f (($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')) | Write-Verbose
             & (Get-MSDeploy) $publishArgs
         }
