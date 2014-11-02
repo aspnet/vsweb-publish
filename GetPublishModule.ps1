@@ -5,51 +5,6 @@ param(
     $nugetDownloadUrl = 'http://nuget.org/nuget.exe'
 )
 $script:moduleName = 'publish-module'
-# originally based off of the scrit at http://psget.net/GetPsGet.ps1
-function Install-PSBuild {
-    $modsFolder= GetPsModulesPath
-    $destFolder = (join-path $modsFolder 'psbuild\')
-    $destFile = (join-path $destFolder 'psbuild.psm1')
-    
-    if(!(test-path $destFolder)){
-        new-item -path $destFolder -ItemType Directory -Force | out-null
-    }
-
-    # this will download using nuget if its not in localappdata
-    $psbPsm1File = GetPsBuildPsm1
-
-    # copy the folder to the modules folder
-
-    Copy-Item -Path "$($psbPsm1File.Directory.FullName)\*"  -Destination $destFolder -Recurse
-
-    if ((Get-ExecutionPolicy) -eq "Restricted"){
-        Write-Warning @"
-Your execution policy is $executionPolicy, this means you will not be able import or use any scripts including modules.
-To fix this change your execution policy to something like RemoteSigned.
-
-        PS> Set-ExecutionPolicy RemoteSigned
-
-For more information execute:
-        
-        PS> Get-Help about_execution_policies
-
-"@
-    }
-    else{
-        Import-Module -Name $modsFolder\psbuild -DisableNameChecking -Force
-    }
-
-    Write-Host "psbuild is installed and ready to use" -Foreground Green
-    Write-Host @"
-USAGE:
-    PS> Invoke-MSBuild 'C:\temp\msbuild\msbuild.proj'
-    PS> Invoke-MSBuild C:\temp\msbuild\path.proj -properties (@{'OutputPath'='c:\ouput\';'visualstudioversion'='12.0'}) -extraArgs '/nologo'
-
-For more details:
-    get-help Invoke-MSBuild
-Or visit http://msbuildbook.com/psbuild
-"@
-}
 
 <#
 .SYNOPSIS

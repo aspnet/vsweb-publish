@@ -83,7 +83,7 @@ function AspNet-PublishFileSystem{
     )
     process{
         $pubOut = $PublishProperties['publishUrl']
-        'Publishing files to {0}' -f $pubOut | Write-Outut
+        'Publishing files to {0}' -f $pubOut | Write-Output
         # do a file system copy, if there is any skips we have to take care of it in an 
         Get-ChildItem -Path $OutputPath | % {
           Copy-Item $_.fullname "$pubOut" -Recurse -Force
