@@ -1,6 +1,6 @@
 ﻿[cmdletbinding()]
 param(
-    $versionToInstall = '0.0.2-beta',
+    $versionToInstall = '0.0.3-beta',
     $toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),
     $nugetDownloadUrl = 'http://nuget.org/nuget.exe'
 )
@@ -44,7 +44,7 @@ function Get-Nuget(){
 function GetPublishModuleFile{
     [cmdletbinding()]
     param(
-        $versionToInstall = '0.0.2-beta',
+        $versionToInstall = '0.0.3-beta',
         $toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),
         $nugetDownloadUrl = 'http://nuget.org/nuget.exe'
     )

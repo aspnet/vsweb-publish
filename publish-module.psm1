@@ -1,8 +1,8 @@
-[cmdletbinding()]
+[cmdletbinding(SupportsShouldProcess=$true)]
 param()
 
 function AspNet-Publish{
-    [cmdletbinding()]
+    [cmdletbinding(SupportsShouldProcess=$true)]
     param(
         [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
         $PublishProperties,
@@ -12,17 +12,18 @@ function AspNet-Publish{
     process{
         $pubMethod = $PublishProperties['WebPublishMethod']
         'Publishing with publish method [{0}]' -f $pubMethod | Write-Output
+        $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
         # figure out which of the impl method to call for the specific publish method
         switch ($pubMethod){
-            'MSDeploy' {AspNet-PublishMSDeploy -PublishProperties $PublishProperties -OutputPath $OutputPath}
-            'FileSystem' {AspNet-PublishFileSystem -PublishProperties $PublishProperties -OutputPath $OutputPath}
+            'MSDeploy' {AspNet-PublishMSDeploy -PublishProperties $PublishProperties -OutputPath $OutputPath -WhatIf:$whatifpassed}
+            'FileSystem' {AspNet-PublishFileSystem -PublishProperties $PublishProperties -OutputPath $OutputPath -WhatIf:$whatifpassed}
             default { throw ('Unknown value for WebPublishMethod [{0}]' -f $pubMethod)}
         }
     }
 }
 
 function AspNet-PublishMSDeploy{
-    [cmdletbinding()]
+    [cmdletbinding(SupportsShouldProcess=$true)]
     param(
         [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
         $PublishProperties,
@@ -61,7 +62,12 @@ function AspNet-PublishMSDeploy{
             $publishArgs += '-enableLink:contentLibExtension'
             # TODO: Override from $PublishProperties
             $publishArgs += '-retryAttempts=2'
-            # TODO: Add support for skips from $PublishProperties
+
+            $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
+            if($whatifpassed){
+                $publishArgs+='-whatif'
+                $publishArgs+='-xml'
+            }
 
             # see if there are any skips in $PublishProperties.
             $excludeFiles = $PublishProperties['ExcludeFiles']
@@ -82,7 +88,7 @@ function AspNet-PublishMSDeploy{
 }
 
 function AspNet-PublishFileSystem{
-    [cmdletbinding()]
+    [cmdletbinding(SupportsShouldProcess=$true)]
     param(
         [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
         $PublishProperties,
@@ -106,8 +112,10 @@ function AspNet-PublishFileSystem{
         
         'exclude list: [{0}]' -f ($excludeList -join (',')) | Write-Verbose
 
+        $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
+
         Get-ChildItem -Path $OutputPath -Exclude $excludeList | % {
-          Copy-Item $_.fullname "$pubOut" -Recurse -Force
+          Copy-Item $_.fullname "$pubOut" -Recurse -Force -WhatIf:$whatifpassed
         }
     }
 }
