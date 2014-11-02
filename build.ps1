@@ -45,6 +45,7 @@ function Get-Nuget(){
 
 $outputRoot = Join-Path $scriptDir "OutputRoot"
 $nuspecFile = (get-item(Join-Path $scriptDir "publish-module.nuspec")).FullName
+$nugetDevRepo = 'C:\temp\nuget\localrepo\'
 
 if(!(Test-Path $outputRoot)){
     New-Item $outputRoot -ItemType Directory
@@ -56,3 +57,7 @@ $outputRoot = (Get-Item $outputRoot).FullName
 $nugetArgs = @('pack',$nuspecFile,'-o',$outputRoot)
 'Calling nuget.exe with the command:[nuget.exe {0}]' -f  ($nugetArgs -join ' ') | Write-Verbose
 &(Get-Nuget) $nugetArgs
+
+if(Test-Path $nugetDevRepo){
+    Get-ChildItem -Path $outputRoot 'publish-module*.nupkg' | Copy-Item -Destination $nugetDevRepo
+}

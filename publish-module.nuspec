@@ -4,7 +4,7 @@
 -->
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">  
   <metadata>
-    <id>publihs-module</id>
+    <id>publish-module</id>
     <version>0.0.1-beta</version>
     <authors>Sayed Ibrahim Hashimi</authors>
     <description>
