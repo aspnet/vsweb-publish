@@ -56,10 +56,12 @@ function AspNet-PublishMSDeploy{
                                     $PublishProperties['UserName'],
                                     $publishPwd)
             $publishArgs += '-verb:sync'
-            # TODO: Should we pass this property in?
+            # TODO: get rules from $PublishProperties? We should have good defaults.
             $publishArgs += '-enableRule:DoNotDeleteRule'
             $publishArgs += '-enableLink:contentLibExtension'
+            # TODO: Override from $PublishProperties
             $publishArgs += '-retryAttempts=2'
+            # TODO: Add support for skips from $PublishProperties
 
             'Calling msdeploy with the call {0}' -f (($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')) | Write-Verbose
             & (Get-MSDeploy) $publishArgs
@@ -81,7 +83,9 @@ function AspNet-PublishFileSystem{
     process{
         $pubOut = $PublishProperties['publishUrl']
         'Publishing files to {0}' -f $pubOut | Write-Output
-        # do a file system copy, if there is any skips we have to take care of it in an 
+        # do a file system copy
+        # TODO: Add exclude statements based on skips from $PublishProperties
+        # TODO: Add support for retryAttempts?
         Get-ChildItem -Path $OutputPath | % {
           Copy-Item $_.fullname "$pubOut" -Recurse -Force
         }
