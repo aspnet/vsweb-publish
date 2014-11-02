@@ -35,9 +35,6 @@ function AspNet-PublishMSDeploy{
         if($PublishProperties){
             # TODO: Get passwod from $PublishProperties
             $publishPwd = $PublishProperties['Password']
-            if(!$publishPwd){
-                throw 'Publish password is not found please set $env:PublishPassword'
-            }
 
             <#
             "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe" 
