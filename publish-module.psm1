@@ -34,7 +34,7 @@ function AspNet-PublishMSDeploy{
 
         if($PublishProperties){
             # TODO: Get passwod from $PublishProperties
-            $publishPwd = $env:PublishPassword
+            $publishPwd = $PublishProperties['Password']
             if(!$publishPwd){
                 throw 'Publish password is not found please set $env:PublishPassword'
             }
@@ -64,7 +64,7 @@ function AspNet-PublishMSDeploy{
             $publishArgs += '-enableLink:contentLibExtension'
             $publishArgs += '-retryAttempts=2'
 
-            'Calling msdeploy with the call {0}' -f (($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD}')) | Write-Verbose
+            'Calling msdeploy with the call {0}' -f (($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')) | Write-Verbose
             & (Get-MSDeploy) $publishArgs
         }
         else{
