@@ -11,11 +11,11 @@ function AspNet-Publish{
     )
     process{
         $pubMethod = $PublishProperties['WebPublishMethod']
-        'pubMethod: {0}' -f $pubMethod | Write-Host -ForegroundColor Green
+        'Publishing with publish method [{0}]' -f $pubMethod | Write-Output
         # figure out which of the impl method to call for the specific publish method
         switch ($pubMethod){
             'MSDeploy' {AspNet-PublishMSDeploy -PublishProperties $PublishProperties -OutputPath $OutputPath}
-            'FileSystem' {AspNet-PublishMSDeploy -PublishProperties $PublishProperties -OutputPath $OutputPath}
+            'FileSystem' {AspNet-PublishFileSystem -PublishProperties $PublishProperties -OutputPath $OutputPath}
             default { throw ('Unknown value for WebPublishMethod [{0}]' -f $pubMethod)}
         }
     }
@@ -30,7 +30,6 @@ function AspNet-PublishMSDeploy{
         $OutputPath
     )
     process{
-        'Inside AspNet-PublishMSDeploy' | Write-Host -ForegroundColor Green
         # call msdeploy.exe to start the publish process
 
         if($PublishProperties){
@@ -83,7 +82,12 @@ function AspNet-PublishFileSystem{
         $OutputPath
     )
     process{
+        $pubOut = $PublishProperties['publishUrl']
+        'Publishing files to {0}' -f $pubOut | Write-Outut
         # do a file system copy, if there is any skips we have to take care of it in an 
+        Get-ChildItem -Path $OutputPath | % {
+          Copy-Item $_.fullname "$pubOut" -Recurse -Force
+        }
     }
 }
 
