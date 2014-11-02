@@ -35,9 +35,6 @@ function AspNet-PublishMSDeploy{
         if($PublishProperties){
             # TODO: Get passwod from $PublishProperties
             $publishPwd = $PublishProperties['Password']
-            if(!$publishPwd){
-                throw 'Publish password is not found please set $env:PublishPassword'
-            }
 
             <#
             "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe" 
@@ -59,10 +56,12 @@ function AspNet-PublishMSDeploy{
                                     $PublishProperties['UserName'],
                                     $publishPwd)
             $publishArgs += '-verb:sync'
-            # TODO: Should we pass this property in?
+            # TODO: get rules from $PublishProperties? We should have good defaults.
             $publishArgs += '-enableRule:DoNotDeleteRule'
             $publishArgs += '-enableLink:contentLibExtension'
+            # TODO: Override from $PublishProperties
             $publishArgs += '-retryAttempts=2'
+            # TODO: Add support for skips from $PublishProperties
 
             # see if there are any skips in $PublishProperties.
             $excludeFiles = $PublishProperties['ExcludeFiles']
@@ -93,7 +92,9 @@ function AspNet-PublishFileSystem{
     process{
         $pubOut = $PublishProperties['publishUrl']
         'Publishing files to {0}' -f $pubOut | Write-Output
-        # do a file system copy, if there is any skips we have to take care of it in an 
+        # do a file system copy
+        # TODO: Add exclude statements based on skips from $PublishProperties
+        # TODO: Add support for retryAttempts?
         Get-ChildItem -Path $OutputPath | % {
           Copy-Item $_.fullname "$pubOut" -Recurse -Force
         }
