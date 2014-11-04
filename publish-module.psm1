@@ -62,6 +62,7 @@ function AspNet-PublishMSDeploy{
             $publishArgs += '-enableLink:contentLibExtension'
             # TODO: Override from $PublishProperties
             $publishArgs += '-retryAttempts=2'
+            $publishArgs += '-useChecksum'
 
             $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
             if($whatifpassed){
@@ -114,9 +115,35 @@ function AspNet-PublishFileSystem{
 
         $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
 
-        Get-ChildItem -Path $OutputPath -Exclude $excludeList | % {
-          Copy-Item $_.fullname "$pubOut" -Recurse -Force -WhatIf:$whatifpassed
+        # we can use msdeploy.exe because it supports incremental publish/skips/replacements/etc
+        # msdeploy.exe -verb:sync -source:contentPath='C:\srcpath' -dest:contentPath='c:\destpath'
+        
+        $publishArgs = @()
+        $publishArgs += ('-source:contentPath=''{0}''' -f "$OutputPath")
+        $publishArgs += ('-dest:contentPath=''{0}''' -f "$pubOut")
+        $publishArgs += '-verb:sync'
+        $publishArgs += '-useChecksum'
+
+        if($whatifpassed){
+            $publishArgs += '-whatif'
+            $publishArgs += '-xml'
         }
+
+        # see if there are any skips in $PublishProperties.
+        $excludeFiles = $PublishProperties['ExcludeFiles']
+        if($excludeFiles){
+            foreach($exclude in $excludeFiles){
+                $excludePath = $exclude['Filepath']
+                $publishArgs += ('-skip:objectName=filePath,absolutePath={0}$' -f $excludePath)
+            }
+        }
+
+        'Calling msdeploy to publish to file system wiht the command: [{0} {1}]' -f (Get-MSDeploy),($publishArgs -join '') | Write-Verbose
+        & (Get-MSDeploy) $publishArgs
+        #$webrootOutputFolder = (get-item (Join-Path $OutputPath 'wwwroot')).FullName
+        #Get-ChildItem -Path $outputpath -Exclude $excludeList | % {
+        #  Copy-Item $_.fullname "$pubOut" -Recurse -Force -WhatIf:$whatifpassed
+        #}
     }
 }
 
