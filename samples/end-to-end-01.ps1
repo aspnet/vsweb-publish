@@ -49,5 +49,6 @@ building and packing [{0}]
 BuildAndPack -rootSrcdir "$pubTempDir\aspnet_vnext_samples" -name 'console' -packOutdir $packOutDir
 BuildAndPack -rootSrcdir "$pubTempDir\aspnet_vnext_samples" -name 'web' -packOutdir $packOutDir
 BuildAndPack -rootSrcdir "$pubTempDir\aspnet_vnext_samples" -name 'mvc' -packOutdir $packOutDir
-'starting'|Write-Host -ForegroundColor Green
+'Pack complete to root [{0}]' -f $pubTempDir | Write-Output
+
 start "$pubTempDir"
