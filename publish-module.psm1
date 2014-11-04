@@ -99,9 +99,6 @@ function AspNet-PublishFileSystem{
     process{
         $pubOut = $PublishProperties['publishUrl']
         'Publishing files to {0}' -f $pubOut | Write-Output
-        # do a file system copy
-        # TODO: Add exclude statements based on skips from $PublishProperties
-        # TODO: Add support for retryAttempts?
 
         $excludeList = @()
         if($PublishProperties['ExcludeFiles']){
@@ -113,8 +110,6 @@ function AspNet-PublishFileSystem{
         
         'exclude list: [{0}]' -f ($excludeList -join (',')) | Write-Verbose
 
-        $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
-
         # we can use msdeploy.exe because it supports incremental publish/skips/replacements/etc
         # msdeploy.exe -verb:sync -source:contentPath='C:\srcpath' -dest:contentPath='c:\destpath'
         
@@ -123,7 +118,9 @@ function AspNet-PublishFileSystem{
         $publishArgs += ('-dest:contentPath=''{0}''' -f "$pubOut")
         $publishArgs += '-verb:sync'
         $publishArgs += '-useChecksum'
+        $publishArgs += '-retryAttempts=2'
 
+        $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
         if($whatifpassed){
             $publishArgs += '-whatif'
             $publishArgs += '-xml'
@@ -140,10 +137,6 @@ function AspNet-PublishFileSystem{
 
         'Calling msdeploy to publish to file system wiht the command: [{0} {1}]' -f (Get-MSDeploy),($publishArgs -join '') | Write-Verbose
         & (Get-MSDeploy) $publishArgs
-        #$webrootOutputFolder = (get-item (Join-Path $OutputPath 'wwwroot')).FullName
-        #Get-ChildItem -Path $outputpath -Exclude $excludeList | % {
-        #  Copy-Item $_.fullname "$pubOut" -Recurse -Force -WhatIf:$whatifpassed
-        #}
     }
 }
 
