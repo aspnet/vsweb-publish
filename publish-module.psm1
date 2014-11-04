@@ -63,6 +63,7 @@ function AspNet-PublishMSDeploy{
             # TODO: Override from $PublishProperties
             $publishArgs += '-retryAttempts=2'
             $publishArgs += '-useChecksum'
+            $publishArgs += '-disablerule:BackupRule'
 
             $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
             if($whatifpassed){
@@ -119,6 +120,7 @@ function AspNet-PublishFileSystem{
         $publishArgs += '-verb:sync'
         $publishArgs += '-useChecksum'
         $publishArgs += '-retryAttempts=2'
+        $publishArgs += '-disablerule:BackupRule'
 
         $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
         if($whatifpassed){
