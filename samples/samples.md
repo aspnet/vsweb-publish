@@ -33,8 +33,8 @@ These samples rely on the following.
      'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
 'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"
  	'ExcludeFiles'=@(
-		@{'Filepath'='test.txt'},
-		@{'Filepath'='_references.js'}
+		@{'Filepath'='wwwroot\\test.txt'},
+		@{'Filepath'='wwwroot\\_references.js'}
 )} -Verbose
 ```
 
