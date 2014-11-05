@@ -1,7 +1,10 @@
 ﻿[cmdletbinding()]
 param(
+    [Parameter(Position=0)]
     $versionToInstall = '0.0.4-beta',
+    [Parameter(Position=1)]
     $toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),
+    [Parameter(Position=2)]
     $nugetDownloadUrl = 'http://nuget.org/nuget.exe'
 )
 $script:moduleName = 'publish-module'

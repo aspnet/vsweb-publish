@@ -18,7 +18,9 @@ function Ensure-PublishModuleLoaded{
             (new-object Net.WebClient).DownloadFile($installScriptUrl,$installScriptPath) | Out-Null       
         }
 	
-		&($installScriptPath)
+		$installScriptArgs = @($versionToInstall,$toolsDir)
+        # seems to be the best way to invoke a .ps1 file with parameters
+        Invoke-Expression "& `"$installScriptPath`" $installScriptArgs"
     }
 }
 
