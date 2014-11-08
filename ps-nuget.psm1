@@ -5,7 +5,6 @@ $global:PSNuGetSettings = New-Object PSObject -Property @{
     DefaultToolsDir = "$env:LOCALAPPDATA\LigerShark\psnuget\"
     NuGetDownloadUrl = 'http://nuget.org/nuget.exe'
 }
-
 <#
 .SYNOPSIS
     This will return nuget from the $toolsDir. If it is not there then it
@@ -95,7 +94,7 @@ function Ensure-PsNuGetPackageIsAvailable{
 
         if(!$installPath){
             # install the nuget package and then return the path
-            $cmdArgs = @('install',$name,'-Version',$version,'-OutputDirectory',(Resolve-Path $toolsDir).ToString())
+            $cmdArgs = @('install',$name,'-Version',$version,'-prerelease','-OutputDirectory',(Resolve-Path $toolsDir).ToString())
             $nugetPath = (Get-Nuget -toolsDir $toolsDir)
 
             'Calling nuget to install a package with the following args. [{0} {1}]' -f $nugetPath, ($cmdArgs -join ' ') | Write-Verbose
