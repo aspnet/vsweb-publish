@@ -13,9 +13,8 @@ function Register-AspnetPublishHandler{
         [switch]$force
     )
     process{
-        
         if(!($script:AspNetPublishHandlers[$name])){
-            'Adding handler for' | Write-Verbose
+            'Adding handler for [{0}]' -f $name | Write-Verbose
             $script:AspNetPublishHandlers[$name] = $handler
         }
         elseif(!($force)){
@@ -52,13 +51,9 @@ function AspNet-Publish{
         $pubMethod = $PublishProperties['WebPublishMethod']
         'Publishing with publish method [{0}]' -f $pubMethod | Write-Output
 
-        # get the handler based on the value fro WebPublishMethod
-        $pubHandler = (Get-AspnetPublishHandler -name $pubMethod)
-
-        # invoke the handler passing the args
-        $allArgs = @($PublishProperties,$OutputPath)
+        # get the handler based on WebPublishMethod, and call it.
         # it seems that -whatif and -verbose are flowing through
-        &$pubHandler $PublishProperties $OutputPath
+        &(Get-AspnetPublishHandler -name $pubMethod) $PublishProperties $OutputPath
     }
 }
 
