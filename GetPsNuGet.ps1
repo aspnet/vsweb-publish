@@ -14,7 +14,7 @@ function Ensure-PsNuGetLoaded{
             (New-Object System.Net.WebClient).DownloadFile($psNuGetDownloadUrl, $expectedPath)
         }
         
-        Remove-Module 'ps-nuget' -Force
-        Import-Module $expectedPath 
+        if(get-module 'ps-nuget'){ Remove-Module 'ps-nuget' -Force }
+        Import-Module $expectedPath -DisableNameChecking
     }
 }
