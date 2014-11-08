@@ -219,6 +219,8 @@ function Get-MSDeployFullUrlFor{
     }
 }
 
+Export-ModuleMember -function Get-*,AspNet-*
+
 ##############################################
 # register the handlers
 ##############################################
@@ -247,5 +249,3 @@ Register-AspnetPublishHandler -name 'FileSystem' -handler {
     
     AspNet-PublishFileSystem -PublishProperties $PublishProperties -OutputPath $OutputPath
 }
-
-Export-ModuleMember -function Get-*,AspNet-*
