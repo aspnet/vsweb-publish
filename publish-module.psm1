@@ -1,6 +1,45 @@
 [cmdletbinding(SupportsShouldProcess=$true)]
 param()
 
+$script:AspNetPublishHandlers = @{}
+
+function Register-AspnetPublishHandler{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0)]
+        $name,
+        [Parameter(Mandatory=$true,Position=1)]
+        [ScriptBlock]$handler,
+        [switch]$force
+    )
+    process{
+        
+        if(!($script:AspNetPublishHandlers[$name])){
+            'Adding handler for' | Write-Verbose
+            $script:AspNetPublishHandlers[$name] = $handler
+        }
+        elseif(!($force)){
+            'Ignoring call to Register-AspnetPublishHandler for [name={0}], because a handler with that name exists and -force was not passed.' -f $name | Write-Verbose
+        }
+    }
+}
+
+function Get-AspnetPublishHandler{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0)]
+        $name
+    )
+    process{
+        if(!($script:AspNetPublishHandlers[$name])){
+            throw ('Aspnet publish handler not found for [{0}]' -f $name)
+        }
+        else{
+            $script:AspNetPublishHandlers[$name]
+        }
+    }
+}
+
 function AspNet-Publish{
     [cmdletbinding(SupportsShouldProcess=$true)]
     param(
@@ -12,13 +51,14 @@ function AspNet-Publish{
     process{
         $pubMethod = $PublishProperties['WebPublishMethod']
         'Publishing with publish method [{0}]' -f $pubMethod | Write-Output
-        $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
-        # figure out which of the impl method to call for the specific publish method
-        switch ($pubMethod){
-            'MSDeploy' {AspNet-PublishMSDeploy -PublishProperties $PublishProperties -OutputPath $OutputPath -WhatIf:$whatifpassed}
-            'FileSystem' {AspNet-PublishFileSystem -PublishProperties $PublishProperties -OutputPath $OutputPath -WhatIf:$whatifpassed}
-            default { throw ('Unknown value for WebPublishMethod [{0}]' -f $pubMethod)}
-        }
+
+        # get the handler based on the value fro WebPublishMethod
+        $pubHandler = (Get-AspnetPublishHandler -name $pubMethod)
+
+        # invoke the handler passing the args
+        $allArgs = @($PublishProperties,$OutputPath)
+        # it seems that -whatif and -verbose are flowing through
+        &$pubHandler $PublishProperties $OutputPath
     }
 }
 
@@ -62,7 +102,7 @@ function AspNet-PublishMSDeploy{
             $publishArgs += '-enableLink:contentLibExtension'
             # TODO: Override from $PublishProperties
             $publishArgs += '-retryAttempts=2'
-            $publishArgs += '-useChecksum'
+            # $publishArgs += '-useChecksum'
             $publishArgs += '-disablerule:BackupRule'
 
             $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
@@ -184,5 +224,33 @@ function Get-MSDeployFullUrlFor{
     }
 }
 
+##############################################
+# register the handlers
+##############################################
+'Registering MSDeploy handler' | Write-Verbose
+Register-AspnetPublishHandler -name 'MSDeploy' -force -handler { 
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+        $PublishProperties,
+        [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+        $OutputPath
+    )
+    
+    AspNet-PublishMSDeploy -PublishProperties $PublishProperties -OutputPath $OutputPath
+}
+
+'Registering FileSystem handler' | Write-Verbose
+Register-AspnetPublishHandler -name 'FileSystem' -handler {
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+        $PublishProperties,
+        [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+        $OutputPath
+    )
+    
+    AspNet-PublishFileSystem -PublishProperties $PublishProperties -OutputPath $OutputPath
+}
 
 Export-ModuleMember -function Get-*,AspNet-*

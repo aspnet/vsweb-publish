@@ -1,7 +1,7 @@
 ﻿[cmdletbinding()]
 param(
     [Parameter(Position=0)]
-    $versionToInstall = '0.0.4-beta',
+    $versionToInstall = '0.0.5-beta',
     [Parameter(Position=1)]
     $toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),
     [Parameter(Position=2)]
@@ -47,7 +47,7 @@ function Get-Nuget(){
 function GetPublishModuleFile{
     [cmdletbinding()]
     param(
-        $versionToInstall = '0.0.4-beta',
+        $versionToInstall = '0.0.5-beta',
         $toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),
         $nugetDownloadUrl = 'http://nuget.org/nuget.exe'
     )
@@ -60,7 +60,7 @@ function GetPublishModuleFile{
 
         if(!$psm1file){
             "Downloading $script:moduleName to the toolsDir" | Write-Verbose
-            # nuget install psbuild -Version 0.0.4-beta -Prerelease -OutputDirectory C:\temp\nuget\out\
+            # nuget install psbuild -Version 0.0.5-beta -Prerelease -OutputDirectory C:\temp\nuget\out\
             $cmdArgs = @('install',$script:moduleName,'-Version',$versionToInstall,'-Prerelease','-OutputDirectory',(Resolve-Path $toolsDir).ToString())
 
             $nugetPath = (Get-Nuget -toolsDir $toolsDir -nugetDownloadUrl $nugetDownloadUrl)
@@ -83,5 +83,8 @@ function GetPublishModuleFile{
 ###########################################
 
 $publishModuleFile = GetPublishModuleFile -versionToInstall $versionToInstall -toolsDir $toolsDir -nugetDownloadUrl $nugetDownloadUrl
+if(Get-Module publish-module){
+    Remove-Module publish-module -Force | Out-Null
+}
 'Importing publish-module from [{0}]' -f $publishModuleFile | Write-Verbose
 Import-Module $publishModuleFile -DisableNameChecking -Force

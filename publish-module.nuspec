@@ -5,7 +5,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">  
   <metadata>
     <id>publish-module</id>
-    <version>0.0.4-beta</version>
+    <version>0.0.5-beta</version>
     <authors>Sayed Ibrahim Hashimi</authors>
     <description>
       NuGet package which contians a PS module which can be used to for web publishing.
