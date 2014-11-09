@@ -12,8 +12,8 @@ function Register-AspnetPublishHandler{
         [ScriptBlock]$handler,
         [switch]$force
     )
-    process{
-        if(!($script:AspNetPublishHandlers[$name])){
+    process{        
+        if(!($script:AspNetPublishHandlers[$name]) -or $force ){
             'Adding handler for [{0}]' -f $name | Write-Verbose
             $script:AspNetPublishHandlers[$name] = $handler
         }
