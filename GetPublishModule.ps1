@@ -45,8 +45,11 @@ function Ensure-PsNuGetLoaded{
             'Downloading [{0}] to [{1}]' -f $psNuGetDownloadUrl,$expectedPath | Write-Verbose
             (New-Object System.Net.WebClient).DownloadFile($psNuGetDownloadUrl, $expectedPath)
         }
+        
+        if(!$expectedPath){throw ('Unable to download ps-nuget.psm1')}
+
         if(get-module 'ps-nuget'){ Remove-Module 'ps-nuget' -Force }
-        Import-Module $expectedPath -DisableNameChecking
+        Import-Module $expectedPath -Force
     }
 }
 
