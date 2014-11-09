@@ -133,6 +133,11 @@ function AspNet-Publish{
         $OutputPath
     )
     process{
+        if($PublishProperties['WebPublishMethodOverride']){
+            'Overriding publish method from $PublishProperties[''WebPublishMethodOverride''] to [{0}]' -f  ($PublishProperties['WebPublishMethodOverride']) | Write-Verbose
+            $PublishProperties['WebPublishMethod'] = $PublishProperties['WebPublishMethodOverride']
+        }
+
         $pubMethod = $PublishProperties['WebPublishMethod']
         'Publishing with publish method [{0}]' -f $pubMethod | Write-Output
 
