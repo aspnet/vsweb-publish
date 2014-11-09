@@ -3,7 +3,7 @@ param($PublishProperties, $OutputPath)
 
 function Ensure-PublishModuleLoaded{
     [cmdletbinding()]
-    param($versionToInstall = '0.0.5-beta',
+    param($versionToInstall = '0.0.6-beta',
         $installScriptUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/GetPublishModule.ps1',
         $toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),
         $installScriptPath = (Join-Path $toolsDir 'GetPublishModule.ps1'))
