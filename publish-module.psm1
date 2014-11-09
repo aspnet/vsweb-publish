@@ -89,6 +89,39 @@ function InternalGet-ReplacementsMSDeployArgs{
 
 <#
 .SYNOPSIS
+Returns an array of msdeploy arguments that are used across different providers.
+For example this wil handle useChecksum, appOffline, etc.
+#>
+function InternalGet-SharedMSDeployParametersfrom{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0)]
+        $publishProperties
+    )
+    process{
+        $sharedArgs = New-Object psobject -Property @{
+            ExtraArgs = @()
+            DestFragment = ''
+        }
+
+        if($publishProperties['MSDeployUseChecksum'] -and 
+            ($publishProperties['MSDeployUseChecksum'] -eq $true)){
+            $sharedArgs.ExtraArgs += '-usechecksum'
+        }
+
+        if($publishProperties['WebPublishMethod'] -eq 'MSDeploy'){
+            $offlineArgs = InternalGet-PublishAppOfflineProperties -publishProperties $publishProperties
+        }
+        $sharedArgs.ExtraArgs += $offlineArgs.AdditionalArguments
+        $sharedArgs.DestFragment += $offlineArgs.DestFragment
+        
+        # return the args
+        $sharedArgs        
+    }
+}
+
+<#
+.SYNOPSIS
 This will publish the folder based on the properties in $publishProperties
 
 .EXAMPLE
@@ -123,6 +156,15 @@ Aspnet-Publish -OutputPath $packOutput -PublishProperties @{
 	'Replacements' = @(
 		@{'file'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
 	}
+
+.EXAMPLE
+Aspnet-Publish -OutputPath $packOutput -PublishProperties @{
+	'WebPublishMethod'='FileSystem'
+	'publishUrl'="$publishDest"
+	'EnableMSDeployAppOffline'='true'
+	'AppOfflineTemplate'='offline-template.html'
+	'MSDeployUseChecksum'='true'
+}
 #>
 function AspNet-Publish{
     [cmdletbinding(SupportsShouldProcess=$true)]
@@ -173,22 +215,24 @@ function AspNet-PublishMSDeploy{
                 -userAgent="VS14.0:PublishDialog:WTE14.0.51027.0"
             #>
             # TODO: Get wwwroot value from $PublishProperties
+
+            $sharedArgs = InternalGet-SharedMSDeployParametersfrom -publishProperties $PublishProperties
+
             $webrootOutputFolder = (get-item (Join-Path $OutputPath 'wwwroot')).FullName
             $publishArgs = @()
             $publishArgs += ('-source:IisApp=''{0}''' -f "$webrootOutputFolder")
-            $publishArgs += ('-dest:IisApp=''{0}'',ComputerName=''{1}'',UserName=''{2}'',Password=''{3}'',IncludeAcls=''False'',AuthType=''Basic''' -f 
+            $publishArgs += ('-dest:IisApp=''{0}'',ComputerName=''{1}'',UserName=''{2}'',Password=''{3}'',IncludeAcls=''False'',AuthType=''Basic''{4}' -f 
                                     $PublishProperties['DeployIisAppPath'],
                                     (Get-MSDeployFullUrlFor -msdeployServiceUrl $PublishProperties['MSDeployServiceURL']),
                                     $PublishProperties['UserName'],
-                                    $publishPwd)
+                                    $publishPwd,
+                                    $sharedArgs.DestFragment)
             $publishArgs += '-verb:sync'
-            # TODO: get rules from $PublishProperties? We should have good defaults.
             $publishArgs += '-enableRule:DoNotDeleteRule'
             $publishArgs += '-enableLink:contentLibExtension'
-            # TODO: Override from $PublishProperties
             $publishArgs += '-retryAttempts=2'
-            # $publishArgs += '-useChecksum'
             $publishArgs += '-disablerule:BackupRule'
+            $publishArgs += $sharedArgs.ExtraArgs
 
             $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
             if($whatifpassed){
@@ -201,11 +245,44 @@ function AspNet-PublishMSDeploy{
             # add replacements
             $publishArgs += (InternalGet-ReplacementsMSDeployArgs -publishProperties $PublishProperties)
 
-            'Calling msdeploy with the call {0}' -f (($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')) | Write-Verbose
+            'Calling msdeploy with the call {0}' -f (($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')) | Write-Output
             & (Get-MSDeploy) $publishArgs
         }
         else{
             throw 'PublishProperties is empty, cannot publish'
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+If the passed in $publishProperties has values for appOffline the
+needed arguments will be in the return object. If there is no such configuraion
+then nothing is returned.
+#>
+function InternalGet-PublishAppOfflineProperties{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0)]
+        $publishProperties
+    )
+    process{
+        $extraArg = '';
+        $destFragment = ''
+        if($PublishProperties['EnableMSDeployAppOffline'] -and
+            ($PublishProperties['EnableMSDeployAppOffline'] -eq $true)){
+
+            $extraArg = '-enablerule:AppOffline'
+
+            $appOfflineTemplate = $PublishProperties['AppOfflineTemplate']
+            if($appOfflineTemplate){
+                $destFragment = (',appOfflineTemplate="{0}"' -f $appOfflineTemplate)
+            }
+        }
+        # return an object with both the properties that need to be in the command.
+        New-Object psobject -Property @{
+            AdditionalArguments = $extraArg
+            DestFragment = $destFragment
         }
     }
 }
@@ -225,13 +302,16 @@ function AspNet-PublishFileSystem{
         # we can use msdeploy.exe because it supports incremental publish/skips/replacements/etc
         # msdeploy.exe -verb:sync -source:contentPath='C:\srcpath' -dest:contentPath='c:\destpath'
         
+        $sharedArgs = InternalGet-SharedMSDeployParametersfrom -publishProperties $PublishProperties
+
         $publishArgs = @()
         $publishArgs += ('-source:contentPath=''{0}''' -f "$OutputPath")
-        $publishArgs += ('-dest:contentPath=''{0}''' -f "$pubOut")
+        $publishArgs += ('-dest:contentPath=''{0}''{1}' -f "$pubOut",$sharedArgs.DestFragment)
         $publishArgs += '-verb:sync'
         $publishArgs += '-useChecksum'
         $publishArgs += '-retryAttempts=2'
         $publishArgs += '-disablerule:BackupRule'
+        $publishArgs += $sharedArgs.ExtraArgs
 
         $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
         if($whatifpassed){
@@ -244,7 +324,7 @@ function AspNet-PublishFileSystem{
         # add replacements
         $publishArgs += (InternalGet-ReplacementsMSDeployArgs -publishProperties $PublishProperties)
 
-        'Calling msdeploy to publish to file system with the command: [{0} {1}]' -f (Get-MSDeploy),($publishArgs -join ' ') | Write-Verbose
+        'Calling msdeploy to publish to file system with the command: [{0} {1}]' -f (Get-MSDeploy),($publishArgs -join ' ') | Write-Output
         & (Get-MSDeploy) $publishArgs
     }
 }
