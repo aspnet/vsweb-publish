@@ -56,6 +56,74 @@ function InternalGet-ExcludeFilesArg{
     }
 }
 
+function InternalGet-ReplacementsMSDeployArgs{
+    [cmdletbinding()]
+    param(
+        $publishProperties
+    )
+    process{
+        if($publishProperties -and ($publishProperties['Replacements'])){
+            foreach($replace in ($publishProperties['Replacements'])){
+                
+                $typeValue = $replace['type']
+                if(!$typeValue){ $typeValue = 'TextFile' }
+                
+                $file = $replace['file']
+                $match = $replace['match']
+                $newValue = $replace['newValue']
+
+                if($file -and $match -and $newValue){
+                    $setParam = ('-setParam:type={0},scope={1},match={2},value={3}' -f $typeValue,$file, $match,$newValue)
+                    'Adding setparam [{0}]' -f $setParam | Write-Verbose
+
+                    # return it
+                    $setParam
+                }
+                else{
+                    'Skipping replacement because its missing a required value.' | Write-Verbose
+                }
+            }
+        }        
+    }
+}
+
+<#
+.SYNOPSIS
+This will publish the folder based on the properties in $publishProperties
+
+.EXAMPLE
+ Aspnet-Publish -OutputPath $packOutput -PublishProperties @{
+     'WebPublishMethod'='MSDeploy'
+     'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
+'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"} -Verbose
+
+.EXAMPLE
+Aspnet-Publish -OutputPath $packOutput -PublishProperties @{
+	'WebPublishMethod'='FileSystem'
+	'publishUrl'="$publishDest"
+	}
+
+.EXAMPLE
+Aspnet-Publish -OutputPath $packOutput -PublishProperties @{
+     'WebPublishMethod'='MSDeploy'
+     'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
+'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"
+ 	'ExcludeFiles'=@(
+		@{'Filepath'='wwwroot\\test.txt'},
+		@{'Filepath'='wwwroot\\_references.js'}
+)} 
+
+.EXAMPLE
+Aspnet-Publish -OutputPath $packOutput -PublishProperties @{
+	'WebPublishMethod'='FileSystem'
+	'publishUrl'="$publishDest"
+	'ExcludeFiles'=@(
+		@{'Filepath'='wwwroot\\test.txt'},
+		@{'Filepath'='wwwroot\\_references.js'})
+	'Replacements' = @(
+		@{'file'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
+	}
+#>
 function AspNet-Publish{
     [cmdletbinding(SupportsShouldProcess=$true)]
     param(
@@ -123,12 +191,10 @@ function AspNet-PublishMSDeploy{
                 $publishArgs+='-xml'
             }
 
-            $excludeFiles = InternalGet-ExcludeFilesArg -publishProperties $PublishProperties
-            if($excludeFiles){
-                foreach($exclude in $excludeFiles){
-                    $publishArgs += $exclude
-                }
-            }
+            # add excludes
+            $publishArgs += (InternalGet-ExcludeFilesArg -publishProperties $PublishProperties)
+            # add replacements
+            $publishArgs += (InternalGet-ReplacementsMSDeployArgs -publishProperties $PublishProperties)
 
             'Calling msdeploy with the call {0}' -f (($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')) | Write-Verbose
             & (Get-MSDeploy) $publishArgs
@@ -168,14 +234,12 @@ function AspNet-PublishFileSystem{
             $publishArgs += '-xml'
         }
 
-        $excludeFiles = InternalGet-ExcludeFilesArg -publishProperties $PublishProperties
-        if($excludeFiles){
-            foreach($exclude in $excludeFiles){
-                $publishArgs += $exclude
-            }
-        }
+        # add excludes
+        $publishArgs += (InternalGet-ExcludeFilesArg -publishProperties $PublishProperties)
+        # add replacements
+        $publishArgs += (InternalGet-ReplacementsMSDeployArgs -publishProperties $PublishProperties)
 
-        'Calling msdeploy to publish to file system wiht the command: [{0} {1}]' -f (Get-MSDeploy),($publishArgs -join '') | Write-Verbose
+        'Calling msdeploy to publish to file system with the command: [{0} {1}]' -f (Get-MSDeploy),($publishArgs -join ' ') | Write-Verbose
         & (Get-MSDeploy) $publishArgs
     }
 }
