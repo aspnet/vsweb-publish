@@ -39,6 +39,23 @@ function Get-AspnetPublishHandler{
     }
 }
 
+function InternalGet-ExcludeFilesArg{
+    [cmdletbinding()]
+    param(
+        $publishProperties
+    )
+    process{
+        if($publishProperties -and ($publishProperties['ExcludeFiles'])){
+            foreach($exclude in ($publishProperties['ExcludeFiles'])){
+                $excludePath = $exclude['Filepath']
+
+                # output the result to the return list
+                ('-skip:objectName=filePath,absolutePath={0}$' -f $excludePath)
+            }            
+        }
+    }
+}
+
 function AspNet-Publish{
     [cmdletbinding(SupportsShouldProcess=$true)]
     param(
@@ -106,12 +123,10 @@ function AspNet-PublishMSDeploy{
                 $publishArgs+='-xml'
             }
 
-            # see if there are any skips in $PublishProperties.
-            $excludeFiles = $PublishProperties['ExcludeFiles']
+            $excludeFiles = InternalGet-ExcludeFilesArg -publishProperties $PublishProperties
             if($excludeFiles){
                 foreach($exclude in $excludeFiles){
-                    $excludePath = $exclude['Filepath']
-                    $publishArgs += ('-skip:objectName=filePath,absolutePath={0}$' -f $excludePath)
+                    $publishArgs += $exclude
                 }
             }
 
@@ -136,16 +151,6 @@ function AspNet-PublishFileSystem{
         $pubOut = $PublishProperties['publishUrl']
         'Publishing files to {0}' -f $pubOut | Write-Output
 
-        $excludeList = @()
-        if($PublishProperties['ExcludeFiles']){
-            foreach($exclude in $PublishProperties['ExcludeFiles']){
-                $excludePath = $exclude['Filepath']
-                $excludeList += $excludePath
-            }
-        }
-        
-        'exclude list: [{0}]' -f ($excludeList -join (',')) | Write-Verbose
-
         # we can use msdeploy.exe because it supports incremental publish/skips/replacements/etc
         # msdeploy.exe -verb:sync -source:contentPath='C:\srcpath' -dest:contentPath='c:\destpath'
         
@@ -163,12 +168,10 @@ function AspNet-PublishFileSystem{
             $publishArgs += '-xml'
         }
 
-        # see if there are any skips in $PublishProperties.
-        $excludeFiles = $PublishProperties['ExcludeFiles']
+        $excludeFiles = InternalGet-ExcludeFilesArg -publishProperties $PublishProperties
         if($excludeFiles){
             foreach($exclude in $excludeFiles){
-                $excludePath = $exclude['Filepath']
-                $publishArgs += ('-skip:objectName=filePath,absolutePath={0}$' -f $excludePath)
+                $publishArgs += $exclude
             }
         }
 
