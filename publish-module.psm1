@@ -45,13 +45,11 @@ function InternalGet-ExcludeFilesArg{
         $publishProperties
     )
     process{
-        if($publishProperties -and ($publishProperties['ExcludeFiles'])){
-            foreach($exclude in ($publishProperties['ExcludeFiles'])){
-                $excludePath = $exclude['Filepath']
+        foreach($exclude in ($publishProperties['ExcludeFiles'])){
+            $excludePath = $exclude['Filepath']
 
-                # output the result to the return list
-                ('-skip:objectName=filePath,absolutePath={0}$' -f $excludePath)
-            }            
+            # output the result to the return list
+            ('-skip:objectName=filePath,absolutePath={0}$' -f $excludePath)
         }
     }
 }
@@ -62,28 +60,25 @@ function InternalGet-ReplacementsMSDeployArgs{
         $publishProperties
     )
     process{
-        if($publishProperties -and ($publishProperties['Replacements'])){
-            foreach($replace in ($publishProperties['Replacements'])){
+        foreach($replace in ($publishProperties['Replacements'])){                
+            $typeValue = $replace['type']
+            if(!$typeValue){ $typeValue = 'TextFile' }
                 
-                $typeValue = $replace['type']
-                if(!$typeValue){ $typeValue = 'TextFile' }
-                
-                $file = $replace['file']
-                $match = $replace['match']
-                $newValue = $replace['newValue']
+            $file = $replace['file']
+            $match = $replace['match']
+            $newValue = $replace['newValue']
 
-                if($file -and $match -and $newValue){
-                    $setParam = ('-setParam:type={0},scope={1},match={2},value={3}' -f $typeValue,$file, $match,$newValue)
-                    'Adding setparam [{0}]' -f $setParam | Write-Verbose
+            if($file -and $match -and $newValue){
+                $setParam = ('-setParam:type={0},scope={1},match={2},value={3}' -f $typeValue,$file, $match,$newValue)
+                'Adding setparam [{0}]' -f $setParam | Write-Verbose
 
-                    # return it
-                    $setParam
-                }
-                else{
-                    'Skipping replacement because its missing a required value.' | Write-Verbose
-                }
+                # return it
+                $setParam
             }
-        }        
+            else{
+                'Skipping replacement because its missing a required value.' | Write-Verbose
+            }
+        }       
     }
 }
 
@@ -104,19 +99,23 @@ function InternalGet-SharedMSDeployParametersfrom{
             DestFragment = ''
         }
 
-        if($publishProperties['MSDeployUseChecksum'] -and 
-            ($publishProperties['MSDeployUseChecksum'] -eq $true)){
+        if($publishProperties['MSDeployUseChecksum'] -eq $true){
             $sharedArgs.ExtraArgs += '-usechecksum'
         }
 
         if($publishProperties['WebPublishMethod'] -eq 'MSDeploy'){
             $offlineArgs = InternalGet-PublishAppOfflineProperties -publishProperties $publishProperties
         }
+
+        if($publishProperties['EncryptWebConfig'] -eq $true){
+            $sharedArgs.ExtraArgs += '–EnableRule:EncryptWebConfig'
+        }
+
         $sharedArgs.ExtraArgs += $offlineArgs.AdditionalArguments
         $sharedArgs.DestFragment += $offlineArgs.DestFragment
         
         # return the args
-        $sharedArgs        
+        $sharedArgs
     }
 }
 
