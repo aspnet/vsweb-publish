@@ -351,7 +351,7 @@ function Get-MSDeployFullUrlFor{
     }
 }
 
-Export-ModuleMember -function Get-*,AspNet-*
+Export-ModuleMember -function Get-*,AspNet-*,Register-*
 
 ##############################################
 # register the handlers
