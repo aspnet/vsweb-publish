@@ -49,7 +49,8 @@ function Ensure-PsNuGetLoaded{
         if(!$expectedPath){throw ('Unable to download ps-nuget.psm1')}
 
         if(get-module 'ps-nuget'){ Remove-Module 'ps-nuget' -Force }
-        Import-Module $expectedPath -Force -DisableNameChecking
+        'importing module into global [{0}]' -f $expectedPath | Write-Output
+        Import-Module $expectedPath -DisableNameChecking -Force -Scope Global
     }
 }
 
