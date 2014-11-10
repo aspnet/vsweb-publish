@@ -105,15 +105,24 @@ function InternalGet-SharedMSDeployParametersfrom{
 
         if($publishProperties['WebPublishMethod'] -eq 'MSDeploy'){
             $offlineArgs = InternalGet-PublishAppOfflineProperties -publishProperties $publishProperties
+            $sharedArgs.ExtraArgs += $offlineArgs.AdditionalArguments
+            $sharedArgs.DestFragment += $offlineArgs.DestFragment
         }
 
         if($publishProperties['EncryptWebConfig'] -eq $true){
-            $sharedArgs.ExtraArgs += '–EnableRule:EncryptWebConfig'
+            $sharedArgs.ExtraArgs += '–EnableRule:EncryptWebConfig'        
         }
 
-        $sharedArgs.ExtraArgs += $offlineArgs.AdditionalArguments
-        $sharedArgs.DestFragment += $offlineArgs.DestFragment
-        
+        if(!($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))){
+            $sharedArgs.ExtraArgs +='-whatif'
+            $sharedArgs.ExtraArgs +='-xml'
+        }
+
+        # add excludes
+        $sharedArgs.ExtraArgs += (InternalGet-ExcludeFilesArg -publishProperties $PublishProperties)
+        # add replacements
+        $sharedArgs.ExtraArgs += (InternalGet-ReplacementsMSDeployArgs -publishProperties $PublishProperties)
+
         # return the args
         $sharedArgs
     }
@@ -197,10 +206,7 @@ function AspNet-PublishMSDeploy{
         $OutputPath
     )
     process{
-        # call msdeploy.exe to start the publish process
-
         if($PublishProperties){
-            # TODO: Get passwod from $PublishProperties
             $publishPwd = $PublishProperties['Password']
 
             <#
@@ -233,17 +239,6 @@ function AspNet-PublishMSDeploy{
             $publishArgs += '-disablerule:BackupRule'
             $publishArgs += $sharedArgs.ExtraArgs
 
-            $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
-            if($whatifpassed){
-                $publishArgs+='-whatif'
-                $publishArgs+='-xml'
-            }
-
-            # add excludes
-            $publishArgs += (InternalGet-ExcludeFilesArg -publishProperties $PublishProperties)
-            # add replacements
-            $publishArgs += (InternalGet-ReplacementsMSDeployArgs -publishProperties $PublishProperties)
-
             'Calling msdeploy with the call {0}' -f (($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')) | Write-Output
             & (Get-MSDeploy) $publishArgs
         }
@@ -268,9 +263,7 @@ function InternalGet-PublishAppOfflineProperties{
     process{
         $extraArg = '';
         $destFragment = ''
-        if($PublishProperties['EnableMSDeployAppOffline'] -and
-            ($PublishProperties['EnableMSDeployAppOffline'] -eq $true)){
-
+        if($PublishProperties['EnableMSDeployAppOffline'] -eq $true){
             $extraArg = '-enablerule:AppOffline'
 
             $appOfflineTemplate = $PublishProperties['AppOfflineTemplate']
@@ -307,21 +300,9 @@ function AspNet-PublishFileSystem{
         $publishArgs += ('-source:contentPath=''{0}''' -f "$OutputPath")
         $publishArgs += ('-dest:contentPath=''{0}''{1}' -f "$pubOut",$sharedArgs.DestFragment)
         $publishArgs += '-verb:sync'
-        $publishArgs += '-useChecksum'
         $publishArgs += '-retryAttempts=2'
         $publishArgs += '-disablerule:BackupRule'
         $publishArgs += $sharedArgs.ExtraArgs
-
-        $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
-        if($whatifpassed){
-            $publishArgs += '-whatif'
-            $publishArgs += '-xml'
-        }
-
-        # add excludes
-        $publishArgs += (InternalGet-ExcludeFilesArg -publishProperties $PublishProperties)
-        # add replacements
-        $publishArgs += (InternalGet-ReplacementsMSDeployArgs -publishProperties $PublishProperties)
 
         'Calling msdeploy to publish to file system with the command: [{0} {1}]' -f (Get-MSDeploy),($publishArgs -join ' ') | Write-Output
         & (Get-MSDeploy) $publishArgs
