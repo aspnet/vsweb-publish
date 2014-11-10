@@ -112,6 +112,4 @@ function Ensure-PsNuGetPackageIsAvailable{
     }
 }
 
-
-
-
+Export-ModuleMember -function *
