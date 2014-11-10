@@ -65,4 +65,4 @@ if(Get-Module publish-module){
     Remove-Module publish-module -Force | Out-Null
 }
 'Importing publish-module from [{0}]' -f $publishModuleFile | Write-Verbose
-Import-Module $publishModuleFile -DisableNameChecking -Force
+Import-Module $publishModuleFile -DisableNameChecking -Force -Global
