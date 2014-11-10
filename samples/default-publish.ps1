@@ -24,7 +24,6 @@ function Ensure-PublishModuleLoaded{
     }
 }
 
-$whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
 'loading publish-module' | Write-Output
 Ensure-PublishModuleLoaded
 
