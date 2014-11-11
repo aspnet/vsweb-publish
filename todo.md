@@ -23,3 +23,5 @@ it will not call kpm pack.
    the output and then publish to the web server
   2. User want's to completely customize publish and VS/MSBuild calling kpm pack is
    not needed. Instead they just need the path to the source folder.
+
+ - There should be a way to cancel the script after it has started. Currently if I have a long running script and I made an error in it I have to wait for it to exit or kill vs.
