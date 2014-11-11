@@ -1,31 +1,55 @@
 ﻿[cmdletbinding(SupportsShouldProcess=$true)]
 param($PublishProperties, $OutputPath)
 
-function Ensure-PublishModuleLoaded{
+function Ensure-PsNuGetLoaded{
     [cmdletbinding()]
-    param($versionToInstall = '0.0.7-beta',
-        $installScriptUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/GetPublishModule.ps1',
-        $toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),
-        $installScriptPath = (Join-Path $toolsDir 'GetPublishModule.ps1'))
+    param($toolsDir = "$env:LOCALAPPDATA\LigerShark\psnuget\",
+        $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/ps-nuget.psm1')
     process{
-        if(!(Test-Path $installScriptPath)){
-            $installDir = [System.IO.Path]::GetDirectoryName($installScriptPath)
-            if(!(Test-Path $installDir)){
-                New-Item -Path $installDir -ItemType Directory -WhatIf:$false | Out-Null
-            }
+        if(!(get-module 'ps-nuget')){
+            if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory }
 
-            'Downloading from [{0}] to [{1}]' -f $installScriptUrl, $installScriptPath| Write-Verbose
-            (new-object Net.WebClient).DownloadFile($installScriptUrl,$installScriptPath) | Out-Null       
+            $expectedPath = (Join-Path ($toolsDir) 'ps-nuget.psm1')
+            if(!(Test-Path $expectedPath)){
+                'Downloading [{0}] to [{1}]' -f $psNuGetDownloadUrl,$expectedPath | Write-Verbose
+                (New-Object System.Net.WebClient).DownloadFile($psNuGetDownloadUrl, $expectedPath)
+            }
+        
+            if(!$expectedPath){throw ('Unable to download ps-nuget.psm1')}
+
+            'importing module into global [{0}]' -f $expectedPath | Write-Output
+            Import-Module $expectedPath -DisableNameChecking -Force -Scope Global
         }
-	
-		$installScriptArgs = @($versionToInstall,$toolsDir)
-        # seems to be the best way to invoke a .ps1 file with parameters
-        Invoke-Expression "& `"$installScriptPath`" $installScriptArgs"
     }
 }
 
-'loading publish-module' | Write-Output
-Ensure-PublishModuleLoaded
+function Ensure-NuGetModuleIsLoaded{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0)]
+        $name,
+        [Parameter(Mandatory=$true,Position=1)] # later we can make this optional
+        $version,
+        [Parameter(Position=2)]
+        $toolsDir = $global:PSNuGetSettings.DefaultToolsDir
+    )
+    process{
+        if(!(get-module $name)){
+            $installDir = Ensure-PsNuGetPackageIsAvailable -name $name -version $version
+            $moduleFile = (join-path $installDir ("tools\{0}.psm1" -f $name))
+            'Loading module from [{0}]' -f $moduleFile | Write-Output
+            Import-Module $moduleFile -DisableNameChecking
+        }
+        else{
+            'module [{0}] is already loaded skipping' -f $name | Write-Output
+        }
+    }
+}
+
+Ensure-PsNuGetLoaded
+Ensure-NuGetModuleIsLoaded -name 'publish-module' -version '0.0.6-beta'
+
+$whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
 
 'Calling AspNet-Publish' | Write-Output
 # call AspNet-Publish to perform the publish operation
