@@ -112,4 +112,42 @@ function Ensure-PsNuGetPackageIsAvailable{
     }
 }
 
+<#
+This will ensure that the given module is imported into the PS session. If not then 
+it will be imported from %localappdata%. The package will be restored using
+Ensure-PsNuGetPackageIsAvailable.
+
+This function assumes that the name of the PS module is the name of the .psm1 file 
+and that file is in the tools\ folder in the NuGet package.
+
+.EXAMPLE
+Ensure-NuGetModuleIsLoaded -name 'publish-module' -version '0.0.6-beta'
+
+.EXAMPLE
+Ensure-NuGetModuleIsLoaded -name 'publish-module-blob' -version '0.0.6-beta'
+#>
+<#
+function Ensure-NuGetModuleIsLoaded{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0)]
+        $name,
+        [Parameter(Mandatory=$true,Position=1)] # later we can make this optional
+        $version,
+        [Parameter(Position=2)]
+        $toolsDir = $global:PSNuGetSettings.DefaultToolsDir
+    )
+    process{
+        if(!(get-module $name)){
+            $installDir = Ensure-PsNuGetPackageIsAvailable -name $name -version $version
+            $moduleFile = (join-path $installDir ("tools\{0}.psm1" -f $name))
+            'Loading module from [{0}]' -f $moduleFile | Write-Output
+            Import-Module $moduleFile -DisableNameChecking
+        }
+        else{
+            'module [{0}] is already loaded skipping' -f $name | Write-Output
+        }
+    }
+}
+#>
 Export-ModuleMember -function *

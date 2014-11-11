@@ -44,7 +44,6 @@ function Get-Nuget(){
 }
 
 $outputRoot = Join-Path $scriptDir "OutputRoot"
-$nuspecFile = (get-item(Join-Path $scriptDir "publish-module.nuspec")).FullName
 $nugetDevRepo = 'C:\temp\nuget\localrepo\'
 
 if(!(Test-Path $outputRoot)){
@@ -54,7 +53,11 @@ if(!(Test-Path $outputRoot)){
 $outputRoot = (Get-Item $outputRoot).FullName
 # call nuget to create the package
 
-$nugetArgs = @('pack',$nuspecFile,'-o',$outputRoot)
+$nugetArgs = @('pack',(get-item(Join-Path $scriptDir "publish-module.nuspec")).FullName,'-o',$outputRoot)
+'Calling nuget.exe with the command:[nuget.exe {0}]' -f  ($nugetArgs -join ' ') | Write-Verbose
+&(Get-Nuget) $nugetArgs
+
+$nugetArgs = @('pack',(get-item(Join-Path $scriptDir "publish-module-blob.nuspec")).FullName,'-o',$outputRoot)
 'Calling nuget.exe with the command:[nuget.exe {0}]' -f  ($nugetArgs -join ' ') | Write-Verbose
 &(Get-Nuget) $nugetArgs
 

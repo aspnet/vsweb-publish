@@ -351,7 +351,27 @@ function Get-MSDeployFullUrlFor{
     }
 }
 
-Export-ModuleMember -function Get-*,AspNet-*,Register-*
+function Ensure-PsNuGetLoaded{
+    [cmdletbinding()]
+    param($toolsDir = "$env:LOCALAPPDATA\LigerShark\psnuget\",
+        $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/ps-nuget.psm1')
+    process{
+        if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory | Out-Null }
+
+        $expectedPath = (Join-Path ($toolsDir) 'ps-nuget.psm1')
+        if(!(Test-Path $expectedPath)){
+            'Downloading [{0}] to [{1}]' -f $psNuGetDownloadUrl,$expectedPath | Write-Verbose
+            (New-Object System.Net.WebClient).DownloadFile($psNuGetDownloadUrl, $expectedPath) | Out-Null
+        }
+        
+        if(!(get-module 'ps-nuget')){
+            'importing module into global [{0}]' -f $expectedPath | Write-Output
+            Import-Module $expectedPath -DisableNameChecking -Force -Scope Global
+        }
+    }
+}
+
+Export-ModuleMember -function Get-*,AspNet-*,Register-*,Ensure-*
 
 ##############################################
 # register the handlers
@@ -381,3 +401,5 @@ Register-AspnetPublishHandler -name 'FileSystem' -handler {
     
     AspNet-PublishFileSystem -PublishProperties $PublishProperties -OutputPath $OutputPath
 }
+
+Ensure-PsNuGetLoaded
