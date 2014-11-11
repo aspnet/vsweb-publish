@@ -25,3 +25,9 @@ it will not call kpm pack.
    not needed. Instead they just need the path to the source folder.
 
  - There should be a way to cancel the script after it has started. Currently if I have a long running script and I made an error in it I have to wait for it to exit or kill vs.
+
+ - We should have a way to disable launching the browser after publish is already completed. Note: we probably already have an MSBuild property for this
+
+ - Import-Module must be in the publish .ps1 file. If you call Import-Module from an imported .psm1 file the imported module is not visible to the publish script.
+
+ - We should investigate issues with the PS assembly not being available on win7/win2012 server
