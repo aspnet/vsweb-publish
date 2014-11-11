@@ -121,10 +121,10 @@ This function assumes that the name of the PS module is the name of the .psm1 fi
 and that file is in the tools\ folder in the NuGet package.
 
 .EXAMPLE
-Ensure-NuGetModuleIsLoaded -name 'publish-module' -version '0.0.6-beta'
+Ensure-NuGetModuleIsLoaded -name 'publish-module' -version '0.0.7-beta'
 
 .EXAMPLE
-Ensure-NuGetModuleIsLoaded -name 'publish-module-blob' -version '0.0.6-beta'
+Ensure-NuGetModuleIsLoaded -name 'publish-module-blob' -version '0.0.7-beta'
 #>
 <#
 function Ensure-NuGetModuleIsLoaded{
