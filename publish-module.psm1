@@ -133,19 +133,19 @@ function GetInternal-SharedMSDeployParametersFrom{
 This will publish the folder based on the properties in $publishProperties
 
 .EXAMPLE
- Aspnet-Publish -OutputPath $packOutput -PublishProperties @{
+ Publish-Aspnet -OutputPath $packOutput -PublishProperties @{
      'WebPublishMethod'='MSDeploy'
      'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
 'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"} -Verbose
 
 .EXAMPLE
-Aspnet-Publish -OutputPath $packOutput -PublishProperties @{
+Publish-Aspnet -OutputPath $packOutput -PublishProperties @{
 	'WebPublishMethod'='FileSystem'
 	'publishUrl'="$publishDest"
 	}
 
 .EXAMPLE
-Aspnet-Publish -OutputPath $packOutput -PublishProperties @{
+Publish-Aspnet -OutputPath $packOutput -PublishProperties @{
      'WebPublishMethod'='MSDeploy'
      'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
 'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"
@@ -155,7 +155,7 @@ Aspnet-Publish -OutputPath $packOutput -PublishProperties @{
 )} 
 
 .EXAMPLE
-Aspnet-Publish -OutputPath $packOutput -PublishProperties @{
+Publish-Aspnet -OutputPath $packOutput -PublishProperties @{
 	'WebPublishMethod'='FileSystem'
 	'publishUrl'="$publishDest"
 	'ExcludeFiles'=@(
@@ -166,7 +166,7 @@ Aspnet-Publish -OutputPath $packOutput -PublishProperties @{
 	}
 
 .EXAMPLE
-Aspnet-Publish -OutputPath $packOutput -PublishProperties @{
+Publish-Aspnet -OutputPath $packOutput -PublishProperties @{
 	'WebPublishMethod'='FileSystem'
 	'publishUrl'="$publishDest"
 	'EnableMSDeployAppOffline'='true'
@@ -174,7 +174,7 @@ Aspnet-Publish -OutputPath $packOutput -PublishProperties @{
 	'MSDeployUseChecksum'='true'
 }
 #>
-function AspNet-Publish{
+function Publish-Aspnet{
     [cmdletbinding(SupportsShouldProcess=$true)]
     param(
         [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]

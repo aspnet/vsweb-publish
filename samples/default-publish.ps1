@@ -51,6 +51,6 @@ Ensure-NuGetModuleIsLoaded -name 'publish-module' -version '0.0.6-beta'
 
 $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
 
-'Calling AspNet-Publish' | Write-Output
-# call AspNet-Publish to perform the publish operation
-AspNet-Publish -publishProperties $PublishProperties -OutputPath $OutputPath -Verbose -WhatIf:$whatifpassed
+'Calling Publish-Aspnet' | Write-Output
+# call Publish-Aspnet to perform the publish operation
+Publish-Aspnet -publishProperties $PublishProperties -OutputPath $OutputPath -Verbose -WhatIf:$whatifpassed
