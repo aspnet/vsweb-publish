@@ -74,6 +74,6 @@ Register-AspnetPublishHandler -name 'BlobStorage' -handler {
     Publish-FolderToBlobStorage -folder $OutputPath -storageAcctName $PublishProperties['StorageAcctName'] -storageAcctKey $PublishProperties['StorageAcctKey'] -containerName $PublishProperties['StorageContainer']
 }
 
-'Calling Publish-Aspnet' | Write-Output
-# call Publish-Aspnet to perform the publish operation
-Publish-Aspnet -publishProperties $PublishProperties -OutputPath $OutputPath -Verbose -WhatIf:$whatifpassed
+'Calling Publish-AspNet' | Write-Output
+# call Publish-AspNet to perform the publish operation
+Publish-AspNet -publishProperties $PublishProperties -OutputPath $OutputPath -Verbose -WhatIf:$whatifpassed

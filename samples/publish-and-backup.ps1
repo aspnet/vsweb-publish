@@ -30,9 +30,9 @@ Ensure-PublishModuleLoaded
 
 $webrootOutputFolder = (get-item (Join-Path $OutputPath 'wwwroot')).FullName
 
-'Calling Publish-Aspnet' | Write-Output
-# call Publish-Aspnet to perform the publish operation
-Publish-Aspnet -publishProperties $publishProperties -OutputPath $OutputPath -Verbose -WhatIf:$whatifpassed
+'Calling Publish-AspNet' | Write-Output
+# call Publish-AspNet to perform the publish operation
+Publish-AspNet -publishProperties $publishProperties -OutputPath $OutputPath -Verbose -WhatIf:$whatifpassed
 
 $backupdir = 'C:\temp\publish\new'
 if(Test-Path){ Remove-Item $backupdir -Recurse -Force }
@@ -41,6 +41,6 @@ if(!(Test-path)){
 }
 
 # publish with file system
-Publish-Aspnet -publishProperties @{
+Publish-AspNet -publishProperties @{
 	'WebPublishMethod'='FileSystem'
 	'publishUrl'='C:\temp\publish\new'} -OutputPath $backupdir -Verbose -WhatIf:$whatifpassed

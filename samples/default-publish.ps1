@@ -47,10 +47,10 @@ function Ensure-NuGetModuleIsLoaded{
 }
 
 Ensure-PsNuGetLoaded
-Ensure-NuGetModuleIsLoaded -name 'publish-module' -version '0.0.6-beta'
+Ensure-NuGetModuleIsLoaded -name 'publish-module' -version '0.0.7-beta'
 
 $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
 
-'Calling Publish-Aspnet' | Write-Output
-# call Publish-Aspnet to perform the publish operation
-Publish-Aspnet -publishProperties $PublishProperties -OutputPath $OutputPath -Verbose -WhatIf:$whatifpassed
+'Calling Publish-AspNet' | Write-Output
+# call Publish-AspNet to perform the publish operation
+Publish-AspNet -publishProperties $PublishProperties -OutputPath $OutputPath -Verbose -WhatIf:$whatifpassed

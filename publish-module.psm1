@@ -133,19 +133,19 @@ function GetInternal-SharedMSDeployParametersFrom{
 This will publish the folder based on the properties in $publishProperties
 
 .EXAMPLE
- Publish-Aspnet -OutputPath $packOutput -PublishProperties @{
+ Publish-AspNet -OutputPath $packOutput -PublishProperties @{
      'WebPublishMethod'='MSDeploy'
      'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
 'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"} -Verbose
 
 .EXAMPLE
-Publish-Aspnet -OutputPath $packOutput -PublishProperties @{
+Publish-AspNet -OutputPath $packOutput -PublishProperties @{
 	'WebPublishMethod'='FileSystem'
 	'publishUrl'="$publishDest"
 	}
 
 .EXAMPLE
-Publish-Aspnet -OutputPath $packOutput -PublishProperties @{
+Publish-AspNet -OutputPath $packOutput -PublishProperties @{
      'WebPublishMethod'='MSDeploy'
      'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
 'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"
@@ -155,7 +155,7 @@ Publish-Aspnet -OutputPath $packOutput -PublishProperties @{
 )} 
 
 .EXAMPLE
-Publish-Aspnet -OutputPath $packOutput -PublishProperties @{
+Publish-AspNet -OutputPath $packOutput -PublishProperties @{
 	'WebPublishMethod'='FileSystem'
 	'publishUrl'="$publishDest"
 	'ExcludeFiles'=@(
@@ -166,7 +166,7 @@ Publish-Aspnet -OutputPath $packOutput -PublishProperties @{
 	}
 
 .EXAMPLE
-Publish-Aspnet -OutputPath $packOutput -PublishProperties @{
+Publish-AspNet -OutputPath $packOutput -PublishProperties @{
 	'WebPublishMethod'='FileSystem'
 	'publishUrl'="$publishDest"
 	'EnableMSDeployAppOffline'='true'
@@ -174,7 +174,7 @@ Publish-Aspnet -OutputPath $packOutput -PublishProperties @{
 	'MSDeployUseChecksum'='true'
 }
 #>
-function Publish-Aspnet{
+function Publish-AspNet{
     [cmdletbinding(SupportsShouldProcess=$true)]
     param(
         [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
@@ -197,7 +197,7 @@ function Publish-Aspnet{
     }
 }
 
-function AspNet-PublishMSDeploy{
+function Publish-AspNetMSDeploy{
     [cmdletbinding(SupportsShouldProcess=$true)]
     param(
         [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
@@ -279,7 +279,7 @@ function GetInternal-PublishAppOfflineProperties{
     }
 }
 
-function AspNet-PublishFileSystem{
+function Publish-AspNetFileSystem{
     [cmdletbinding(SupportsShouldProcess=$true)]
     param(
         [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
@@ -371,7 +371,7 @@ function Ensure-PsNuGetLoaded{
     }
 }
 
-Export-ModuleMember -function Get-*,AspNet-*,Register-*,Ensure-*
+Export-ModuleMember -function Get-*,Publish-*,Register-*,Ensure-*
 
 ##############################################
 # register the handlers
@@ -386,7 +386,7 @@ Register-AspnetPublishHandler -name 'MSDeploy' -force -handler {
         $OutputPath
     )
     
-    AspNet-PublishMSDeploy -PublishProperties $PublishProperties -OutputPath $OutputPath
+    Publish-AspNetMSDeploy -PublishProperties $PublishProperties -OutputPath $OutputPath
 }
 
 'Registering FileSystem handler' | Write-Verbose
@@ -399,7 +399,7 @@ Register-AspnetPublishHandler -name 'FileSystem' -handler {
         $OutputPath
     )
     
-    AspNet-PublishFileSystem -PublishProperties $PublishProperties -OutputPath $OutputPath
+    Publish-AspNetFileSystem -PublishProperties $PublishProperties -OutputPath $OutputPath
 }
 
 Ensure-PsNuGetLoaded
