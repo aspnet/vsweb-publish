@@ -126,8 +126,10 @@ Ensure-NuGetModuleIsLoaded -name 'publish-module' -version '0.0.7-beta'
 .EXAMPLE
 Ensure-NuGetModuleIsLoaded -name 'publish-module-blob' -version '0.0.7-beta'
 #>
-<#
-function Ensure-NuGetModuleIsLoaded{
+
+# For now this function has to be declared directly in the publish
+# .ps1 file, not sure why.
+function Ensure-NuGetModuleIsLoaded2{
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true,Position=0)]
@@ -149,5 +151,5 @@ function Ensure-NuGetModuleIsLoaded{
         }
     }
 }
-#>
+
 Export-ModuleMember -function *

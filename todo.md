@@ -30,3 +30,5 @@ it will not call kpm pack.
 - Import-Module must be in the publish .ps1 file. If you call Import-Module from an imported .psm1 file the imported module is not visible to the publish script.
 
 - We should investigate issues with the PS assembly not being available on win7/win2012 server
+
+- If there is an error in the .ps1 file there is no indication of this in the output. It would be better to give an error message here and make it clear that the publish operation failed due to the script.
