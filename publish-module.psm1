@@ -351,7 +351,7 @@ function Get-MSDeployFullUrlFor{
     }
 }
 
-function Ensure-PsNuGetLoaded{
+function Enable-PsNuGet{
     [cmdletbinding()]
     param($toolsDir = "$env:LOCALAPPDATA\LigerShark\psnuget\",
         $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/ps-nuget.psm1')
@@ -371,7 +371,7 @@ function Ensure-PsNuGetLoaded{
     }
 }
 
-Export-ModuleMember -function Get-*,Publish-*,Register-*,Ensure-*
+Export-ModuleMember -function Get-*,Publish-*,Register-*,Enable-*
 
 ##############################################
 # register the handlers
@@ -402,4 +402,4 @@ Register-AspnetPublishHandler -name 'FileSystem' -handler {
     Publish-AspNetFileSystem -PublishProperties $PublishProperties -OutputPath $OutputPath
 }
 
-Ensure-PsNuGetLoaded
+Enable-PsNuGet

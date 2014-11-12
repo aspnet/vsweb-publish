@@ -21,7 +21,7 @@ function GetPublishModuleFile{
         if(!(Test-Path $toolsDir)){
             New-Item -Path $toolsDir -ItemType Directory | out-null
         }
-        $folderPath = Ensure-PsNuGetPackageIsAvailable -name 'publish-module' -version $versionToInstall 
+        $folderPath = Get-PsNuGetPackage -name 'publish-module' -version $versionToInstall 
 
         $psm1File = (Join-Path $folderPath 'tools\publish-module.psm1')
 
@@ -33,7 +33,7 @@ function GetPublishModuleFile{
     }
 }
 
-function Ensure-PsNuGetLoaded{
+function Enable-PsNuGet{
     [cmdletbinding()]
     param($toolsDir = "$env:LOCALAPPDATA\LigerShark\psnuget\",
         $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/ps-nuget.psm1')
@@ -59,7 +59,7 @@ function Ensure-PsNuGetLoaded{
 # Begin script
 ###########################################
 
-Ensure-PsNuGetLoaded
+Enable-PsNuGet
 
 $publishModuleFile = GetPublishModuleFile -versionToInstall $versionToInstall -toolsDir $toolsDir -nugetDownloadUrl $nugetDownloadUrl
 if(Get-Module publish-module){

@@ -1,7 +1,7 @@
 ﻿[cmdletbinding(SupportsShouldProcess=$true)]
 param($PublishProperties, $OutputPath)
 
-function Ensure-PsNuGetLoaded{
+function Enable-PsNuGet{
     [cmdletbinding()]
     param($toolsDir = "$env:LOCALAPPDATA\LigerShark\psnuget\",
         $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/ps-nuget.psm1')
@@ -23,7 +23,7 @@ function Ensure-PsNuGetLoaded{
     }
 }
 
-function Ensure-NuGetModuleIsLoaded{
+function Enable-NuGetModule{
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true,Position=0)]
@@ -35,7 +35,7 @@ function Ensure-NuGetModuleIsLoaded{
     )
     process{
         if(!(get-module $name)){
-            $installDir = Ensure-PsNuGetPackageIsAvailable -name $name -version $version
+            $installDir = Get-PsNuGetPackage -name $name -version $version
             $moduleFile = (join-path $installDir ("tools\{0}.psm1" -f $name))
             'Loading module from [{0}]' -f $moduleFile | Write-Output
             Import-Module $moduleFile -DisableNameChecking
@@ -46,8 +46,8 @@ function Ensure-NuGetModuleIsLoaded{
     }
 }
 
-Ensure-PsNuGetLoaded
-Ensure-NuGetModuleIsLoaded -name 'publish-module' -version '0.0.7-beta'
+Enable-PsNuGet
+Enable-NuGetModule -name 'publish-module' -version '0.0.7-beta'
 
 $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
 

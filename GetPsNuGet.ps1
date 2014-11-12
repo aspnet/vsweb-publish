@@ -1,7 +1,7 @@
 ﻿<#
     You should add the snippet below to your PS files to ensure that PsNuGet is available.
 #>
-function Ensure-PsNuGetLoaded{
+function Enable-PsNuGet{
     [cmdletbinding()]
     param($toolsDir = "$env:LOCALAPPDATA\LigerShark\psnuget\",
         $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/ps-nuget.psm1')
