@@ -75,7 +75,7 @@ function Get-PsNuGetInstallPath{
 .SYNOPSIS
     This will return the path to where the given NuGet package is installed.
 #>
-function Ensure-PsNuGetPackageIsAvailable{
+function Get-PsNuGetPackage{
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true,Position=0)]
@@ -115,21 +115,21 @@ function Ensure-PsNuGetPackageIsAvailable{
 <#
 This will ensure that the given module is imported into the PS session. If not then 
 it will be imported from %localappdata%. The package will be restored using
-Ensure-PsNuGetPackageIsAvailable.
+Get-PsNuGetPackage.
 
 This function assumes that the name of the PS module is the name of the .psm1 file 
 and that file is in the tools\ folder in the NuGet package.
 
 .EXAMPLE
-Ensure-NuGetModuleIsLoaded -name 'publish-module' -version '0.0.7-beta'
+Enable-NuGetModule -name 'publish-module' -version '0.0.7-beta'
 
 .EXAMPLE
-Ensure-NuGetModuleIsLoaded -name 'publish-module-blob' -version '0.0.7-beta'
+Enable-NuGetModule -name 'publish-module-blob' -version '0.0.7-beta'
 #>
 
 # For now this function has to be declared directly in the publish
 # .ps1 file, not sure why.
-function Ensure-NuGetModuleIsLoaded2{
+function Enable-NuGetModule2{
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true,Position=0)]
@@ -141,7 +141,7 @@ function Ensure-NuGetModuleIsLoaded2{
     )
     process{
         if(!(get-module $name)){
-            $installDir = Ensure-PsNuGetPackageIsAvailable -name $name -version $version
+            $installDir = Get-PsNuGetPackage -name $name -version $version
             $moduleFile = (join-path $installDir ("tools\{0}.psm1" -f $name))
             'Loading module from [{0}]' -f $moduleFile | Write-Output
             Import-Module $moduleFile -DisableNameChecking
