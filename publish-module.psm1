@@ -39,7 +39,7 @@ function Get-AspnetPublishHandler{
     }
 }
 
-function InternalGet-ExcludeFilesArg{
+function GetInternal-ExcludeFilesArg{
     [cmdletbinding()]
     param(
         $publishProperties
@@ -54,7 +54,7 @@ function InternalGet-ExcludeFilesArg{
     }
 }
 
-function InternalGet-ReplacementsMSDeployArgs{
+function GetInternal-ReplacementsMSDeployArgs{
     [cmdletbinding()]
     param(
         $publishProperties
@@ -87,7 +87,7 @@ function InternalGet-ReplacementsMSDeployArgs{
 Returns an array of msdeploy arguments that are used across different providers.
 For example this wil handle useChecksum, appOffline, etc.
 #>
-function InternalGet-SharedMSDeployParametersfrom{
+function GetInternal-SharedMSDeployParametersFrom{
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true,Position=0)]
@@ -104,7 +104,7 @@ function InternalGet-SharedMSDeployParametersfrom{
         }
 
         if($publishProperties['WebPublishMethod'] -eq 'MSDeploy'){
-            $offlineArgs = InternalGet-PublishAppOfflineProperties -publishProperties $publishProperties
+            $offlineArgs = GetInternal-PublishAppOfflineProperties -publishProperties $publishProperties
             $sharedArgs.ExtraArgs += $offlineArgs.AdditionalArguments
             $sharedArgs.DestFragment += $offlineArgs.DestFragment
         }
@@ -119,9 +119,9 @@ function InternalGet-SharedMSDeployParametersfrom{
         }
 
         # add excludes
-        $sharedArgs.ExtraArgs += (InternalGet-ExcludeFilesArg -publishProperties $PublishProperties)
+        $sharedArgs.ExtraArgs += (GetInternal-ExcludeFilesArg -publishProperties $PublishProperties)
         # add replacements
-        $sharedArgs.ExtraArgs += (InternalGet-ReplacementsMSDeployArgs -publishProperties $PublishProperties)
+        $sharedArgs.ExtraArgs += (GetInternal-ReplacementsMSDeployArgs -publishProperties $PublishProperties)
 
         # return the args
         $sharedArgs
@@ -221,7 +221,7 @@ function AspNet-PublishMSDeploy{
             #>
             # TODO: Get wwwroot value from $PublishProperties
 
-            $sharedArgs = InternalGet-SharedMSDeployParametersfrom -publishProperties $PublishProperties
+            $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $PublishProperties
 
             $webrootOutputFolder = (get-item (Join-Path $OutputPath 'wwwroot')).FullName
             $publishArgs = @()
@@ -254,7 +254,7 @@ If the passed in $publishProperties has values for appOffline the
 needed arguments will be in the return object. If there is no such configuraion
 then nothing is returned.
 #>
-function InternalGet-PublishAppOfflineProperties{
+function GetInternal-PublishAppOfflineProperties{
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true,Position=0)]
@@ -294,7 +294,7 @@ function AspNet-PublishFileSystem{
         # we can use msdeploy.exe because it supports incremental publish/skips/replacements/etc
         # msdeploy.exe -verb:sync -source:contentPath='C:\srcpath' -dest:contentPath='c:\destpath'
         
-        $sharedArgs = InternalGet-SharedMSDeployParametersfrom -publishProperties $PublishProperties
+        $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $PublishProperties
 
         $publishArgs = @()
         $publishArgs += ('-source:contentPath=''{0}''' -f "$OutputPath")

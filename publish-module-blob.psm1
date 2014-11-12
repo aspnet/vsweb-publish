@@ -45,5 +45,5 @@ Register-AspnetPublishHandler -name 'BlobStorage' -handler {
     
     '[op={0},san={1},con={2}' -f $OutputPath,$PublishProperties['StorageAcctName'],$PublishProperties['StorageContainer'] | Write-Output
 
-    Publish-FolderToBlobStorage -folder $OutputPath -storageAcctName $PublishProperties['StorageAcctName'] -storageAcctKey $PublishProperties['StorageAcctKey'] -containerName $PublishProperties['StorageContainer']
+    # Publish-FolderToBlobStorage -folder $OutputPath -storageAcctName $PublishProperties['StorageAcctName'] -storageAcctKey $PublishProperties['StorageAcctKey'] -containerName $PublishProperties['StorageContainer']
 }
