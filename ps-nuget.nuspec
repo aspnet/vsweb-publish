@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+  For more info on this file format visit http://docs.nuget.org/docs/reference/nuspec-reference.
+-->
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">  
+  <metadata>
+    <id>ps-nuget</id>
+    <version>0.0.7-beta</version>
+    <authors>Sayed Ibrahim Hashimi</authors>
+    <description>
+      This nuget package contains a powershell module, ps-nuget.psm1, which can be used do
+      download nuget packages in powershell.
+    </description>    
+    <language>en-US</language>
+    <projectUrl>https://github.com/sayedihashimi/publish-module/</projectUrl>
+    <licenseUrl>https://github.com/sayedihashimi/publish-module/blob/master/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <copyright>Copyright 2013-2014 Sayed Ibrahim Hashimi</copyright>
+    <tags>powershell</tags>
+    <!-- This is hack to avoid having content in the package -->
+    <frameworkAssemblies>
+      <frameworkAssembly assemblyName="System"  />
+    </frameworkAssemblies>
+  </metadata>
+  <files>
+    <file src="ps-nuget.psm1" target="tools" />
+    <file src="GetPsNuGet.ps1" target="tools" />
+  </files>
+</package>

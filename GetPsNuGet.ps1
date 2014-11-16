@@ -1,22 +1,25 @@
 ﻿<#
     You should add the snippet below to your PS files to ensure that PsNuGet is available.
 #>
+
 function Enable-PsNuGet{
     [cmdletbinding()]
-    param($toolsDir = "$env:LOCALAPPDATA\LigerShark\psnuget\",
-        $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/ps-nuget.psm1')
+    param($toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),$nugetDownloadUrl = 'http://nuget.org/nuget.exe')
     process{
-        if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory }
+        if(!(get-module 'ps-nuget')){            
+            if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory | Out-Null }
 
-        $expectedPath = (Join-Path ($toolsDir) 'ps-nuget.psm1')
-        if(!(Test-Path $expectedPath)){
-            'Downloading [{0}] to [{1}]' -f $psNuGetDownloadUrl,$expectedPath | Write-Verbose
-            (New-Object System.Net.WebClient).DownloadFile($psNuGetDownloadUrl, $expectedPath)
-        }
-
-        if(!(get-module 'ps-nuget')){
-            'importing module into global [{0}]' -f $expectedPath | Write-Output
-            Import-Module $expectedPath -DisableNameChecking -Force -Scope Global
+            $modPath = (join-path $toolsDir 'ps-nuget.0.0.7-beta\tools\ps-nuget.psm1')
+            if(!(Test-Path $modPath)){
+                $nugetArgs = @('install','ps-nuget','-prerelease','-version','0.0.7-beta','-OutputDirectory',(Resolve-Path $toolsDir).ToString())
+                $nugetDestPath = Join-Path -Path $toolsDir -ChildPath nuget.exe
+                if(!(Test-Path $nugetDestPath)){ (New-Object System.Net.WebClient).DownloadFile($nugetDownloadUrl, $nugetDestPath) | Out-Null }
+                if(!(Test-Path $nugetDestPath)){ throw 'unable to download nuget' }
+                &$nugetDestPath $nugetArgs
+            }
+            import-module $modPath -DisableNameChecking -force
         }
     }
 }
+
+Enable-PsNuGet

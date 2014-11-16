@@ -152,4 +152,27 @@ function Enable-NuGetModule2{
     }
 }
 
+function Get-LatestVersionForPsNuGetPackage{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0)]
+        $name,
+        [switch]$prerelease,
+        [Parameter(Position=1)]
+        $toolsDir = $global:PSNuGetSettings.DefaultToolsDir
+    )
+    process{
+        $nugetArgs = @('list',$name)
+
+        if($prerelease){
+            $nugetArgs += '-prerelease'
+        }
+
+        'Getting pack versions for [{0}]' -f $name | Write-Verbose
+        'Calling nuget with the following args [{0}]' -f ($nugetArgs -join ' ') | Write-Verbose
+
+        &(Get-Nuget) $nugetArgs | where{$_.StartsWith('{0} ' -f $name)} |sort
+    }
+}
+
 Export-ModuleMember -function *

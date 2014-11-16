@@ -53,14 +53,16 @@ if(!(Test-Path $outputRoot)){
 $outputRoot = (Get-Item $outputRoot).FullName
 # call nuget to create the package
 
-$nugetArgs = @('pack',(get-item(Join-Path $scriptDir "publish-module.nuspec")).FullName,'-o',$outputRoot)
-'Calling nuget.exe with the command:[nuget.exe {0}]' -f  ($nugetArgs -join ' ') | Write-Verbose
-&(Get-Nuget) $nugetArgs
+$nuspecFiles = @((get-item(Join-Path $scriptDir "publish-module.nuspec")).FullName)
+$nuspecFiles += (get-item(Join-Path $scriptDir "publish-module-blob.nuspec")).FullName
+$nuspecFiles += (get-item(Join-Path $scriptDir "ps-nuget.nuspec")).FullName
 
-$nugetArgs = @('pack',(get-item(Join-Path $scriptDir "publish-module-blob.nuspec")).FullName,'-o',$outputRoot)
-'Calling nuget.exe with the command:[nuget.exe {0}]' -f  ($nugetArgs -join ' ') | Write-Verbose
-&(Get-Nuget) $nugetArgs
+$nuspecFiles | ForEach-Object {
+    $nugetArgs = @('pack',$_,'-o',$outputRoot)
+    'Calling nuget.exe with the command:[nuget.exe {0}]' -f  ($nugetArgs -join ' ') | Write-Verbose
+    &(Get-Nuget) $nugetArgs    
+}
 
 if(Test-Path $nugetDevRepo){
-    Get-ChildItem -Path $outputRoot 'publish-module*.nupkg' | Copy-Item -Destination $nugetDevRepo
+    Get-ChildItem -Path $outputRoot '*.nupkg' | Copy-Item -Destination $nugetDevRepo
 }
