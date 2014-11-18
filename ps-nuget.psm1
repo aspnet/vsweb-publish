@@ -134,6 +134,7 @@ function Enable-NuGetModule2{
     param(
         [Parameter(Mandatory=$true,Position=0)]
         $name,
+        $moduleFileName,
         [Parameter(Mandatory=$true,Position=1)] # later we can make this optional
         $version,
         [Parameter(Position=2)]
@@ -142,7 +143,8 @@ function Enable-NuGetModule2{
     process{
         if(!(get-module $name)){
             $installDir = Get-PsNuGetPackage -name $name -version $version
-            $moduleFile = (join-path $installDir ("tools\{0}.psm1" -f $name))
+            if(!$moduleFileName){$moduleFileName = $name}
+            $moduleFile = (join-path $installDir ("tools\{0}.psm1" -f $moduleFileName))
             'Loading module from [{0}]' -f $moduleFile | Write-Output
             Import-Module $moduleFile -DisableNameChecking
         }
