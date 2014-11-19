@@ -110,7 +110,7 @@ function GetInternal-SharedMSDeployParametersFrom{
         }
 
         if($publishProperties['EncryptWebConfig'] -eq $true){
-            $sharedArgs.ExtraArgs += '–EnableRule:EncryptWebConfig'        
+            $sharedArgs.ExtraArgs += 'â€“EnableRule:EncryptWebConfig'        
         }
 
         if(!($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))){
@@ -390,7 +390,7 @@ Register-AspnetPublishHandler -name 'MSDeploy' -force -handler {
 }
 
 'Registering FileSystem handler' | Write-Verbose
-Register-AspnetPublishHandler -name 'FileSystem' -handler {
+Register-AspnetPublishHandler -name 'FileSystem' -force -handler {
     [cmdletbinding()]
     param(
         [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
