@@ -10,7 +10,7 @@ These samples rely on the following.
 ```
 .\Properties\PublishProfiles\sayedkdemo2.ps1 -OutputPath $OutputPath -PublishProperties @{
      'WebPublishMethod'='MSDeploy'
-     'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
+     'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';
 'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"} -Verbose
 ```
 
