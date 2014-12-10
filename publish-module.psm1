@@ -3,6 +3,17 @@ param()
 
 $script:AspNetPublishHandlers = @{}
 
+$global:AspNetPublishSettings = New-Object PSObject -Property @{
+    MsdeployDefaultProperties = @{
+    'MSDeployUseChecksum'=$true
+    }
+}
+
+# These will be used as default values and added to $publishProperties if they are missing
+$script:AspNetPublishDefaultMsdeployProperties = @{
+    'MSDeployUseChecksum'=$true
+}
+
 function Register-AspnetPublishHandler{
     [cmdletbinding()]
     param(
@@ -86,6 +97,7 @@ function GetInternal-ReplacementsMSDeployArgs{
 .SYNOPSIS
 Returns an array of msdeploy arguments that are used across different providers.
 For example this wil handle useChecksum, appOffline, etc.
+This will also add default properties if they are missing.
 #>
 function GetInternal-SharedMSDeployParametersFrom{
     [cmdletbinding()]
@@ -97,6 +109,15 @@ function GetInternal-SharedMSDeployParametersFrom{
         $sharedArgs = New-Object psobject -Property @{
             ExtraArgs = @()
             DestFragment = ''
+        }
+
+        # add default properties if they are missing
+        foreach($propName in $global:AspNetPublishSettings.MsdeployDefaultProperties.Keys){
+            if($publishProperties["$propName"] -eq $null){
+                $defValue = $global:AspNetPublishSettings.MsdeployDefaultProperties["$propName"]
+                'Adding default property to publishProperties ["{0}"="{1}"]' -f $propName,$defValue | Write-Verbose
+                $publishProperties["$propName"] = $defValue
+            }
         }
 
         if($publishProperties['MSDeployUseChecksum'] -eq $true){
@@ -221,7 +242,7 @@ function Publish-AspNetMSDeploy{
             #>
             # TODO: Get wwwroot value from $publishProperties
 
-            $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties
+            $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties 
 
             $webrootOutputFolder = (get-item (Join-Path $packOutput 'wwwroot')).FullName
             $publishArgs = @()
