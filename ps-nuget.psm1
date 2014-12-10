@@ -60,8 +60,8 @@ function Get-PsNuGetInstallPath{
     )
     process{
         $pathToFoundPkgFolder = $null
-
-        $expectedNuGetPkgFolder = ((Get-Item -Path ("$toolsDir\{0}.{1}" -f $name, $version) -ErrorAction SilentlyContinue))
+		$toolsDir=(([uri]($toolsDir)).AbsolutePath)
+		$expectedNuGetPkgFolder = ((Get-Item -Path (join-path $toolsDir (('{0}.{1}' -f $name, $version))) -ErrorAction SilentlyContinue))
 
         if($expectedNuGetPkgFolder){
             $pathToFoundPkgFolder = $expectedNuGetPkgFolder.FullName
@@ -86,19 +86,20 @@ function Get-PsNuGetPackage{
         $toolsDir = $global:PSNuGetSettings.DefaultToolsDir
     )
     process{
-        if(!(Test-Path $toolsDir)){ 
+        if(!(Test-Path $toolsDir)){
             New-Item -Path $toolsDir -ItemType Directory | out-null 
         }
         # if it's already installed just return the path
         $installPath = (Get-PsNuGetInstallPath -name $name -version $version -toolsDir $toolsDir)
-
         if(!$installPath){
             # install the nuget package and then return the path
-            $cmdArgs = @('install',$name,'-Version',$version,'-prerelease','-OutputDirectory',(Resolve-Path $toolsDir).ToString())
-            $nugetPath = (Get-Nuget -toolsDir $toolsDir)
+            $outdir = ([uri]('{0}' -f (Resolve-Path $toolsDir).ToString())).AbsolutePath
 
+            $cmdArgs = @('install',$name,'-Version',$version,'-prerelease','-OutputDirectory',$outdir)
+            $nugetPath = (Get-Nuget -toolsDir $outdir)
+            set-alias nugettemp $nugetPath | Out-Null
             'Calling nuget to install a package with the following args. [{0} {1}]' -f $nugetPath, ($cmdArgs -join ' ') | Write-Verbose
-            &$nugetPath $cmdArgs | Out-Null
+            nugettemp $cmdArgs | Out-Null
 
             $installPath = (Get-PsNuGetInstallPath -name $name -version $version -toolsDir $toolsDir)
         }
@@ -145,11 +146,11 @@ function Enable-NuGetModule2{
             $installDir = Get-PsNuGetPackage -name $name -version $version
             if(!$moduleFileName){$moduleFileName = $name}
             $moduleFile = (join-path $installDir ("tools\{0}.psm1" -f $moduleFileName))
-            'Loading module from [{0}]' -f $moduleFile | Write-Output
+            'Loading module from [{0}]' -f $moduleFile | Write-Verbose
             Import-Module $moduleFile -DisableNameChecking
         }
         else{
-            'module [{0}] is already loaded skipping' -f $name | Write-Output
+            'module [{0}] is already loaded skipping' -f $name | Write-Verbose
         }
     }
 }

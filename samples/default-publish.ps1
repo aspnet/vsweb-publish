@@ -10,6 +10,11 @@ function Enable-PsNuGet{
     param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\psnuget\",
         $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/ps-nuget.psm1')
     process{
+		if(get-module ps-nuget){
+			# TODO: we should check the version loaded and skip removing if the correct version is already loaded.
+			remove-module ps-nuget | Out-Null
+		}
+
         # try to local from local install first
         if(!(get-module 'ps-nuget')){
             $localpsnugetpath = Join-Path $defaultPublishSettings.LocalInstallDir 'ps-nuget.psm1'
@@ -20,7 +25,7 @@ function Enable-PsNuGet{
         }
 
         if(!(get-module 'ps-nuget')){
-            if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory }
+            if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory -WhatIf:$false }
 
             $expectedPath = (Join-Path ($toolsDir) 'ps-nuget.psm1')
             if(!(Test-Path $expectedPath)){
@@ -50,19 +55,24 @@ function Enable-NuGetModule{
     process{
         if(!$moduleFileName){$moduleFileName = $name}
 
+		if(!(get-module $name)){
+			# TODO: we should check the version loaded and skip removing if the correct version is already loaded.
+			remove-module $name | Out-Null
+		}
+
         if(!(get-module $name)){
             $localmodpath = Join-Path $defaultPublishSettings.LocalInstallDir ('{0}.{1}\tools\{2}.psm1' -f $name,$version,$moduleFileName)
+
             if(Test-Path $localmodpath){
-                'importing module [{0}={1}] from local install dir' -f $name, $localmodpath | Write-Output
+                'importing module [{0}={1}] from local install dir' -f $name, $localmodpath | Write-Verbose
                 Import-Module $localmodpath -DisableNameChecking -Force -Scope Global
             }
+
         }
 
         if(!(get-module $name)){
             $installDir = Get-PsNuGetPackage -name $name -version $version
-            
             $moduleFile = (join-path $installDir ("tools\{0}.psm1" -f $moduleFileName))
-            'Loading module from [{0}]' -f $moduleFile | Write-Output
             Import-Module $moduleFile -DisableNameChecking
         }
         else{
@@ -71,11 +81,16 @@ function Enable-NuGetModule{
     }
 }
 
-Enable-PsNuGet
-Enable-NuGetModule -name 'publish-module' -version '0.0.9-beta'
+try{
+	Enable-PsNuGet
+	Enable-NuGetModule -name 'publish-module' -version '0.0.9-beta'
 
-$whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
+	$whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
 
-'Calling Publish-AspNet' | Write-Output
-# call Publish-AspNet to perform the publish operation
-Publish-AspNet -publishProperties $publishProperties -packOutput $packOutput -Verbose -WhatIf:$whatifpassed
+	'Calling Publish-AspNet' | Write-Output
+	# call Publish-AspNet to perform the publish operation
+	Publish-AspNet -publishProperties $publishProperties -packOutput $packOutput -Verbose -WhatIf:$whatifpassed
+}
+catch{
+	"An error occured during publish.`n{0}" -f $_.Exception.Message | Write-Error
+}
