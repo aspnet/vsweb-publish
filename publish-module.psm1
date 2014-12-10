@@ -6,6 +6,10 @@ $script:AspNetPublishHandlers = @{}
 $global:AspNetPublishSettings = New-Object PSObject -Property @{
     MsdeployDefaultProperties = @{
     'MSDeployUseChecksum'=$true
+    'WebRoot'='wwwroot'
+    'SkipExtraFilesOnServer'=$true
+    'retryAttempts' = 2
+    'EnableMSDeployBackup' = $false
     }
 }
 
@@ -130,8 +134,20 @@ function GetInternal-SharedMSDeployParametersFrom{
             $sharedArgs.DestFragment += $offlineArgs.DestFragment
         }
 
+        if($publishProperties['SkipExtraFilesOnServer'] -eq $true){
+            $sharedArgs.ExtraArgs += '-enableRule:DoNotDeleteRule'
+        }
+
+        if($publishProperties['retryAttempts']){
+            $sharedArgs.ExtraArgs += ('-retryAttempts:{0}' -f ([int]$publishProperties['retryAttempts']))
+        }
+
         if($publishProperties['EncryptWebConfig'] -eq $true){
-            $sharedArgs.ExtraArgs += '–EnableRule:EncryptWebConfig'        
+            $sharedArgs.ExtraArgs += '-EnableRule:EncryptWebConfig'
+        }
+
+        if($publishProperties['EnableMSDeployBackup'] -eq $false){
+            $sharedArgs.ExtraArgs += '-disablerule:BackupRule'
         }
 
         if(!($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))){
@@ -244,7 +260,11 @@ function Publish-AspNetMSDeploy{
 
             $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties 
 
-            $webrootOutputFolder = (get-item (Join-Path $packOutput 'wwwroot')).FullName
+            # WebRoot is a required property which has a default
+            [ValidateNotNullOrEmpty()]
+            $webroot = $publishProperties['WebRoot']
+
+            $webrootOutputFolder = (get-item (Join-Path $packOutput $webroot)).FullName
             $publishArgs = @()
             $publishArgs += ('-source:IisApp=''{0}''' -f "$webrootOutputFolder")
             $publishArgs += ('-dest:IisApp=''{0}'',ComputerName=''{1}'',UserName=''{2}'',Password=''{3}'',IncludeAcls=''False'',AuthType=''Basic''{4}' -f 
@@ -254,10 +274,7 @@ function Publish-AspNetMSDeploy{
                                     $publishPwd,
                                     $sharedArgs.DestFragment)
             $publishArgs += '-verb:sync'
-            $publishArgs += '-enableRule:DoNotDeleteRule'
             $publishArgs += '-enableLink:contentLibExtension'
-            $publishArgs += '-retryAttempts=2'
-            $publishArgs += '-disablerule:BackupRule'
             $publishArgs += $sharedArgs.ExtraArgs
 
             'Calling msdeploy with the call {0}' -f (($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')) | Write-Output
@@ -321,8 +338,6 @@ function Publish-AspNetFileSystem{
         $publishArgs += ('-source:contentPath=''{0}''' -f "$packOutput")
         $publishArgs += ('-dest:contentPath=''{0}''{1}' -f "$pubOut",$sharedArgs.DestFragment)
         $publishArgs += '-verb:sync'
-        $publishArgs += '-retryAttempts=2'
-        $publishArgs += '-disablerule:BackupRule'
         $publishArgs += $sharedArgs.ExtraArgs
 
         'Calling msdeploy to publish to file system with the command: [{0} {1}]' -f (Get-MSDeploy),($publishArgs -join ' ') | Write-Output
