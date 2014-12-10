@@ -1,5 +1,5 @@
 ﻿[cmdletbinding(SupportsShouldProcess=$true)]
-param($PublishProperties, $OutputPath)
+param($publishProperties, $packOutput)
 
 function Ensure-PublishModuleLoaded{
     [cmdletbinding()]
@@ -28,11 +28,11 @@ $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
 'loading publish-module' | Write-Output
 Ensure-PublishModuleLoaded
 
-$webrootOutputFolder = (get-item (Join-Path $OutputPath 'wwwroot')).FullName
+$webrootOutputFolder = (get-item (Join-Path $packOutput 'wwwroot')).FullName
 
 'Calling Publish-AspNet' | Write-Output
 # call Publish-AspNet to perform the publish operation
-Publish-AspNet -publishProperties $publishProperties -OutputPath $OutputPath -Verbose -WhatIf:$whatifpassed
+Publish-AspNet -publishProperties $publishProperties -packOutput $packOutput -Verbose -WhatIf:$whatifpassed
 
 $backupdir = 'C:\temp\publish\new'
 if(Test-Path){ Remove-Item $backupdir -Recurse -Force }
@@ -43,4 +43,4 @@ if(!(Test-path)){
 # publish with file system
 Publish-AspNet -publishProperties @{
 	'WebPublishMethod'='FileSystem'
-	'publishUrl'='C:\temp\publish\new'} -OutputPath $backupdir -Verbose -WhatIf:$whatifpassed
+	'publishUrl'='C:\temp\publish\new'} -packOutput $backupdir -Verbose -WhatIf:$whatifpassed

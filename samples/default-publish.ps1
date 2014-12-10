@@ -1,5 +1,5 @@
 ﻿[cmdletbinding(SupportsShouldProcess=$true)]
-param($PublishProperties, $OutputPath)
+param($publishProperties, $packOutput)
 
 function Enable-PsNuGet{
     [cmdletbinding()]
@@ -55,4 +55,4 @@ $whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
 
 'Calling Publish-AspNet' | Write-Output
 # call Publish-AspNet to perform the publish operation
-Publish-AspNet -publishProperties $PublishProperties -OutputPath $OutputPath -Verbose -WhatIf:$whatifpassed
+Publish-AspNet -publishProperties $publishProperties -packOutput $packOutput -Verbose -WhatIf:$whatifpassed

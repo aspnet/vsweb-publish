@@ -3,12 +3,12 @@
 These samples rely on the following.
 
  - set ```$env:PublishPwd``` env var
- - Publish using VS and set the ```$OutputPath``` variable before calling the samples. Note this should ***not*** have ```wwwroot```.
+ - Publish using VS and set the ```$packOutput``` variable before calling the samples. Note this should ***not*** have ```wwwroot```.
 
 ### Standard MSDeploy publish
 
 ```
-.\Properties\PublishProfiles\sayedkdemo2.ps1 -OutputPath $OutputPath -PublishProperties @{
+.\Properties\PublishProfiles\sayedkdemo2.ps1 -packOutput $packOutput -publishProperties @{
      'WebPublishMethod'='MSDeploy'
      'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';
 'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"} -Verbose
@@ -17,7 +17,7 @@ These samples rely on the following.
 ### Standard file system publish
 
 ```
-.\Properties\PublishProfiles\sayedkdemo2.ps1 -OutputPath $OutputPath -PublishProperties @{
+.\Properties\PublishProfiles\sayedkdemo2.ps1 -packOutput $packOutput -publishProperties @{
 	'WebPublishMethod'='FileSystem'
 	'publishUrl'='C:\temp\publish\new'
 	} -Verbose
@@ -28,7 +28,7 @@ These samples rely on the following.
 ### MSDeploy publish skipping two files
 
 ```
-.\Properties\PublishProfiles\sayedkdemo2.ps1 -OutputPath $OutputPath -PublishProperties @{
+.\Properties\PublishProfiles\sayedkdemo2.ps1 -packOutput $packOutput -publishProperties @{
      'WebPublishMethod'='MSDeploy'
      'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
 'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"
@@ -41,7 +41,7 @@ These samples rely on the following.
 ### File system publish skipping two files
 
 ```
-.\Properties\PublishProfiles\sayedkdemo2.ps1 -OutputPath $OutputPath -PublishProperties @{
+.\Properties\PublishProfiles\sayedkdemo2.ps1 -packOutput $packOutput -publishProperties @{
 	'WebPublishMethod'='FileSystem'
 	'publishUrl'='C:\temp\publish\new'
  	'ExcludeFiles'=@(

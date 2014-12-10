@@ -1,5 +1,5 @@
 ﻿[cmdletbinding(SupportsShouldProcess=$true)]
-param($PublishProperties, $OutputPath)
+param($publishProperties, $packOutput)
 
 function Ensure-PublishModuleLoaded{
     [cmdletbinding()]
@@ -54,10 +54,10 @@ $customTemp = "$env:LocalAppData\CustomPublish\"
 $imgOptPath = Join-Path $customTemp 'optimize-images.ps1'
 $imgOptUrl = 'https://raw.githubusercontent.com/ligershark/AzureJobs/master/ImageCompressor.Job/optimize-images.ps1'
 
-$webrootOutputFolder = (get-item (Join-Path $OutputPath 'wwwroot')).FullName
+$webrootOutputFolder = (get-item (Join-Path $packOutput 'wwwroot')).FullName
 
 OptimizeImages -folder $webrootOutputFolder $true
 
 'Calling Publish-AspNet' | Write-Output
 # call Publish-AspNet to perform the publish operation
-Publish-AspNet -publishProperties $PublishProperties -OutputPath $OutputPath -Verbose -WhatIf:$whatifpassed
+Publish-AspNet -publishProperties $publishProperties -packOutput $packOutput -Verbose -WhatIf:$whatifpassed
