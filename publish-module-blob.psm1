@@ -38,12 +38,12 @@ Register-AspnetPublishHandler -name 'BlobStorage' -handler {
     [cmdletbinding()]
     param(
         [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
-        $PublishProperties,
+        $publishProperties,
         [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
-        $OutputPath
+        $packOutput
     )
     
-    '[op={0},san={1},con={2}' -f $OutputPath,$PublishProperties['StorageAcctName'],$PublishProperties['StorageContainer'] | Write-Output
+    '[op={0},san={1},con={2}' -f $packOutput,$publishProperties['StorageAcctName'],$publishProperties['StorageContainer'] | Write-Output
 
-    Publish-FolderToBlobStorage -folder $OutputPath -storageAcctName $PublishProperties['StorageAcctName'] -storageAcctKey $PublishProperties['StorageAcctKey'] -containerName $PublishProperties['StorageContainer']
+    Publish-FolderToBlobStorage -folder $packOutput -storageAcctName $publishProperties['StorageAcctName'] -storageAcctKey $publishProperties['StorageAcctKey'] -containerName $publishProperties['StorageContainer']
 }

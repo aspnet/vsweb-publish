@@ -119,9 +119,9 @@ function GetInternal-SharedMSDeployParametersFrom{
         }
 
         # add excludes
-        $sharedArgs.ExtraArgs += (GetInternal-ExcludeFilesArg -publishProperties $PublishProperties)
+        $sharedArgs.ExtraArgs += (GetInternal-ExcludeFilesArg -publishProperties $publishProperties)
         # add replacements
-        $sharedArgs.ExtraArgs += (GetInternal-ReplacementsMSDeployArgs -publishProperties $PublishProperties)
+        $sharedArgs.ExtraArgs += (GetInternal-ReplacementsMSDeployArgs -publishProperties $publishProperties)
 
         # return the args
         $sharedArgs
@@ -133,19 +133,19 @@ function GetInternal-SharedMSDeployParametersFrom{
 This will publish the folder based on the properties in $publishProperties
 
 .EXAMPLE
- Publish-AspNet -OutputPath $packOutput -PublishProperties @{
+ Publish-AspNet -packOutput $packOutput -publishProperties @{
      'WebPublishMethod'='MSDeploy'
      'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
 'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"} -Verbose
 
 .EXAMPLE
-Publish-AspNet -OutputPath $packOutput -PublishProperties @{
+Publish-AspNet -packOutput $packOutput -publishProperties @{
 	'WebPublishMethod'='FileSystem'
 	'publishUrl'="$publishDest"
 	}
 
 .EXAMPLE
-Publish-AspNet -OutputPath $packOutput -PublishProperties @{
+Publish-AspNet -packOutput $packOutput -publishProperties @{
      'WebPublishMethod'='MSDeploy'
      'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
 'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"
@@ -155,7 +155,7 @@ Publish-AspNet -OutputPath $packOutput -PublishProperties @{
 )} 
 
 .EXAMPLE
-Publish-AspNet -OutputPath $packOutput -PublishProperties @{
+Publish-AspNet -packOutput $packOutput -publishProperties @{
 	'WebPublishMethod'='FileSystem'
 	'publishUrl'="$publishDest"
 	'ExcludeFiles'=@(
@@ -166,7 +166,7 @@ Publish-AspNet -OutputPath $packOutput -PublishProperties @{
 	}
 
 .EXAMPLE
-Publish-AspNet -OutputPath $packOutput -PublishProperties @{
+Publish-AspNet -packOutput $packOutput -publishProperties @{
 	'WebPublishMethod'='FileSystem'
 	'publishUrl'="$publishDest"
 	'EnableMSDeployAppOffline'='true'
@@ -178,22 +178,22 @@ function Publish-AspNet{
     [cmdletbinding(SupportsShouldProcess=$true)]
     param(
         [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
-        $PublishProperties,
+        $publishProperties,
         [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
-        $OutputPath
+        $packOutput
     )
     process{
-        if($PublishProperties['WebPublishMethodOverride']){
-            'Overriding publish method from $PublishProperties[''WebPublishMethodOverride''] to [{0}]' -f  ($PublishProperties['WebPublishMethodOverride']) | Write-Verbose
-            $PublishProperties['WebPublishMethod'] = $PublishProperties['WebPublishMethodOverride']
+        if($publishProperties['WebPublishMethodOverride']){
+            'Overriding publish method from $publishProperties[''WebPublishMethodOverride''] to [{0}]' -f  ($publishProperties['WebPublishMethodOverride']) | Write-Verbose
+            $publishProperties['WebPublishMethod'] = $publishProperties['WebPublishMethodOverride']
         }
 
-        $pubMethod = $PublishProperties['WebPublishMethod']
+        $pubMethod = $publishProperties['WebPublishMethod']
         'Publishing with publish method [{0}]' -f $pubMethod | Write-Output
 
         # get the handler based on WebPublishMethod, and call it.
         # it seems that -whatif and -verbose are flowing through
-        &(Get-AspnetPublishHandler -name $pubMethod) $PublishProperties $OutputPath
+        &(Get-AspnetPublishHandler -name $pubMethod) $publishProperties $packOutput
     }
 }
 
@@ -201,13 +201,13 @@ function Publish-AspNetMSDeploy{
     [cmdletbinding(SupportsShouldProcess=$true)]
     param(
         [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
-        $PublishProperties,
+        $publishProperties,
         [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
-        $OutputPath
+        $packOutput
     )
     process{
-        if($PublishProperties){
-            $publishPwd = $PublishProperties['Password']
+        if($publishProperties){
+            $publishPwd = $publishProperties['Password']
 
             <#
             "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe" 
@@ -219,17 +219,17 @@ function Publish-AspNetMSDeploy{
                 -retryAttempts=2 
                 -userAgent="VS14.0:PublishDialog:WTE14.0.51027.0"
             #>
-            # TODO: Get wwwroot value from $PublishProperties
+            # TODO: Get wwwroot value from $publishProperties
 
-            $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $PublishProperties
+            $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties
 
-            $webrootOutputFolder = (get-item (Join-Path $OutputPath 'wwwroot')).FullName
+            $webrootOutputFolder = (get-item (Join-Path $packOutput 'wwwroot')).FullName
             $publishArgs = @()
             $publishArgs += ('-source:IisApp=''{0}''' -f "$webrootOutputFolder")
             $publishArgs += ('-dest:IisApp=''{0}'',ComputerName=''{1}'',UserName=''{2}'',Password=''{3}'',IncludeAcls=''False'',AuthType=''Basic''{4}' -f 
-                                    $PublishProperties['DeployIisAppPath'],
-                                    (Get-MSDeployFullUrlFor -msdeployServiceUrl $PublishProperties['MSDeployServiceURL']),
-                                    $PublishProperties['UserName'],
+                                    $publishProperties['DeployIisAppPath'],
+                                    (Get-MSDeployFullUrlFor -msdeployServiceUrl $publishProperties['MSDeployServiceURL']),
+                                    $publishProperties['UserName'],
                                     $publishPwd,
                                     $sharedArgs.DestFragment)
             $publishArgs += '-verb:sync'
@@ -243,7 +243,7 @@ function Publish-AspNetMSDeploy{
             & (Get-MSDeploy) $publishArgs
         }
         else{
-            throw 'PublishProperties is empty, cannot publish'
+            throw 'publishProperties is empty, cannot publish'
         }
     }
 }
@@ -263,10 +263,10 @@ function GetInternal-PublishAppOfflineProperties{
     process{
         $extraArg = '';
         $destFragment = ''
-        if($PublishProperties['EnableMSDeployAppOffline'] -eq $true){
+        if($publishProperties['EnableMSDeployAppOffline'] -eq $true){
             $extraArg = '-enablerule:AppOffline'
 
-            $appOfflineTemplate = $PublishProperties['AppOfflineTemplate']
+            $appOfflineTemplate = $publishProperties['AppOfflineTemplate']
             if($appOfflineTemplate){
                 $destFragment = (',appOfflineTemplate="{0}"' -f $appOfflineTemplate)
             }
@@ -283,21 +283,21 @@ function Publish-AspNetFileSystem{
     [cmdletbinding(SupportsShouldProcess=$true)]
     param(
         [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
-        $PublishProperties,
+        $publishProperties,
         [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
-        $OutputPath
+        $packOutput
     )
     process{
-        $pubOut = $PublishProperties['publishUrl']
+        $pubOut = $publishProperties['publishUrl']
         'Publishing files to {0}' -f $pubOut | Write-Output
 
         # we can use msdeploy.exe because it supports incremental publish/skips/replacements/etc
         # msdeploy.exe -verb:sync -source:contentPath='C:\srcpath' -dest:contentPath='c:\destpath'
         
-        $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $PublishProperties
+        $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties
 
         $publishArgs = @()
-        $publishArgs += ('-source:contentPath=''{0}''' -f "$OutputPath")
+        $publishArgs += ('-source:contentPath=''{0}''' -f "$packOutput")
         $publishArgs += ('-dest:contentPath=''{0}''{1}' -f "$pubOut",$sharedArgs.DestFragment)
         $publishArgs += '-verb:sync'
         $publishArgs += '-retryAttempts=2'
@@ -381,12 +381,12 @@ Register-AspnetPublishHandler -name 'MSDeploy' -force -handler {
     [cmdletbinding()]
     param(
         [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
-        $PublishProperties,
+        $publishProperties,
         [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
-        $OutputPath
+        $packOutput
     )
     
-    Publish-AspNetMSDeploy -PublishProperties $PublishProperties -OutputPath $OutputPath
+    Publish-AspNetMSDeploy -publishProperties $publishProperties -packOutput $packOutput
 }
 
 'Registering FileSystem handler' | Write-Verbose
@@ -394,12 +394,12 @@ Register-AspnetPublishHandler -name 'FileSystem' -force -handler {
     [cmdletbinding()]
     param(
         [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
-        $PublishProperties,
+        $publishProperties,
         [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
-        $OutputPath
+        $packOutput
     )
     
-    Publish-AspNetFileSystem -PublishProperties $PublishProperties -OutputPath $OutputPath
+    Publish-AspNetFileSystem -publishProperties $publishProperties -packOutput $packOutput
 }
 
 Enable-PsNuGet
