@@ -3,7 +3,7 @@ param(
     [Parameter(Position=0)]
     $versionToInstall = '0.0.8-beta',
     [Parameter(Position=1)]
-    $toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),
+    $toolsDir = ("$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\tools\"),
     [Parameter(Position=2)]
     $nugetDownloadUrl = 'http://nuget.org/nuget.exe'
 )
@@ -14,7 +14,7 @@ function GetPublishModuleFile{
     [cmdletbinding()]
     param(
         $versionToInstall = '0.0.8-beta',
-        $toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),
+        $toolsDir = ("$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\tools\"),
         $nugetDownloadUrl = 'http://nuget.org/nuget.exe'
     )
     process{
@@ -35,7 +35,7 @@ function GetPublishModuleFile{
 
 function Enable-PsNuGet{
     [cmdletbinding()]
-    param($toolsDir = "$env:LOCALAPPDATA\LigerShark\psnuget\",
+    param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\psnuget\",
         $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/ps-nuget.psm1')
     process{
         if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory }

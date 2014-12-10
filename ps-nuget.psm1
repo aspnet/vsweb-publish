@@ -2,7 +2,7 @@
 param()
 
 $global:PSNuGetSettings = New-Object PSObject -Property @{
-    DefaultToolsDir = "$env:LOCALAPPDATA\LigerShark\psnuget\"
+    DefaultToolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\psnuget\"
     NuGetDownloadUrl = 'http://nuget.org/nuget.exe'
 }
 <#
@@ -13,7 +13,7 @@ $global:PSNuGetSettings = New-Object PSObject -Property @{
 function Get-Nuget(){
     [cmdletbinding()]
     param(
-        $toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),
+        $toolsDir = ("$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\tools\"),
         $nugetDownloadUrl = $global:PSNuGetSettings.NuGetDownloadUrl
     )
     process{

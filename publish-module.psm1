@@ -388,7 +388,7 @@ function Get-MSDeployFullUrlFor{
 
 function Enable-PsNuGet{
     [cmdletbinding()]
-    param($toolsDir = "$env:LOCALAPPDATA\LigerShark\psnuget\",
+    param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\psnuget\",
         $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/ps-nuget.psm1')
     process{
         # try to load from local install first

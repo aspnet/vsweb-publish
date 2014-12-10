@@ -4,7 +4,7 @@
 
 function Enable-PsNuGet{
     [cmdletbinding()]
-    param($toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),$nugetDownloadUrl = 'http://nuget.org/nuget.exe')
+    param($toolsDir = ("$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\tools\"),$nugetDownloadUrl = 'http://nuget.org/nuget.exe')
     process{
         if(!(get-module 'ps-nuget')){            
             if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory | Out-Null }

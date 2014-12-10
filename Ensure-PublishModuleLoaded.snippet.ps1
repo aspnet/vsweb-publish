@@ -6,7 +6,7 @@ function Ensure-PublishModuleLoaded{
     [cmdletbinding()]
     param($versionToInstall = '0.0.8-beta',
         $installScriptUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/GetPublishModule.ps1',
-        $toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),
+        $toolsDir = ("$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\tools\"),
         $installScriptPath = (Join-Path $toolsDir 'GetPublishModule.ps1'))
     process{
         if(!(Test-Path $installScriptPath)){
