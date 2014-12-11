@@ -68,7 +68,7 @@ function DoBuild{
 
     $nuspecFiles = @((get-item(Join-Path $scriptDir "publish-module.nuspec")).FullName)
     $nuspecFiles += (get-item(Join-Path $scriptDir "publish-module-blob.nuspec")).FullName
-    $nuspecFiles += (get-item(Join-Path $scriptDir "ps-nuget.nuspec")).FullName
+    $nuspecFiles += (get-item(Join-Path $scriptDir "getnuget.nuspec")).FullName
 
     $nuspecFiles | ForEach-Object {
         $nugetArgs = @('pack',$_,'-o',$outputRoot)
