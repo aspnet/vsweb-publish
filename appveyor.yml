@@ -22,4 +22,20 @@ deploy:
       branch: release
     api_key:
       secure: HFUEQanhaxHV/sRQYznQqg7LToxSGeIoSvrmyY29PJ1eDbXxUuYrEQ6MPAsZIQFT
-    artifact: 'OutputRoot\**\*.nupkg'
+    artifact: OutputRoot\getnuget.0.0.12-beta.nupkg
+
+    - provider: NuGet
+    on:
+      branch: release
+    api_key:
+      secure: HFUEQanhaxHV/sRQYznQqg7LToxSGeIoSvrmyY29PJ1eDbXxUuYrEQ6MPAsZIQFT
+    artifact: OutputRoot\publish-module-blob.0.0.12-beta.nupkg
+
+    - provider: NuGet
+    on:
+      branch: release
+    api_key:
+      secure: HFUEQanhaxHV/sRQYznQqg7LToxSGeIoSvrmyY29PJ1eDbXxUuYrEQ6MPAsZIQFT
+    artifact: OutputRoot\publish-module.0.0.12-beta.nupkg
+
+
