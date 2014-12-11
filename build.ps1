@@ -5,6 +5,12 @@ param(
     [Parameter(ParameterSetName='build')]
     [string]$action='build',
 
+    [Parameter(ParameterSetName='build')]
+    [switch]$publishToNuget,
+
+    [Parameter(ParameterSetName='build')]
+    $nugetApiKey = ($env:NuGetApiKey),
+
     [Parameter(ParameterSetName='create-local-nuget-repo',Position=1)]
     [bool]$updateNugetExe = $false
 )
@@ -55,6 +61,27 @@ function Get-Nuget(){
     }
 }
 
+function PublishNuGetPackage{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
+        [string]$nugetPackages,
+
+        [Parameter(Mandatory=$true)]
+        $nugetApiKey
+    )
+    process{
+        foreach($nugetPackage in $nugetPackages){
+            $pkgPath = (get-item $nugetPackage).FullName
+            $cmdArgs = @('push',$pkgPath,$nugetApiKey,'-NonInteractive')
+
+            'Publishing nuget package with the following args: [nuget.exe {0}]' -f ($cmdArgs -join ' ') | Write-Verbose
+            &(Get-Nuget) $cmdArgs
+        }
+    }
+}
+
+
 function DoBuild{
     $outputRoot = Join-Path $scriptDir "OutputRoot"
     $nugetDevRepo = 'C:\temp\nuget\localrepo\'
@@ -78,6 +105,10 @@ function DoBuild{
 
     if(Test-Path $nugetDevRepo){
         Get-ChildItem -Path $outputRoot '*.nupkg' | Copy-Item -Destination $nugetDevRepo
+    }
+
+    if($publishToNuget){
+        (Get-ChildItem -Path $outputRoot '*.nupkg').FullName | PublishNuGetPackage -nugetApiKey $nugetApiKey
     }
 }
 
