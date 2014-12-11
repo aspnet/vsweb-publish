@@ -18,8 +18,8 @@ nuget:
 
 deploy:
   - provider: NuGet
-  on:
-    branch: release
+    on:
+      branch: release
     api_key:
       secure: HFUEQanhaxHV/sRQYznQqg7LToxSGeIoSvrmyY29PJ1eDbXxUuYrEQ6MPAsZIQFT
     artifact: OutputRoot\*.nupkg
