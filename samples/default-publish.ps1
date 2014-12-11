@@ -1,4 +1,4 @@
-﻿[cmdletbinding(SupportsShouldProcess=$true)]
+[cmdletbinding(SupportsShouldProcess=$true)]
 param($publishProperties, $packOutput)
 
 $defaultPublishSettings = New-Object psobject -Property @{
@@ -83,7 +83,7 @@ function Enable-NuGetModule{
 
 try{
 	Enable-PsNuGet
-	Enable-NuGetModule -name 'publish-module' -version '0.0.11-beta'
+	Enable-NuGetModule -name 'publish-module' -version '0.0.12-beta'
 
 	$whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
 
