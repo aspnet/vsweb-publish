@@ -5,9 +5,21 @@ version: 1.0.{build}
 build_script:
 - ps: C:\projects\publish-module\build.ps1
 
+environment:
+  NuGetApiKey:
+    secure: HFUEQanhaxHV/sRQYznQqg7LToxSGeIoSvrmyY29PJ1eDbXxUuYrEQ6MPAsZIQFT
+
 artifacts:
   - path: 'OutputRoot\**\*'
 
 nuget:
   account_feed: true
   project_feed: true
+
+deploy:
+  - provider: NuGet
+  on:
+    branch: release
+    api_key:
+      secure: HFUEQanhaxHV/sRQYznQqg7LToxSGeIoSvrmyY29PJ1eDbXxUuYrEQ6MPAsZIQFT
+    artifact: OutputRoot\*.nupkg
