@@ -3,7 +3,7 @@
 version: 1.0.{build}
 
 build_script:
-- ps: C:\projects\publish-module\build.ps1
+- ps: if($env:APPVEYOR_REPO_BRANCH -neq "release"){C:\projects\publish-module\build.ps1} else {C:\projects\publish-module\build.ps1 -publishToNuget}
 
 environment:
   NuGetApiKey:
@@ -15,27 +15,3 @@ artifacts:
 nuget:
   account_feed: true
   project_feed: true
-
-deploy:
-  - provider: NuGet
-    on:
-      branch: release
-    api_key:
-      secure: HFUEQanhaxHV/sRQYznQqg7LToxSGeIoSvrmyY29PJ1eDbXxUuYrEQ6MPAsZIQFT
-    artifact: OutputRoot\getnuget.0.0.12-beta.nupkg
-
-  - provider: NuGet
-    on:
-      branch: release
-    api_key:
-      secure: HFUEQanhaxHV/sRQYznQqg7LToxSGeIoSvrmyY29PJ1eDbXxUuYrEQ6MPAsZIQFT
-    artifact: OutputRoot\publish-module-blob.0.0.12-beta.nupkg
-
-  - provider: NuGet
-    on:
-      branch: release
-    api_key:
-      secure: HFUEQanhaxHV/sRQYznQqg7LToxSGeIoSvrmyY29PJ1eDbXxUuYrEQ6MPAsZIQFT
-    artifact: OutputRoot\publish-module.0.0.12-beta.nupkg
-
-
