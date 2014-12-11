@@ -83,7 +83,7 @@ function Enable-NuGetModule{
 
 try{
 	Enable-PsNuGet
-	Enable-NuGetModule -name 'publish-module' -version '0.0.10-beta'
+	Enable-NuGetModule -name 'publish-module' -version '0.0.11-beta'
 
 	$whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
 

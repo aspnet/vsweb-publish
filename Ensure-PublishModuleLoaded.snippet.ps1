@@ -4,7 +4,7 @@
 
 function Ensure-PublishModuleLoaded{
     [cmdletbinding()]
-    param($versionToInstall = '0.0.10-beta',
+    param($versionToInstall = '0.0.11-beta',
         $installScriptUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/GetPublishModule.ps1',
         $toolsDir = ("$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\tools\"),
         $installScriptPath = (Join-Path $toolsDir 'GetPublishModule.ps1'))
