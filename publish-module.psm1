@@ -417,6 +417,27 @@ function Enable-PsNuGet{
     }
 }
 
+function Get-VisualStudio2015InstallPath{
+    [cmdletbinding()]
+    param()
+    process{
+        $keysToCheck = @('hklm:\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\14.0','hklm:\SOFTWARE\Microsoft\VisualStudio\14.0')
+        [string]$vsInstallPath=$null
+
+        foreach($keyToCheck in $keysToCheck){
+            if(Test-Path $keyToCheck){
+                $vsInstallPath = (Get-itemproperty $keyToCheck -Name InstallDir | select -ExpandProperty InstallDir)
+            }
+
+            if($vsInstallPath){
+                break;
+            }
+        }
+
+        $vsInstallPath
+    }
+}
+
 Export-ModuleMember -function Get-*,Publish-*,Register-*,Enable-*
 
 ##############################################

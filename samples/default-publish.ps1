@@ -1,8 +1,29 @@
 [cmdletbinding(SupportsShouldProcess=$true)]
 param($publishProperties, $packOutput)
 
+function Get-VisualStudio2015InstallPath{
+    [cmdletbinding()]
+    param()
+    process{
+        $keysToCheck = @('hklm:\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\14.0','hklm:\SOFTWARE\Microsoft\VisualStudio\14.0')
+        [string]$vsInstallPath=$null
+
+        foreach($keyToCheck in $keysToCheck){
+            if(Test-Path $keyToCheck){
+                $vsInstallPath = (Get-itemproperty $keyToCheck -Name InstallDir | select -ExpandProperty InstallDir)
+            }
+
+            if($vsInstallPath){
+                break;
+            }
+        }
+
+        $vsInstallPath
+    }
+}
+
 $defaultPublishSettings = New-Object psobject -Property @{
-    LocalInstallDir = ("${env:ProgramFiles(x86)}\Microsoft Visual Studio 14.0\Common7\IDE\Extensions\Microsoft\Web Tools\Publish\")
+    LocalInstallDir = ("{0}Extensions\Microsoft\Web Tools\Publish\" -f (Get-VisualStudio2015InstallPath))
 }
 
 function Enable-PsNuGet{
