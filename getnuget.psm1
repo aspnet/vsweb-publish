@@ -147,7 +147,7 @@ function Enable-NuGetModule2{
             if(!$moduleFileName){$moduleFileName = $name}
             $moduleFile = (join-path $installDir ("tools\{0}.psm1" -f $moduleFileName))
             'Loading module from [{0}]' -f $moduleFile | Write-Verbose
-            Import-Module $moduleFile -DisableNameChecking
+            Import-Module $moduleFile -DisableNameChecking -Global -Force
         }
         else{
             'module [{0}] is already loaded skipping' -f $name | Write-Verbose
