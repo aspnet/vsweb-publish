@@ -122,15 +122,15 @@ This function assumes that the name of the PS module is the name of the .psm1 fi
 and that file is in the tools\ folder in the NuGet package.
 
 .EXAMPLE
-Enable-NuGetModule -name 'publish-module' -version '0.0.13-beta'
+Enable-NuGetModule -name 'publish-module' -version '0.0.14-beta'
 
 .EXAMPLE
-Enable-NuGetModule -name 'publish-module-blob' -version '0.0.13-beta'
+Enable-NuGetModule -name 'publish-module-blob' -version '0.0.14-beta'
 #>
 
 # For now this function has to be declared directly in the publish
 # .ps1 file, not sure why.
-function Enable-NuGetModule2{
+function Enable-NuGetModule{
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true,Position=0)]
