@@ -3,6 +3,8 @@ param(
     # actions
     [Parameter(ParameterSetName='build',Position=0)]
     [switch]$build,
+    [Parameter(ParameterSetName='clean',Position=0)]
+    [switch]$clean,
     [Parameter(ParameterSetName='updateversion',Position=0)]
     [switch]$updateversion,
     [Parameter(ParameterSetName='createnugetlocalrepo',Position=0)]
@@ -10,9 +12,12 @@ param(
 
     # build parameters
     [Parameter(ParameterSetName='build',Position=1)]
-    [switch]$publishToNuget,
+    [switch]$cleanBeforeBuild,
 
     [Parameter(ParameterSetName='build',Position=2)]
+    [switch]$publishToNuget,
+
+    [Parameter(ParameterSetName='build',Position=3)]
     [string]$nugetApiKey = ($env:NuGetApiKey),
 
     # updateversion parameters
@@ -98,14 +103,36 @@ function PublishNuGetPackage{
     }
 }
 
-function Build{
+function Clean{
     [cmdletbinding()]
     param()
     process{
         $outputRoot = Join-Path $scriptDir "OutputRoot"
+        if((Test-Path $outputRoot)){
+            'Removing directory: [{0}]' -f $outputRoot | Write-Output
+            Remove-Item $outputRoot -Recurse -Force
+        }
+        else{
+            'Output folder [{0}] doesn''t exist skipping deletion' -f $outputRoot | Write-Output
+        }
+    }
+}
+function Build{
+    [cmdletbinding()]
+    param()
+    process{
+        'Starting build' | Write-Output
+        if($publishToNuget){ $cleanBeforeBuild = $true }
+
+        if($cleanBeforeBuild){
+            Clean
+        }
+
+        $outputRoot = Join-Path $scriptDir "OutputRoot"
         $nugetDevRepo = 'C:\temp\nuget\localrepo\'
 
         if(!(Test-Path $outputRoot)){
+            'Creating output folder [{0}]' -f $outputRoot | Write-Output
             New-Item $outputRoot -ItemType Directory
         }
 
@@ -118,7 +145,7 @@ function Build{
 
         $nuspecFiles | ForEach-Object {
             $nugetArgs = @('pack',$_,'-o',$outputRoot)
-            'Calling nuget.exe with the command:[nuget.exe {0}]' -f  ($nugetArgs -join ' ') | Write-Verbose
+            'Calling nuget.exe with the command:[nuget.exe {0}]' -f  ($nugetArgs -join ' ') | Write-Output
             &(Get-Nuget) $nugetArgs    
         }
 
@@ -242,7 +269,7 @@ function CreateLocalNuGetRepo{
 
 # Begin script here
 
-if(!$updateversion -and !$createnugetlocalrepo){
+if(!$updateversion -and !$createnugetlocalrepo -and !$clean){
     # build is the default option
     $build = $true
 }
@@ -250,6 +277,7 @@ if(!$updateversion -and !$createnugetlocalrepo){
 if($build){ Build }
 elseif($updateversion){ UpdateVersion -oldversion $oldversion -newversion $newversion }
 elseif($createnugetlocalrepo){ CreateLocalNuGetRepo }
+elseif($clean){ Clean }
 else{
     $cmds = @('-build','-updateversion','-createnugetlocalrepo')
     'No command specified, please pass in one of the following [{0}]' -f ($cmds -join ' ') | Write-Error
