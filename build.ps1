@@ -1,17 +1,25 @@
 [cmdletbinding(DefaultParameterSetName ='build')]
 param(
-    [Parameter(Position=0)]
-    [ValidateSet('build','create-local-nuget-repo')]
-    [Parameter(ParameterSetName='build')]
-    [string]$action='build',
+    [Parameter(ParameterSetName='build',Position=0)]
+    [switch]$build,
+    [Parameter(ParameterSetName='updateversion',Position=0)]
+    [switch]$updateversion,
+    [Parameter(ParameterSetName='createnugetlocalrepo',Position=0)]
+    [switch]$createnugetlocalrepo,
 
-    [Parameter(ParameterSetName='build')]
+    [Parameter(ParameterSetName='build',Position=1)]
     [switch]$publishToNuget,
 
-    [Parameter(ParameterSetName='build')]
-    $nugetApiKey = ($env:NuGetApiKey),
+    [Parameter(ParameterSetName='build',Position=2)]
+    [string]$nugetApiKey = ($env:NuGetApiKey),
 
-    [Parameter(ParameterSetName='create-local-nuget-repo',Position=1)]
+    [Parameter(ParameterSetName='updateversion',Position=1,Mandatory=$true)]
+    [string]$oldversion,
+
+    [Parameter(ParameterSetName='updateversion',Position=2,Mandatory=$true)]
+    [string]$newversion,
+
+    [Parameter(ParameterSetName='createnugetlocalrepo',Position=1)]
     [bool]$updateNugetExe = $false
 )
 
@@ -39,25 +47,30 @@ function Get-Nuget(){
         $nugetDownloadUrl = 'http://nuget.org/nuget.exe'
     )
     process{
-        $nugetDestPath = Join-Path -Path $toolsDir -ChildPath nuget.exe
+        try{
+            $nugetDestPath = Join-Path -Path $toolsDir -ChildPath nuget.exe
         
-        if(!(Test-Path $nugetDestPath)){
-            $nugetDir = ([System.IO.Path]::GetDirectoryName($nugetDestPath))
-            if(!(Test-Path $nugetDir)){
-                New-Item -Path $nugetDir -ItemType Directory | Out-Null
-            }
-
-            'Downloading nuget.exe' | Write-Verbose
-            (New-Object System.Net.WebClient).DownloadFile($nugetDownloadUrl, $nugetDestPath)
-
-            # double check that is was written to disk
             if(!(Test-Path $nugetDestPath)){
-                throw 'unable to download nuget'
-            }
-        }
+                $nugetDir = ([System.IO.Path]::GetDirectoryName($nugetDestPath))
+                if(!(Test-Path $nugetDir)){
+                    New-Item -Path $nugetDir -ItemType Directory | Out-Null
+                }
 
-        # return the path of the file
-        $nugetDestPath
+                'Downloading nuget.exe' | Write-Verbose
+                (New-Object System.Net.WebClient).DownloadFile($nugetDownloadUrl, $nugetDestPath)
+
+                # double check that is was written to disk
+                if(!(Test-Path $nugetDestPath)){
+                    throw 'unable to download nuget'
+                }
+            }
+
+            # return the path of the file
+            $nugetDestPath
+        }
+        catch{
+            throw ("Unable to download/find nuget.exe. Error:`n{0}" -f $_.Exception.Message)            
+        }
     }
 }
 
@@ -82,7 +95,7 @@ function PublishNuGetPackage{
 }
 
 
-function DoBuild{
+function Build{
     $outputRoot = Join-Path $scriptDir "OutputRoot"
     $nugetDevRepo = 'C:\temp\nuget\localrepo\'
 
@@ -109,6 +122,60 @@ function DoBuild{
 
     if($publishToNuget){
         (Get-ChildItem -Path $outputRoot '*.nupkg').FullName | PublishNuGetPackage -nugetApiKey $nugetApiKey
+    }
+}
+
+function Enable-GetNuGet{
+    [cmdletbinding()]
+    param($toolsDir = "$env:LOCALAPPDATA\LigerShark\tools\getnuget\",
+        $getNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/getnuget.psm1')
+    process{
+        if(!(get-module 'getnuget')){
+            if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory -WhatIf:$false }
+
+            $expectedPath = (Join-Path ($toolsDir) 'getnuget.psm1')
+            if(!(Test-Path $expectedPath)){
+                'Downloading [{0}] to [{1}]' -f $getNuGetDownloadUrl,$expectedPath | Write-Verbose
+                (New-Object System.Net.WebClient).DownloadFile($getNuGetDownloadUrl, $expectedPath)
+                if(!$expectedPath){throw ('Unable to download getnuget.psm1')}
+            }
+
+            'importing module [{0}]' -f $expectedPath | Write-Verbose
+            Import-Module $expectedPath -DisableNameChecking -Force -Scope Global
+        }
+    }
+}
+
+function UpdateVersion{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0)]
+        [ValidateScript({})]
+        [string]$oldversion,
+
+        [Parameter(Position=1)]
+        [ValidateNotNullOrEmpty]
+        [string]$newversion,
+
+        [Parameter(Position=2)]
+        [string]$filereplacerVersion = '0.2.0-beta'
+    )
+    process{
+        'Updating version from [{0}] to [{1}]' -f $oldversion,$newversion | Write-Verbose
+        Enable-GetNuGet
+        'trying to load file replacer' | Write-Verbose
+        Enable-NuGetModule -name 'file-replacer' -version $filereplacerVersion
+
+        $folder = $scriptDir
+        $include = '*.nuspec;*.ps*1'
+        # In case the script is in the same folder as the files you are replacing add it to the exclude list
+        $exclude = "$($MyInvocation.MyCommand.Name);"
+        $replacements = @{
+            $oldversion=$newversion
+        }
+        $logger = New-Object -TypeName System.Text.StringBuilder
+        Replace-TextInFolder -folder $folder -include $include -exclude $exclude -replacements $replacements | Write-Verbose
+        'Replacement complete' | Write-Verbose
     }
 }
 
@@ -166,9 +233,16 @@ function CreateLocalNuGetRepo{
 
 # Begin script here
 
-switch($action){
-    'build' {DoBuild}
-    'create-local-nuget-repo' {CreateLocalNuGetRepo}
-    'default' {throw ('Unknown value for action: [{0}]' -f $action)}
+if(!$updateversion -and !$createnugetlocalrepo){
+    # build is the default option
+    $build = $true
+}
+
+if($build){ Build }
+elseif($updateversion){ UpdateVersion }
+elseif($createnugetlocalrepo){ CreateLocalNuGetRepo }
+else{
+    $cmds = @('-build','-updateversion','-createnugetlocalrepo')
+    'No command specified, please pass in one of the following [{0}]' -f ($cmds -join ' ') | Write-Error
 }
 
