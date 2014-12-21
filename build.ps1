@@ -1,5 +1,6 @@
 [cmdletbinding(DefaultParameterSetName ='build')]
 param(
+    # actions
     [Parameter(ParameterSetName='build',Position=0)]
     [switch]$build,
     [Parameter(ParameterSetName='updateversion',Position=0)]
@@ -7,18 +8,21 @@ param(
     [Parameter(ParameterSetName='createnugetlocalrepo',Position=0)]
     [switch]$createnugetlocalrepo,
 
+    # build parameters
     [Parameter(ParameterSetName='build',Position=1)]
     [switch]$publishToNuget,
 
     [Parameter(ParameterSetName='build',Position=2)]
     [string]$nugetApiKey = ($env:NuGetApiKey),
 
+    # updateversion parameters
     [Parameter(ParameterSetName='updateversion',Position=1,Mandatory=$true)]
     [string]$oldversion,
 
     [Parameter(ParameterSetName='updateversion',Position=2,Mandatory=$true)]
     [string]$newversion,
 
+    # createnugetlocalrepo parameters
     [Parameter(ParameterSetName='createnugetlocalrepo',Position=1)]
     [bool]$updateNugetExe = $false
 )
@@ -94,34 +98,37 @@ function PublishNuGetPackage{
     }
 }
 
-
 function Build{
-    $outputRoot = Join-Path $scriptDir "OutputRoot"
-    $nugetDevRepo = 'C:\temp\nuget\localrepo\'
+    [cmdletbinding()]
+    param()
+    process{
+        $outputRoot = Join-Path $scriptDir "OutputRoot"
+        $nugetDevRepo = 'C:\temp\nuget\localrepo\'
 
-    if(!(Test-Path $outputRoot)){
-        New-Item $outputRoot -ItemType Directory
-    }
+        if(!(Test-Path $outputRoot)){
+            New-Item $outputRoot -ItemType Directory
+        }
 
-    $outputRoot = (Get-Item $outputRoot).FullName
-    # call nuget to create the package
+        $outputRoot = (Get-Item $outputRoot).FullName
+        # call nuget to create the package
 
-    $nuspecFiles = @((get-item(Join-Path $scriptDir "publish-module.nuspec")).FullName)
-    $nuspecFiles += (get-item(Join-Path $scriptDir "publish-module-blob.nuspec")).FullName
-    $nuspecFiles += (get-item(Join-Path $scriptDir "getnuget.nuspec")).FullName
+        $nuspecFiles = @((get-item(Join-Path $scriptDir "publish-module.nuspec")).FullName)
+        $nuspecFiles += (get-item(Join-Path $scriptDir "publish-module-blob.nuspec")).FullName
+        $nuspecFiles += (get-item(Join-Path $scriptDir "getnuget.nuspec")).FullName
 
-    $nuspecFiles | ForEach-Object {
-        $nugetArgs = @('pack',$_,'-o',$outputRoot)
-        'Calling nuget.exe with the command:[nuget.exe {0}]' -f  ($nugetArgs -join ' ') | Write-Verbose
-        &(Get-Nuget) $nugetArgs    
-    }
+        $nuspecFiles | ForEach-Object {
+            $nugetArgs = @('pack',$_,'-o',$outputRoot)
+            'Calling nuget.exe with the command:[nuget.exe {0}]' -f  ($nugetArgs -join ' ') | Write-Verbose
+            &(Get-Nuget) $nugetArgs    
+        }
 
-    if(Test-Path $nugetDevRepo){
-        Get-ChildItem -Path $outputRoot '*.nupkg' | Copy-Item -Destination $nugetDevRepo
-    }
+        if(Test-Path $nugetDevRepo){
+            Get-ChildItem -Path $outputRoot '*.nupkg' | Copy-Item -Destination $nugetDevRepo
+        }
 
-    if($publishToNuget){
-        (Get-ChildItem -Path $outputRoot '*.nupkg').FullName | PublishNuGetPackage -nugetApiKey $nugetApiKey
+        if($publishToNuget){
+            (Get-ChildItem -Path $outputRoot '*.nupkg').FullName | PublishNuGetPackage -nugetApiKey $nugetApiKey
+        }
     }
 }
 
