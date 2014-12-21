@@ -149,12 +149,14 @@ function Enable-GetNuGet{
 function UpdateVersion{
     [cmdletbinding()]
     param(
-        [Parameter(Position=0)]
-        [ValidateScript({})]
+        [Parameter(Position=0,Mandatory=$true)]
+        # [ValidateScript({ ($_ -ne $null) -and ($_.length -gt 0)})]
+        [ValidateNotNullOrEmpty()]
         [string]$oldversion,
 
-        [Parameter(Position=1)]
-        [ValidateNotNullOrEmpty]
+        [Parameter(Position=1,Mandatory=$true)]
+        # [ValidateScript({ ($_ -ne $null) -and ($_.length -gt 0)})]
+        [ValidateNotNullOrEmpty()]
         [string]$newversion,
 
         [Parameter(Position=2)]
@@ -171,7 +173,7 @@ function UpdateVersion{
         # In case the script is in the same folder as the files you are replacing add it to the exclude list
         $exclude = "$($MyInvocation.MyCommand.Name);"
         $replacements = @{
-            $oldversion=$newversion
+            "$oldversion"="$newversion"
         }
         $logger = New-Object -TypeName System.Text.StringBuilder
         Replace-TextInFolder -folder $folder -include $include -exclude $exclude -replacements $replacements | Write-Verbose
@@ -239,7 +241,7 @@ if(!$updateversion -and !$createnugetlocalrepo){
 }
 
 if($build){ Build }
-elseif($updateversion){ UpdateVersion }
+elseif($updateversion){ UpdateVersion -oldversion $oldversion -newversion $newversion }
 elseif($createnugetlocalrepo){ CreateLocalNuGetRepo }
 else{
     $cmds = @('-build','-updateversion','-createnugetlocalrepo')
