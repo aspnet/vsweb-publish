@@ -22,10 +22,10 @@ param(
 
     # updateversion parameters
     [Parameter(ParameterSetName='updateversion',Position=1,Mandatory=$true)]
-    [string]$oldversion,
-
-    [Parameter(ParameterSetName='updateversion',Position=2,Mandatory=$true)]
     [string]$newversion,
+
+    [Parameter(ParameterSetName='updateversion',Position=2)]
+    [string]$oldversion,
 
     # createnugetlocalrepo parameters
     [Parameter(ParameterSetName='createnugetlocalrepo',Position=1)]
@@ -180,18 +180,31 @@ function Enable-GetNuGet{
     }
 }
 
+<#
+.SYNOPSIS 
+This will inspect the publsish nuspec file and return the value for the Version element.
+#>
+function GetExistingVersion{
+    [cmdletbinding()]
+    param(
+        [ValidateScript({test-path $_ -PathType Leaf})]
+        $nuspecFile = (Join-Path $scriptDir 'publish-module.nuspec')
+    )
+    process{
+        ([xml](Get-Content $nuspecFile)).package.metadata.version
+    }
+}
+
 function UpdateVersion{
     [cmdletbinding()]
     param(
         [Parameter(Position=0,Mandatory=$true)]
-        # [ValidateScript({ ($_ -ne $null) -and ($_.length -gt 0)})]
-        [ValidateNotNullOrEmpty()]
-        [string]$oldversion,
-
-        [Parameter(Position=1,Mandatory=$true)]
-        # [ValidateScript({ ($_ -ne $null) -and ($_.length -gt 0)})]
         [ValidateNotNullOrEmpty()]
         [string]$newversion,
+
+        [Parameter(Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$oldversion = (GetExistingVersion),
 
         [Parameter(Position=2)]
         [string]$filereplacerVersion = '0.2.0-beta'
@@ -209,7 +222,6 @@ function UpdateVersion{
         $replacements = @{
             "$oldversion"="$newversion"
         }
-        $logger = New-Object -TypeName System.Text.StringBuilder
         Replace-TextInFolder -folder $folder -include $include -exclude $exclude -replacements $replacements | Write-Verbose
         'Replacement complete' | Write-Verbose
     }
@@ -275,7 +287,7 @@ if(!$updateversion -and !$createnugetlocalrepo -and !$clean){
 }
 
 if($build){ Build }
-elseif($updateversion){ UpdateVersion -oldversion $oldversion -newversion $newversion }
+elseif($updateversion){ UpdateVersion -newversion $newversion }
 elseif($createnugetlocalrepo){ CreateLocalNuGetRepo }
 elseif($clean){ Clean }
 else{
