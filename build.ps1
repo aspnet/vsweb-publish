@@ -1,24 +1,33 @@
 [cmdletbinding(DefaultParameterSetName ='build')]
 param(
+    # actions
     [Parameter(ParameterSetName='build',Position=0)]
     [switch]$build,
+    [Parameter(ParameterSetName='clean',Position=0)]
+    [switch]$clean,
     [Parameter(ParameterSetName='updateversion',Position=0)]
     [switch]$updateversion,
     [Parameter(ParameterSetName='createnugetlocalrepo',Position=0)]
     [switch]$createnugetlocalrepo,
 
+    # build parameters
     [Parameter(ParameterSetName='build',Position=1)]
-    [switch]$publishToNuget,
+    [switch]$cleanBeforeBuild,
 
     [Parameter(ParameterSetName='build',Position=2)]
+    [switch]$publishToNuget,
+
+    [Parameter(ParameterSetName='build',Position=3)]
     [string]$nugetApiKey = ($env:NuGetApiKey),
 
+    # updateversion parameters
     [Parameter(ParameterSetName='updateversion',Position=1,Mandatory=$true)]
-    [string]$oldversion,
-
-    [Parameter(ParameterSetName='updateversion',Position=2,Mandatory=$true)]
     [string]$newversion,
 
+    [Parameter(ParameterSetName='updateversion',Position=2)]
+    [string]$oldversion,
+
+    # createnugetlocalrepo parameters
     [Parameter(ParameterSetName='createnugetlocalrepo',Position=1)]
     [bool]$updateNugetExe = $false
 )
@@ -94,34 +103,59 @@ function PublishNuGetPackage{
     }
 }
 
-
+function Clean{
+    [cmdletbinding()]
+    param()
+    process{
+        $outputRoot = Join-Path $scriptDir "OutputRoot"
+        if((Test-Path $outputRoot)){
+            'Removing directory: [{0}]' -f $outputRoot | Write-Output
+            Remove-Item $outputRoot -Recurse -Force
+        }
+        else{
+            'Output folder [{0}] doesn''t exist skipping deletion' -f $outputRoot | Write-Output
+        }
+    }
+}
 function Build{
-    $outputRoot = Join-Path $scriptDir "OutputRoot"
-    $nugetDevRepo = 'C:\temp\nuget\localrepo\'
+    [cmdletbinding()]
+    param()
+    process{
+        'Starting build' | Write-Output
+        if($publishToNuget){ $cleanBeforeBuild = $true }
 
-    if(!(Test-Path $outputRoot)){
-        New-Item $outputRoot -ItemType Directory
-    }
+        if($cleanBeforeBuild){
+            Clean
+        }
 
-    $outputRoot = (Get-Item $outputRoot).FullName
-    # call nuget to create the package
+        $outputRoot = Join-Path $scriptDir "OutputRoot"
+        $nugetDevRepo = 'C:\temp\nuget\localrepo\'
 
-    $nuspecFiles = @((get-item(Join-Path $scriptDir "publish-module.nuspec")).FullName)
-    $nuspecFiles += (get-item(Join-Path $scriptDir "publish-module-blob.nuspec")).FullName
-    $nuspecFiles += (get-item(Join-Path $scriptDir "getnuget.nuspec")).FullName
+        if(!(Test-Path $outputRoot)){
+            'Creating output folder [{0}]' -f $outputRoot | Write-Output
+            New-Item $outputRoot -ItemType Directory
+        }
 
-    $nuspecFiles | ForEach-Object {
-        $nugetArgs = @('pack',$_,'-o',$outputRoot)
-        'Calling nuget.exe with the command:[nuget.exe {0}]' -f  ($nugetArgs -join ' ') | Write-Verbose
-        &(Get-Nuget) $nugetArgs    
-    }
+        $outputRoot = (Get-Item $outputRoot).FullName
+        # call nuget to create the package
 
-    if(Test-Path $nugetDevRepo){
-        Get-ChildItem -Path $outputRoot '*.nupkg' | Copy-Item -Destination $nugetDevRepo
-    }
+        $nuspecFiles = @((get-item(Join-Path $scriptDir "publish-module.nuspec")).FullName)
+        $nuspecFiles += (get-item(Join-Path $scriptDir "publish-module-blob.nuspec")).FullName
+        $nuspecFiles += (get-item(Join-Path $scriptDir "getnuget.nuspec")).FullName
 
-    if($publishToNuget){
-        (Get-ChildItem -Path $outputRoot '*.nupkg').FullName | PublishNuGetPackage -nugetApiKey $nugetApiKey
+        $nuspecFiles | ForEach-Object {
+            $nugetArgs = @('pack',$_,'-o',$outputRoot)
+            'Calling nuget.exe with the command:[nuget.exe {0}]' -f  ($nugetArgs -join ' ') | Write-Output
+            &(Get-Nuget) $nugetArgs    
+        }
+
+        if(Test-Path $nugetDevRepo){
+            Get-ChildItem -Path $outputRoot '*.nupkg' | Copy-Item -Destination $nugetDevRepo
+        }
+
+        if($publishToNuget){
+            (Get-ChildItem -Path $outputRoot '*.nupkg').FullName | PublishNuGetPackage -nugetApiKey $nugetApiKey
+        }
     }
 }
 
@@ -146,18 +180,31 @@ function Enable-GetNuGet{
     }
 }
 
+<#
+.SYNOPSIS 
+This will inspect the publsish nuspec file and return the value for the Version element.
+#>
+function GetExistingVersion{
+    [cmdletbinding()]
+    param(
+        [ValidateScript({test-path $_ -PathType Leaf})]
+        $nuspecFile = (Join-Path $scriptDir 'publish-module.nuspec')
+    )
+    process{
+        ([xml](Get-Content $nuspecFile)).package.metadata.version
+    }
+}
+
 function UpdateVersion{
     [cmdletbinding()]
     param(
         [Parameter(Position=0,Mandatory=$true)]
-        # [ValidateScript({ ($_ -ne $null) -and ($_.length -gt 0)})]
-        [ValidateNotNullOrEmpty()]
-        [string]$oldversion,
-
-        [Parameter(Position=1,Mandatory=$true)]
-        # [ValidateScript({ ($_ -ne $null) -and ($_.length -gt 0)})]
         [ValidateNotNullOrEmpty()]
         [string]$newversion,
+
+        [Parameter(Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$oldversion = (GetExistingVersion),
 
         [Parameter(Position=2)]
         [string]$filereplacerVersion = '0.2.0-beta'
@@ -175,7 +222,6 @@ function UpdateVersion{
         $replacements = @{
             "$oldversion"="$newversion"
         }
-        $logger = New-Object -TypeName System.Text.StringBuilder
         Replace-TextInFolder -folder $folder -include $include -exclude $exclude -replacements $replacements | Write-Verbose
         'Replacement complete' | Write-Verbose
     }
@@ -235,14 +281,15 @@ function CreateLocalNuGetRepo{
 
 # Begin script here
 
-if(!$updateversion -and !$createnugetlocalrepo){
+if(!$updateversion -and !$createnugetlocalrepo -and !$clean){
     # build is the default option
     $build = $true
 }
 
 if($build){ Build }
-elseif($updateversion){ UpdateVersion -oldversion $oldversion -newversion $newversion }
+elseif($updateversion){ UpdateVersion -newversion $newversion }
 elseif($createnugetlocalrepo){ CreateLocalNuGetRepo }
+elseif($clean){ Clean }
 else{
     $cmds = @('-build','-updateversion','-createnugetlocalrepo')
     'No command specified, please pass in one of the following [{0}]' -f ($cmds -join ' ') | Write-Error

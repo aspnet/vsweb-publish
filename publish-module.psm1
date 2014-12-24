@@ -59,11 +59,19 @@ function GetInternal-ExcludeFilesArg{
         $publishProperties
     )
     process{
-        foreach($exclude in ($publishProperties['ExcludeFiles'])){
-            $excludePath = $exclude['Filepath']
+        $excludeFiles = $publishProperties['ExcludeFiles']
+        foreach($exclude in $excludeFiles){
+            [string]$objName = $exclude['objectname']
+
+            if([string]::IsNullOrEmpty($objName)){
+                $objName = 'filePath'
+            }
+
+            [ValidateNotNullOrEmpty()]
+            $excludePath = $exclude['absolutepath']
 
             # output the result to the return list
-            ('-skip:objectName=filePath,absolutePath={0}$' -f $excludePath)
+            ('-skip:objectName={0},absolutePath={1}' -f $objName, $excludePath)
         }
     }
 }
@@ -186,8 +194,8 @@ Publish-AspNet -packOutput $packOutput -publishProperties @{
      'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
 'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"
  	'ExcludeFiles'=@(
-		@{'Filepath'='wwwroot\\test.txt'},
-		@{'Filepath'='wwwroot\\_references.js'}
+		@{'absolutepath'='wwwroot\\test.txt'},
+		@{'absolutepath'='wwwroot\\_references.js'}
 )} 
 
 .EXAMPLE
@@ -195,10 +203,20 @@ Publish-AspNet -packOutput $packOutput -publishProperties @{
 	'WebPublishMethod'='FileSystem'
 	'publishUrl'="$publishDest"
 	'ExcludeFiles'=@(
-		@{'Filepath'='wwwroot\\test.txt'},
-		@{'Filepath'='wwwroot\\_references.js'})
+		@{'absolutepath'='wwwroot\\test.txt'},
+		@{'absolutepath'='wwwroot\\_references.js'})
 	'Replacements' = @(
-		@{'file'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
+		@{'absolutepath'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
+	}
+
+Publish-AspNet -packOutput $packOutput -publishProperties @{
+	'WebPublishMethod'='FileSystem'
+	'publishUrl'="$publishDest"
+	'ExcludeFiles'=@(
+		@{'absolutepath'='wwwroot\\test.txt'},
+		@{'absolutepath'='c:\\full\\path\\ok\\as\\well\\_references.js'})
+	'Replacements' = @(
+		@{'absolutepath'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
 	}
 
 .EXAMPLE
