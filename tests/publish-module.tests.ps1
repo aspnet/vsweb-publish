@@ -1,4 +1,7 @@
-﻿
+﻿[cmdletbinding()]
+param()
+
+
 function Get-ScriptDirectory
 {
     $Invocation = (Get-Variable MyInvocation -Scope 1).Value

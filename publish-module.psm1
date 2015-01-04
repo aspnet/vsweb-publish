@@ -456,41 +456,59 @@ function Get-VisualStudio2015InstallPath{
     }
 }
 
-Export-ModuleMember -function Get-*,Publish-*,Register-*,Enable-*
+function Register-AspNetKnownPublishHandlers{
+    [cmdletbinding()]
+    param()
+    process{
+        'Registering MSDeploy handler' | Write-Verbose
+        Register-AspnetPublishHandler -name 'MSDeploy' -force -handler {
+            [cmdletbinding()]
+            param(
+                [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+                $publishProperties,
+                [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+                $packOutput
+            )
 
+            Publish-AspNetMSDeploy -publishProperties $publishProperties -packOutput $packOutput
+        }
+
+        'Registering FileSystem handler' | Write-Verbose
+        Register-AspnetPublishHandler -name 'FileSystem' -force -handler {
+            [cmdletbinding()]
+            param(
+                [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+                $publishProperties,
+                [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+                $packOutput
+            )
+    
+            Publish-AspNetFileSystem -publishProperties $publishProperties -packOutput $packOutput
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+    Used for testing purposes only.
+#>
+function InternalReset-AspNetPublishHandlers{
+    [cmdletbinding()]
+    param()
+    process{
+        $script:AspNetPublishHandlers = @{}
+        Register-AspNetKnownPublishHandlers
+    }
+}
+
+Export-ModuleMember -function Get-*,Publish-*,Register-*,Enable-*
 if($env:IsDeveloperMachine){
     # you can set the env var to expose all functions to importer. easy for development.
     # this is required for executing pester test cases, it's set by build.ps1
-    Export-ModuleMember -function *    
+    Export-ModuleMember -function *
 }
 
-##############################################
-# register the handlers
-##############################################
-'Registering MSDeploy handler' | Write-Verbose
-Register-AspnetPublishHandler -name 'MSDeploy' -force -handler { 
-    [cmdletbinding()]
-    param(
-        [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
-        $publishProperties,
-        [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
-        $packOutput
-    )
-    
-    Publish-AspNetMSDeploy -publishProperties $publishProperties -packOutput $packOutput
-}
-
-'Registering FileSystem handler' | Write-Verbose
-Register-AspnetPublishHandler -name 'FileSystem' -force -handler {
-    [cmdletbinding()]
-    param(
-        [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
-        $publishProperties,
-        [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
-        $packOutput
-    )
-    
-    Publish-AspNetFileSystem -publishProperties $publishProperties -packOutput $packOutput
-}
+# register the handlers so that Publish-AspNet can be called
+Register-AspNetKnownPublishHandlers
 
 Enable-PsNuGet
