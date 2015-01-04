@@ -24,6 +24,8 @@ else{
 Describe "tests for Register-AspnetPublishHandler" {
 
     It "Register with force replaces existing" {
-        Register-AspnetPublishHandler
+        'add tests cases here' | Write-Output
+
+        1 | Should Be 1
     }
 }

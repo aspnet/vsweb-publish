@@ -29,12 +29,13 @@ param(
     [bool]$updateNugetExe = $false
 )
 
+$env:IsDeveloperMachine=$true
+
 function Get-ScriptDirectory
 {
     $Invocation = (Get-Variable MyInvocation -Scope 1).Value
     Split-Path $Invocation.MyCommand.Path
 }
-
 $scriptDir = ((Get-ScriptDirectory) + "\")
 
 $global:publishmodbuildsettings = New-Object PSObject -Property @{
@@ -114,6 +115,7 @@ function Clean{
         }
     }
 }
+
 function Build{
     [cmdletbinding()]
     param()
@@ -149,6 +151,8 @@ function Build{
         if(Test-Path $nugetDevRepo){
             Get-ChildItem -Path $outputRoot '*.nupkg' | Copy-Item -Destination $nugetDevRepo
         }
+
+        Run-Tests
 
         if($publishToNuget){
             (Get-ChildItem -Path $outputRoot '*.nupkg').FullName | PublishNuGetPackage -nugetApiKey $nugetApiKey
@@ -221,6 +225,50 @@ function UpdateVersion{
         }
         Replace-TextInFolder -folder $folder -include $include -exclude $exclude -replacements $replacements | Write-Verbose
         'Replacement complete' | Write-Verbose
+    }
+}
+
+function LoadPester{
+    [cmdletbinding()]
+    param(
+        $pesterDir = (resolve-path (Join-Path $scriptDir 'contrib\pester\'))
+    )
+    process{
+        if(!(Get-Module pester)){
+            if($env:PesterDir -and (test-path $env:PesterDir)){
+                $pesterDir = $env:PesterDir
+            }
+
+            if(!(Test-Path $pesterDir)){
+                throw ('Pester dir not found at [{0}]' -f $pesterDir)
+            }
+            $modFile = (Join-Path $pesterDir 'Pester.psm1')
+            'Loading pester from [{0}]' -f $modFile | Write-Verbose
+            Import-Module (Join-Path $pesterDir 'Pester.psm1')
+        }
+    }
+}
+
+function Run-Tests{
+    [cmdletbinding()]
+    param(
+        $testDirectory = (join-path $scriptDir tests)
+    )
+    begin{ 
+        LoadPester
+    }
+    process{
+        # go to the tests directory and run pester
+        push-location
+        'tesdir: [{0}]' -f $testDirectory | Write-Host
+        set-location $testDirectory
+        if($env:ExitOnPesterFail){
+            invoke-pester -EnableExit
+        }
+        else{
+            invoke-pester
+        }
+        pop-location
     }
 }
 

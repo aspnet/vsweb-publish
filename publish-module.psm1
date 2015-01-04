@@ -458,6 +458,12 @@ function Get-VisualStudio2015InstallPath{
 
 Export-ModuleMember -function Get-*,Publish-*,Register-*,Enable-*
 
+if($env:IsDeveloperMachine){
+    # you can set the env var to expose all functions to importer. easy for development.
+    # this is required for executing pester test cases, it's set by build.ps1
+    Export-ModuleMember -function *    
+}
+
 ##############################################
 # register the handlers
 ##############################################
