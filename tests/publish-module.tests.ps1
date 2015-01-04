@@ -1,7 +1,6 @@
 ﻿[cmdletbinding()]
 param()
 
-
 function Get-ScriptDirectory
 {
     $Invocation = (Get-Variable MyInvocation -Scope 1).Value
@@ -11,6 +10,8 @@ function Get-ScriptDirectory
 $scriptDir = ((Get-ScriptDirectory) + "\")
 $moduleName = 'publish-module'
 $modulePath = (Join-Path $scriptDir ('..\{0}.psm1' -f $moduleName))
+
+$env:IsDeveloperMachine = $true
 
 if(Test-Path $modulePath){
     'Importing module from [{0}]' -f $modulePath | Write-Verbose
