@@ -24,9 +24,6 @@ param(
     [Parameter(ParameterSetName='updateversion',Position=1,Mandatory=$true)]
     [string]$newversion,
 
-    [Parameter(ParameterSetName='updateversion',Position=2)]
-    [string]$oldversion,
-
     # createnugetlocalrepo parameters
     [Parameter(ParameterSetName='createnugetlocalrepo',Position=1)]
     [bool]$updateNugetExe = $false
