@@ -44,12 +44,7 @@ function Get-AspnetPublishHandler{
         $name
     )
     process{
-        if(!($script:AspNetPublishHandlers[$name])){
-            throw ('Aspnet publish handler not found for [{0}]' -f $name)
-        }
-        else{
-            $script:AspNetPublishHandlers[$name]
-        }
+        $script:AspNetPublishHandlers[$name]
     }
 }
 
@@ -456,7 +451,7 @@ function Get-VisualStudio2015InstallPath{
     }
 }
 
-function Register-AspNetKnownPublishHandlers{
+function InternalRegister-AspNetKnownPublishHandlers{
     [cmdletbinding()]
     param()
     process{
@@ -497,7 +492,7 @@ function InternalReset-AspNetPublishHandlers{
     param()
     process{
         $script:AspNetPublishHandlers = @{}
-        Register-AspNetKnownPublishHandlers
+        InternalRegister-AspNetKnownPublishHandlers
     }
 }
 
@@ -509,6 +504,6 @@ if($env:IsDeveloperMachine){
 }
 
 # register the handlers so that Publish-AspNet can be called
-Register-AspNetKnownPublishHandlers
+InternalRegister-AspNetKnownPublishHandlers
 
 Enable-PsNuGet
