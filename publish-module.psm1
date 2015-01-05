@@ -154,7 +154,7 @@ function GetInternal-SharedMSDeployParametersFrom{
 
         if(!($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))){
             $sharedArgs.ExtraArgs +='-whatif'
-            $sharedArgs.ExtraArgs +='-xml'
+            # $sharedArgs.ExtraArgs +='-xml'
         }
 
         # add excludes
