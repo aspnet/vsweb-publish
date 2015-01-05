@@ -260,14 +260,17 @@ function Run-Tests{
     process{
         # go to the tests directory and run pester
         push-location
-        'tesdir: [{0}]' -f $testDirectory | Write-Host
         set-location $testDirectory
-        if($env:ExitOnPesterFail){
-            invoke-pester -EnableExit
+
+        $pesterArgs = @{}
+        if($env:ExitOnPesterFail -eq $true){
+            $pesterArgs.Add('-EnableExit',$true)
         }
-        else{
-            invoke-pester
+        if($env:PesterEnableCodeCoverage -eq $true){
+            $pesterArgs.Add('-CodeCoverage','..\publish-module.psm1')
         }
+
+        Invoke-Pester @pesterArgs
         pop-location
     }
 }
