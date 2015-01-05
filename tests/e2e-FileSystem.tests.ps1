@@ -26,12 +26,13 @@ else{
 Describe 'FileSystem e2e publish tests' {
     [string]$mvcSourceFolder = (resolve-path (Join-Path $samplesdir 'MvcApplication'))
     [string]$mvcPackDir = (resolve-path (Join-Path $samplesdir 'MvcApplication-packOutput'))
+    [int]$numPublishFiles = ((Get-ChildItem $mvcPackDir -Recurse -File)).Length
 
     It 'Publish file system' {
         # publish the pack output to a new temp folder
         $publishDest = (Join-Path $TestDrive 'e2eFileSystem\Basic01')
         # verify the folder is empty
-        $filesbefore = (Get-ChildItem $publishDest -Recurse -ErrorAction SilentlyContinue)
+        $filesbefore = (Get-ChildItem $publishDest -Recurse -File -ErrorAction SilentlyContinue)
         $filesbefore.length | Should Be 0
 
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
@@ -40,14 +41,14 @@ Describe 'FileSystem e2e publish tests' {
         }
         
         # check to see that the files exist
-        $filesafter = (Get-ChildItem $publishDest -Recurse)
-        $filesafter.length | Should Be 29
+        $filesafter = (Get-ChildItem $publishDest -Recurse -File)
+        $filesafter.length | Should Be $numPublishFiles
     }
 
     It 'Can exclude files when a single file is passed in' {
         $publishDest = (Join-Path $TestDrive 'e2eFileSystem\exclude01')
         # verify the folder is empty
-        $filesbefore = (Get-ChildItem $publishDest -Recurse -ErrorAction SilentlyContinue)
+        $filesbefore = (Get-ChildItem $publishDest -Recurse -File -ErrorAction SilentlyContinue)
         $filesbefore.length | Should Be 0
 
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
@@ -59,8 +60,8 @@ Describe 'FileSystem e2e publish tests' {
         }
         
         # check to see that the files exist
-        $filesafter = (Get-ChildItem $publishDest -Recurse)
-        $filesafter.length | Should Be 28
+        $filesafter = (Get-ChildItem $publishDest -Recurse -File)
+        $filesafter.length | Should Be ($numPublishFiles-1)
     }
 
     It 'Can exclude files when a multiple files are passed in' {
@@ -79,19 +80,64 @@ Describe 'FileSystem e2e publish tests' {
         }
         
         # check to see that the files exist
-        $filesafter = (Get-ChildItem $publishDest -Recurse)
-        $filesafter.length | Should Be 27
+        $filesafter = (Get-ChildItem $publishDest -Recurse -File)
+        $filesafter.length | Should Be ($numPublishFiles-2)
+    }
+
+    It 'Performs replacements when one replacement is passed' {
+        $publishDest = (Join-Path $TestDrive 'e2eFileSystem\replace01')
+
+        $textToReplace = 'Random'
+        $textReplacemnet = 'Replaced'
+
+        Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
+            'WebPublishMethod'='FileSystem'
+            'publishUrl'="$publishDest"
+            'Replacements' = @(
+		        @{'file'='tobereplaced.txt$';'match'="$textToReplace";'newValue'="$textReplacemnet"})
+        } 
+
+        $filePathInPackDir = (resolve-path (Join-Path $mvcPackDir 'wwwroot\tobereplaced.txt'))
+        $filePathInPackDir | Should Contain $textToReplace
+        $filePathInPackDir | Should Not Contain $textReplacemnet
+
+        $filePathInPublishDir = (resolve-path (Join-Path $publishDest 'wwwroot\tobereplaced.txt'))
+        $filePathInPublishDir | Should Not Contain $textToReplace
+        $filePathInPublishDir | Should Contain $textReplacemnet
+    }
+
+    It 'Performs replacements when more than one replacement is passed' {
+        $publishDest = (Join-Path $TestDrive 'e2eFileSystem\replace02')
+
+        $textToReplaceTextFile = 'Random'
+        $textReplacemnetTextFile = 'Replaced'
+        $textToReplaceWebConfig = '1.0.0-beta1'
+        $textReplacemnetWebConfig = '1.0.0-custom1'
+
+        Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
+            'WebPublishMethod'='FileSystem'
+            'publishUrl'="$publishDest"
+            'Replacements' = @(
+		        @{'file'='tobereplaced.txt$';'match'="$textToReplaceTextFile";'newValue'="$textReplacemnetTextFile"},
+                @{'file'='web.config$';'match'="$textToReplaceWebConfig";'newValue'="$textReplacemnetWebConfig"})
+        } 
+
+        $textFileInPackDir = (resolve-path (Join-Path $mvcPackDir 'wwwroot\tobereplaced.txt'))
+        $textFileInPackDir | Should Contain $textToReplaceTextFile
+        $textFileInPackDir | Should Not Contain $textReplacemnetTextFile
+
+        $webConfigInPackDir = (resolve-path (Join-Path $mvcPackDir 'wwwroot\web.config'))
+        $webConfigInPackDir | Should Contain $textToReplaceWebConfig
+        $webConfigInPackDir | Should Not Contain $textReplacemnetWebConfig
+
+
+        $textFileInPublishDir = (resolve-path (Join-Path $publishDest 'wwwroot\tobereplaced.txt'))
+        $textFileInPublishDir | Should Not Contain $textToReplaceTextFile
+        $textFileInPublishDir | Should Contain $textReplacemnetTextFile
+
+        $webConfigInPublishDir = (resolve-path (Join-Path $publishDest 'wwwroot\web.config'))
+        $webConfigInPublishDir | Should Not Contain $textToReplaceWebConfig
+        $webConfigInPublishDir | Should Contain $textReplacemnetWebConfig
     }
 }
-
-
-
-
-
-
-
-
-
-
-
 

@@ -93,7 +93,7 @@ function GetInternal-ReplacementsMSDeployArgs{
                 $setParam
             }
             else{
-                'Skipping replacement because its missing a required value.' | Write-Verbose
+                'Skipping replacement because its missing a required value.[file="{0}",match="{1}",newValue="{2}"]' -f $file,$match,$newValue | Write-Verbose
             }
         }       
     }
@@ -201,7 +201,7 @@ Publish-AspNet -packOutput $packOutput -publishProperties @{
 		@{'absolutepath'='wwwroot\\test.txt'},
 		@{'absolutepath'='wwwroot\\_references.js'})
 	'Replacements' = @(
-		@{'absolutepath'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
+		@{'file'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
 	}
 
 Publish-AspNet -packOutput $packOutput -publishProperties @{
@@ -211,7 +211,7 @@ Publish-AspNet -packOutput $packOutput -publishProperties @{
 		@{'absolutepath'='wwwroot\\test.txt'},
 		@{'absolutepath'='c:\\full\\path\\ok\\as\\well\\_references.js'})
 	'Replacements' = @(
-		@{'absolutepath'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
+		@{'file'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
 	}
 
 .EXAMPLE
@@ -290,6 +290,7 @@ function Publish-AspNetMSDeploy{
             $publishArgs += $sharedArgs.ExtraArgs
 
             'Calling msdeploy with the call {0}' -f (($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')) | Write-Output
+            'Calling msdeploy with the call {0}' -f (($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')) | Write-Verbose
             & (Get-MSDeploy) $publishArgs
         }
         else{
