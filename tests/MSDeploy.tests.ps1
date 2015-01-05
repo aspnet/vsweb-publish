@@ -100,6 +100,35 @@ Describe 'MSDeploy unit tests' {
 
         $global:pubMethod | Should Be $overrideValue
     }
+
+
+}
+
+Describe 'Encrypt web.config' {
+    [string]$mvcSourceFolder = (resolve-path (Join-Path $samplesdir 'MvcApplication'))
+    [string]$mvcPackDir = (resolve-path (Join-Path $samplesdir 'MvcApplication-packOutput'))
+
+    Mock Get-MSDeploy {
+        return {
+            $global:lastArgsToGetMSDeploy = ($args[0])
+
+            # just return what was called so that it can be inspected
+            $args[0]
+        }
+    } -ModuleName 'publish-module'
+
+    InternalReset-AspNetPublishHandlers
+    It 'Can encrypt web.config' {
+        Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
+            'WebPublishMethod'='MSDeploy'
+            'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
+            'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="somepassword-here"
+            'EncryptWebConfig'="$true"
+        }
+
+        [string]$lastCommand = ($global:lastArgsToGetMSDeploy -join ' ').ToLowerInvariant()
+        $lastCommand.Contains('-EnableRule:EncryptWebConfig'.ToLowerInvariant()) | Should Be $true
+    }
 }
 
 Describe 'MSDeploy App Offline' {
