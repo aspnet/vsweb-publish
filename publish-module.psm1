@@ -175,7 +175,7 @@ This will publish the folder based on the properties in $publishProperties
  Publish-AspNet -packOutput $packOutput -publishProperties @{
      'WebPublishMethod'='MSDeploy'
      'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
-'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"} -Verbose
+     'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"}
 
 .EXAMPLE
 Publish-AspNet -packOutput $packOutput -publishProperties @{

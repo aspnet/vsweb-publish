@@ -25,7 +25,6 @@ else{
 }
 
 Describe 'Register-AspnetPublishHandler tests' {
-
     It 'Adds a handler and verifies it' {
         Register-AspnetPublishHandler -name 'customhandler' -handler {
             [cmdletbinding()]
@@ -41,6 +40,68 @@ Describe 'Register-AspnetPublishHandler tests' {
 
         Get-AspnetPublishHandler -name 'customhandler' | Should Not Be Null
         InternalReset-AspNetPublishHandlers
+    }
+
+    It 'If a handler is already registered with that name the new one is ignored' {
+        [scriptblock]$handler1 = {
+            [cmdletbinding()]
+            param(
+                [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+                $publishProperties,
+                [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+                $packOutput
+            )
+
+            'Inside custom handler1 here' | Write-Output
+        }
+
+        [scriptblock]$handler2 = {
+            [cmdletbinding()]
+            param(
+                [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+                $publishProperties,
+                [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+                $packOutput
+            )
+
+            'Inside custom handler2 here' | Write-Output
+        }
+
+        Register-AspnetPublishHandler -name 'customhandler' -handler $handler1
+        Register-AspnetPublishHandler -name 'customhandler' -handler $handler2
+
+        Get-AspnetPublishHandler -name 'customhandler' | Should Be $handler1
+    }
+
+    It 'If a handler is already registered with that name the new will override wih force' {
+        [scriptblock]$handler1 = {
+            [cmdletbinding()]
+            param(
+                [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+                $publishProperties,
+                [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+                $packOutput
+            )
+
+            'Inside custom handler1 here' | Write-Output
+        }
+
+        [scriptblock]$handler2 = {
+            [cmdletbinding()]
+            param(
+                [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+                $publishProperties,
+                [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+                $packOutput
+            )
+
+            'Inside custom handler2 here' | Write-Output
+        }
+
+        Register-AspnetPublishHandler -name 'customhandler' -handler $handler1
+        Register-AspnetPublishHandler -name 'customhandler' -handler $handler2 -force
+
+        Get-AspnetPublishHandler -name 'customhandler' | Should Be $handler2
     }
 }
 
