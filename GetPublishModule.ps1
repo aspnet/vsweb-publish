@@ -21,7 +21,7 @@ function GetPublishModuleFile{
         if(!(Test-Path $toolsDir)){
             New-Item -Path $toolsDir -ItemType Directory | out-null
         }
-        $folderPath = Get-PsNuGetPackage -name 'publish-module' -version $versionToInstall 
+        $folderPath = Enable-PackageDownloader -name 'publish-module' -version $versionToInstall 
 
         $psm1File = (Join-Path $folderPath 'tools\publish-module.psm1')
 
@@ -33,17 +33,17 @@ function GetPublishModuleFile{
     }
 }
 
-function Enable-PsNuGet{
+function Enable-PackageDownloader{
     [cmdletbinding()]
-    param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\psnuget\",
-        $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/release/package-downloader.psm1')
+    param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\package-downloader\",
+        $pkgDownloaderDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/release/package-downloader.psm1')
     process{
         if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory }
 
         $expectedPath = (Join-Path ($toolsDir) 'package-downloader.psm1')
         if(!(Test-Path $expectedPath)){
-            'Downloading [{0}] to [{1}]' -f $psNuGetDownloadUrl,$expectedPath | Write-Verbose
-            (New-Object System.Net.WebClient).DownloadFile($psNuGetDownloadUrl, $expectedPath)
+            'Downloading [{0}] to [{1}]' -f $pkgDownloaderDownloadUrl,$expectedPath | Write-Verbose
+            (New-Object System.Net.WebClient).DownloadFile($pkgDownloaderDownloadUrl, $expectedPath)
         }
         
         if(!$expectedPath){throw ('Unable to download package-downloader.psm1')}
@@ -59,7 +59,7 @@ function Enable-PsNuGet{
 # Begin script
 ###########################################
 
-Enable-PsNuGet
+Enable-PackageDownloader
 
 $publishModuleFile = GetPublishModuleFile -versionToInstall $versionToInstall -toolsDir $toolsDir -nugetDownloadUrl $nugetDownloadUrl
 if(Get-Module publish-module){

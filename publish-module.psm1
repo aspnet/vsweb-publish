@@ -400,17 +400,17 @@ function Get-MSDeployFullUrlFor{
     }
 }
 
-function Enable-PsNuGet{
+function Enable-PackageDownloader{
     [cmdletbinding()]
-    param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\psnuget\",
-        $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/release/package-downloader.psm1')
+    param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\package-downloader\",
+        $pkgDownloaderDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/release/package-downloader.psm1')
     process{
         # try to load from local install first
         if(!(get-module package-downloader)){
-            $localpsnugetpath = Join-Path $global:publishModuleSettings.LocalInstallDir 'package-downloader.psm1'
-            if(Test-Path $localpsnugetpath){
-                'importing module [psnuget="{0}"] from local install dir' -f $localpsnugetpath | Write-Output
-                Import-Module $localpsnugetpath -DisableNameChecking -Force -Scope Global
+            $localpkgdownloadernugetpath = Join-Path $global:publishModuleSettings.LocalInstallDir 'package-downloader.psm1'
+            if(Test-Path $localpkgdownloadernugetpath){
+                'importing module [package-downloader="{0}"] from local install dir' -f $localpkgdownloadernugetpath | Write-Output
+                Import-Module $localpkgdownloadernugetpath -DisableNameChecking -Force -Scope Global
             }
         }
 
@@ -419,8 +419,8 @@ function Enable-PsNuGet{
 
             $expectedPath = (Join-Path ($toolsDir) 'package-downloader.psm1')
             if(!(Test-Path $expectedPath)){
-                'Downloading [{0}] to [{1}]' -f $psNuGetDownloadUrl,$expectedPath | Write-Verbose
-                (New-Object System.Net.WebClient).DownloadFile($psNuGetDownloadUrl, $expectedPath)
+                'Downloading [{0}] to [{1}]' -f $pkgDownloaderDownloadUrl,$expectedPath | Write-Verbose
+                (New-Object System.Net.WebClient).DownloadFile($pkgDownloaderDownloadUrl, $expectedPath)
             }
         
             if(!$expectedPath){throw ('Unable to download package-downloader.psm1')}
@@ -507,4 +507,4 @@ if($env:IsDeveloperMachine){
 # register the handlers so that Publish-AspNet can be called
 InternalRegister-AspNetKnownPublishHandlers
 
-Enable-PsNuGet
+Enable-PackageDownloader

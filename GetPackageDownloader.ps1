@@ -1,8 +1,8 @@
 <#
-    You should add the snippet below to your PS files to ensure that PsNuGet is available.
+    You should add the snippet below to your PS files to ensure that PackageDownloader is available.
 #>
 
-function Enable-PsNuGet{
+function Enable-PackageDownloader{
     [cmdletbinding()]
     param($toolsDir = ("$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\tools\"),$nugetDownloadUrl = 'http://nuget.org/nuget.exe')
     process{
@@ -22,4 +22,4 @@ function Enable-PsNuGet{
     }
 }
 
-Enable-PsNuGet
+Enable-PackageDownloader

@@ -1,8 +1,8 @@
 [cmdletbinding()]
 param()
 
-$global:PSNuGetSettings = New-Object PSObject -Property @{
-    DefaultToolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\psnuget\"
+$global:PkgDownloaderSettings = New-Object PSObject -Property @{
+    DefaultToolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\package-downloader\"
     NuGetDownloadUrl = 'http://nuget.org/nuget.exe'
 }
 <#
@@ -14,7 +14,7 @@ function Get-Nuget(){
     [cmdletbinding()]
     param(
         $toolsDir = ("$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\tools\"),
-        $nugetDownloadUrl = $global:PSNuGetSettings.NuGetDownloadUrl
+        $nugetDownloadUrl = $global:PkgDownloaderSettings.NuGetDownloadUrl
     )
     process{
         if(!(Test-Path $toolsDir)){
@@ -48,7 +48,7 @@ function Get-Nuget(){
     This will return the path to where the given NuGet package is installed
     under %localappdata%. If the package is not found then empty/null is returned.
 #>
-function Get-PsNuGetInstallPath{
+function Get-PackageDownloaderInstallPath{
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true,Position=0)]
@@ -56,7 +56,7 @@ function Get-PsNuGetInstallPath{
         [Parameter(Mandatory=$true,Position=1)] # later we can make this optional
         $version,
         [Parameter(Position=2)]
-        $toolsDir = $global:PSNuGetSettings.DefaultToolsDir
+        $toolsDir = $global:PkgDownloaderSettings.DefaultToolsDir
     )
     process{
         $pathToFoundPkgFolder = $null
@@ -75,7 +75,7 @@ function Get-PsNuGetInstallPath{
 .SYNOPSIS
     This will return the path to where the given NuGet package is installed.
 #>
-function Get-PsNuGetPackage{
+function Enable-PackageDownloader{
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true,Position=0)]
@@ -83,14 +83,14 @@ function Get-PsNuGetPackage{
         [Parameter(Mandatory=$true,Position=1)] # later we can make this optional
         $version,
         [Parameter(Position=2)]
-        $toolsDir = $global:PSNuGetSettings.DefaultToolsDir
+        $toolsDir = $global:PkgDownloaderSettings.DefaultToolsDir
     )
     process{
         if(!(Test-Path $toolsDir)){
             New-Item -Path $toolsDir -ItemType Directory | out-null 
         }
         # if it's already installed just return the path
-        $installPath = (Get-PsNuGetInstallPath -name $name -version $version -toolsDir $toolsDir)
+        $installPath = (Get-PackageDownloaderInstallPath -name $name -version $version -toolsDir $toolsDir)
         if(!$installPath){
             # install the nuget package and then return the path
             $outdir = ([uri]('{0}' -f (Resolve-Path $toolsDir).ToString())).AbsolutePath
@@ -101,7 +101,7 @@ function Get-PsNuGetPackage{
             'Calling nuget to install a package with the following args. [{0} {1}]' -f $nugetPath, ($cmdArgs -join ' ') | Write-Verbose
             nugettemp $cmdArgs | Out-Null
 
-            $installPath = (Get-PsNuGetInstallPath -name $name -version $version -toolsDir $toolsDir)
+            $installPath = (Get-PackageDownloaderInstallPath -name $name -version $version -toolsDir $toolsDir)
         }
 
         # it should be set by now so throw if not
@@ -116,7 +116,7 @@ function Get-PsNuGetPackage{
 <#
 This will ensure that the given module is imported into the PS session. If not then 
 it will be imported from %localappdata%. The package will be restored using
-Get-PsNuGetPackage.
+Enable-PackageDownloader.
 
 This function assumes that the name of the PS module is the name of the .psm1 file 
 and that file is in the tools\ folder in the NuGet package.
@@ -139,11 +139,11 @@ function Enable-NuGetModule{
         [Parameter(Mandatory=$true,Position=1)] # later we can make this optional
         $version,
         [Parameter(Position=2)]
-        $toolsDir = $global:PSNuGetSettings.DefaultToolsDir
+        $toolsDir = $global:PkgDownloaderSettings.DefaultToolsDir
     )
     process{
         if(!(get-module $name)){
-            $installDir = Get-PsNuGetPackage -name $name -version $version
+            $installDir = Enable-PackageDownloader -name $name -version $version
             if(!$moduleFileName){$moduleFileName = $name}
             $moduleFile = (join-path $installDir ("tools\{0}.psm1" -f $moduleFileName))
             'Loading module from [{0}]' -f $moduleFile | Write-Verbose
@@ -155,14 +155,14 @@ function Enable-NuGetModule{
     }
 }
 
-function Get-LatestVersionForPsNuGetPackage{
+function Get-LatestVersionForPackageDownloader{
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true,Position=0)]
         $name,
         [switch]$prerelease,
         [Parameter(Position=1)]
-        $toolsDir = $global:PSNuGetSettings.DefaultToolsDir
+        $toolsDir = $global:PkgDownloaderSettings.DefaultToolsDir
     )
     process{
         $nugetArgs = @('list',$name)
