@@ -24,9 +24,9 @@ else{
     throw ('Unable to find module at [{0}]' -f $modulePath )
 }
 
-Describe 'Register-AspnetPublishHandler tests' {
+Describe 'Register-AspnetPublishHandler tests' {   
     It 'Adds a handler and verifies it' {
-        Register-AspnetPublishHandler -name 'customhandler' -handler {
+        [scriptblock]$customhandler = {
             [cmdletbinding()]
             param(
                 [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
@@ -38,7 +38,10 @@ Describe 'Register-AspnetPublishHandler tests' {
             'Inside custom handler here' | Write-Output
         }
 
-        Get-AspnetPublishHandler -name 'customhandler' | Should Not Be Null
+        Register-AspnetPublishHandler -name 'customhandler' -handler $customhandler
+
+        Get-AspnetPublishHandler -name 'customhandler' | Should Not Be $null
+        Get-AspnetPublishHandler -name 'customhandler' | Should Be $customhandler
         InternalReset-AspNetPublishHandlers
     }
 

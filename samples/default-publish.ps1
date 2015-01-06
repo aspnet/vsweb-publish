@@ -23,7 +23,7 @@ function Get-VisualStudio2015InstallPath{
 }
 
 $defaultPublishSettings = New-Object psobject -Property @{
-    LocalInstallDir = ("{0}Extensions\Microsoft\Web Tools\Publish\" -f (Get-VisualStudio2015InstallPath))
+    LocalInstallDir = ("{0}Extensions\Microsoft\Web Tools\Publish\Scripts\Prerelease\" -f (Get-VisualStudio2015InstallPath))
 }
 
 function Enable-PackageDownloader{
