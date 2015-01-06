@@ -36,7 +36,7 @@ function GetPublishModuleFile{
 function Enable-PsNuGet{
     [cmdletbinding()]
     param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\psnuget\",
-        $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/rename/package-downloader.psm1')
+        $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/release/package-downloader.psm1')
     process{
         if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory }
 
