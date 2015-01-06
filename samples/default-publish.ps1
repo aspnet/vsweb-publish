@@ -26,35 +26,35 @@ $defaultPublishSettings = New-Object psobject -Property @{
     LocalInstallDir = ("{0}Extensions\Microsoft\Web Tools\Publish\" -f (Get-VisualStudio2015InstallPath))
 }
 
-function Enable-PsNuGet{
+function Enable-PackageDownloader{
     [cmdletbinding()]
-    param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\psnuget\",
-        $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/getnuget.psm1')
+    param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\package-downloader\",
+        $pkgDownloaderDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/release/package-downloader.psm1')
     process{
-		if(get-module getnuget){
+		if(get-module package-downloader){
 			# TODO: we should check the version loaded and skip removing if the correct version is already loaded.
-			remove-module getnuget | Out-Null
+			remove-module package-downloader | Out-Null
 		}
 
         # try to local from local install first
-        if(!(get-module 'getnuget')){
-            $localpsnugetpath = Join-Path $defaultPublishSettings.LocalInstallDir 'getnuget.psm1'
-            if(Test-Path $localpsnugetpath){
-                'importing module [psnuget="{0}"] from local install dir' -f $localpsnugetpath | Write-Output
-                Import-Module $localpsnugetpath -DisableNameChecking -Force -Scope Global
+        if(!(get-module package-downloader)){
+            $localpkgdownloadernugetpath = Join-Path $defaultPublishSettings.LocalInstallDir 'package-downloader.psm1'
+            if(Test-Path $localpkgdownloadernugetpath){
+                'importing module [package-downloader="{0}"] from local install dir' -f $localpkgdownloadernugetpath | Write-Output
+                Import-Module $localpkgdownloadernugetpath -DisableNameChecking -Force -Scope Global
             }
         }
 
-        if(!(get-module 'getnuget')){
+        if(!(get-module package-downloader)){
             if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory -WhatIf:$false }
 
-            $expectedPath = (Join-Path ($toolsDir) 'getnuget.psm1')
+            $expectedPath = (Join-Path ($toolsDir) 'package-downloader.psm1')
             if(!(Test-Path $expectedPath)){
-                'Downloading [{0}] to [{1}]' -f $psNuGetDownloadUrl,$expectedPath | Write-Verbose
-                (New-Object System.Net.WebClient).DownloadFile($psNuGetDownloadUrl, $expectedPath)
+                'Downloading [{0}] to [{1}]' -f $pkgDownloaderDownloadUrl,$expectedPath | Write-Verbose
+                (New-Object System.Net.WebClient).DownloadFile($pkgDownloaderDownloadUrl, $expectedPath)
             }
         
-            if(!$expectedPath){throw ('Unable to download getnuget.psm1')}
+            if(!$expectedPath){throw ('Unable to download package-downloader.psm1')}
 
             'importing module [{0}]' -f $expectedPath | Write-Output
             Import-Module $expectedPath -DisableNameChecking -Force -Scope Global
@@ -71,7 +71,7 @@ function Enable-NuGetModule{
         [Parameter(Mandatory=$true,Position=1)] # later we can make this optional
         $version,
         [Parameter(Position=2)]
-        $toolsDir = $global:PSNuGetSettings.DefaultToolsDir
+        $toolsDir = $global:PkgDownloaderSettings.DefaultToolsDir
     )
     process{
         if(!$moduleFileName){$moduleFileName = $name}
@@ -92,7 +92,7 @@ function Enable-NuGetModule{
         }
 
         if(!(get-module $name)){
-            $installDir = Get-PsNuGetPackage -name $name -version $version
+            $installDir = Enable-PackageDownloader -name $name -version $version
             $moduleFile = (join-path $installDir ("tools\{0}.psm1" -f $moduleFileName))
             Import-Module $moduleFile -DisableNameChecking
         }
@@ -103,8 +103,8 @@ function Enable-NuGetModule{
 }
 
 try{
-	Enable-PsNuGet
-	Enable-NuGetModule -name 'publish-module' -version '0.0.16-beta'
+	Enable-PackageDownloader
+	Enable-NuGetModule -name 'publish-module' -version '0.0.17-beta'
 
 	$whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
 
