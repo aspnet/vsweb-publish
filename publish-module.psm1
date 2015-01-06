@@ -44,12 +44,7 @@ function Get-AspnetPublishHandler{
         $name
     )
     process{
-        if(!($script:AspNetPublishHandlers[$name])){
-            throw ('Aspnet publish handler not found for [{0}]' -f $name)
-        }
-        else{
-            $script:AspNetPublishHandlers[$name]
-        }
+        $script:AspNetPublishHandlers[$name]
     }
 }
 
@@ -98,7 +93,7 @@ function GetInternal-ReplacementsMSDeployArgs{
                 $setParam
             }
             else{
-                'Skipping replacement because its missing a required value.' | Write-Verbose
+                'Skipping replacement because its missing a required value.[file="{0}",match="{1}",newValue="{2}"]' -f $file,$match,$newValue | Write-Verbose
             }
         }       
     }
@@ -159,7 +154,7 @@ function GetInternal-SharedMSDeployParametersFrom{
 
         if(!($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))){
             $sharedArgs.ExtraArgs +='-whatif'
-            $sharedArgs.ExtraArgs +='-xml'
+            # $sharedArgs.ExtraArgs +='-xml'
         }
 
         # add excludes
@@ -180,7 +175,7 @@ This will publish the folder based on the properties in $publishProperties
  Publish-AspNet -packOutput $packOutput -publishProperties @{
      'WebPublishMethod'='MSDeploy'
      'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
-'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"} -Verbose
+     'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"}
 
 .EXAMPLE
 Publish-AspNet -packOutput $packOutput -publishProperties @{
@@ -206,7 +201,7 @@ Publish-AspNet -packOutput $packOutput -publishProperties @{
 		@{'absolutepath'='wwwroot\\test.txt'},
 		@{'absolutepath'='wwwroot\\_references.js'})
 	'Replacements' = @(
-		@{'absolutepath'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
+		@{'file'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
 	}
 
 Publish-AspNet -packOutput $packOutput -publishProperties @{
@@ -216,7 +211,7 @@ Publish-AspNet -packOutput $packOutput -publishProperties @{
 		@{'absolutepath'='wwwroot\\test.txt'},
 		@{'absolutepath'='c:\\full\\path\\ok\\as\\well\\_references.js'})
 	'Replacements' = @(
-		@{'absolutepath'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
+		@{'file'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
 	}
 
 .EXAMPLE
@@ -295,6 +290,7 @@ function Publish-AspNetMSDeploy{
             $publishArgs += $sharedArgs.ExtraArgs
 
             'Calling msdeploy with the call {0}' -f (($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')) | Write-Output
+            'Calling msdeploy with the call {0}' -f (($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')) | Write-Verbose
             & (Get-MSDeploy) $publishArgs
         }
         else{
@@ -456,35 +452,59 @@ function Get-VisualStudio2015InstallPath{
     }
 }
 
+function InternalRegister-AspNetKnownPublishHandlers{
+    [cmdletbinding()]
+    param()
+    process{
+        'Registering MSDeploy handler' | Write-Verbose
+        Register-AspnetPublishHandler -name 'MSDeploy' -force -handler {
+            [cmdletbinding()]
+            param(
+                [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+                $publishProperties,
+                [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+                $packOutput
+            )
+
+            Publish-AspNetMSDeploy -publishProperties $publishProperties -packOutput $packOutput
+        }
+
+        'Registering FileSystem handler' | Write-Verbose
+        Register-AspnetPublishHandler -name 'FileSystem' -force -handler {
+            [cmdletbinding()]
+            param(
+                [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+                $publishProperties,
+                [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+                $packOutput
+            )
+    
+            Publish-AspNetFileSystem -publishProperties $publishProperties -packOutput $packOutput
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+    Used for testing purposes only.
+#>
+function InternalReset-AspNetPublishHandlers{
+    [cmdletbinding()]
+    param()
+    process{
+        $script:AspNetPublishHandlers = @{}
+        InternalRegister-AspNetKnownPublishHandlers
+    }
+}
+
 Export-ModuleMember -function Get-*,Publish-*,Register-*,Enable-*
-
-##############################################
-# register the handlers
-##############################################
-'Registering MSDeploy handler' | Write-Verbose
-Register-AspnetPublishHandler -name 'MSDeploy' -force -handler { 
-    [cmdletbinding()]
-    param(
-        [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
-        $publishProperties,
-        [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
-        $packOutput
-    )
-    
-    Publish-AspNetMSDeploy -publishProperties $publishProperties -packOutput $packOutput
+if($env:IsDeveloperMachine){
+    # you can set the env var to expose all functions to importer. easy for development.
+    # this is required for executing pester test cases, it's set by build.ps1
+    Export-ModuleMember -function *
 }
 
-'Registering FileSystem handler' | Write-Verbose
-Register-AspnetPublishHandler -name 'FileSystem' -force -handler {
-    [cmdletbinding()]
-    param(
-        [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
-        $publishProperties,
-        [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
-        $packOutput
-    )
-    
-    Publish-AspNetFileSystem -publishProperties $publishProperties -packOutput $packOutput
-}
+# register the handlers so that Publish-AspNet can be called
+InternalRegister-AspNetKnownPublishHandlers
 
 Enable-PsNuGet

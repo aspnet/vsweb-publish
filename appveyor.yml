@@ -3,7 +3,7 @@
 version: 1.0.{build}
 
 build_script:
-- ps: if($env:APPVEYOR_REPO_BRANCH -ne "release"){C:\projects\publish-module\build.ps1 -build} else {C:\projects\publish-module\build.ps1 -build -publishToNuget}
+- ps: .\appveyor.ps1
 
 environment:
   NuGetApiKey:
