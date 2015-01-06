@@ -6,12 +6,12 @@ function Enable-PsNuGet{
     [cmdletbinding()]
     param($toolsDir = ("$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\tools\"),$nugetDownloadUrl = 'http://nuget.org/nuget.exe')
     process{
-        if(!(get-module 'getnuget')){            
+        if(!(get-module package-downloader)){            
             if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory | Out-Null }
 
-            $modPath = (join-path $toolsDir 'getnuget.0.0.16-beta\tools\getnuget.psm1')
+            $modPath = (join-path $toolsDir 'package-downloader.0.0.16-beta\tools\package-downloader.psm1')
             if(!(Test-Path $modPath)){
-                $nugetArgs = @('install','getnuget','-prerelease','-version','0.0.16-beta','-OutputDirectory',(Resolve-Path $toolsDir).ToString())
+                $nugetArgs = @('install','package-downloader','-prerelease','-version','0.0.16-beta','-OutputDirectory',(Resolve-Path $toolsDir).ToString())
                 $nugetDestPath = Join-Path -Path $toolsDir -ChildPath nuget.exe
                 if(!(Test-Path $nugetDestPath)){ (New-Object System.Net.WebClient).DownloadFile($nugetDownloadUrl, $nugetDestPath) | Out-Null }
                 if(!(Test-Path $nugetDestPath)){ throw 'unable to download nuget' }

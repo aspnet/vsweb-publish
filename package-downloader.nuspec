@@ -4,11 +4,11 @@
 -->
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">  
   <metadata>
-    <id>getnuget</id>
+    <id>package-downloader</id>
     <version>0.0.16-beta</version>
     <authors>Sayed Ibrahim Hashimi</authors>
     <description>
-      This nuget package contains a powershell module, getnuget.psm1, which can be used do
+      This nuget package contains a powershell module, package-downloader.psm1, which can be used do
       download nuget packages in powershell.
     </description>    
     <language>en-US</language>
@@ -23,7 +23,7 @@
     </frameworkAssemblies>
   </metadata>
   <files>
-    <file src="getnuget.psm1" target="tools" />
-    <file src="GetPsNuGet.ps1" target="tools" />
+    <file src="package-downloader.psm1" target="tools" />
+    <file src="GetPackageDownloader.ps1" target="tools" />
   </files>
 </package>

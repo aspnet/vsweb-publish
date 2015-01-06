@@ -36,19 +36,19 @@ function GetPublishModuleFile{
 function Enable-PsNuGet{
     [cmdletbinding()]
     param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\psnuget\",
-        $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/getnuget.psm1')
+        $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/package-downloader.psm1')
     process{
         if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory }
 
-        $expectedPath = (Join-Path ($toolsDir) 'getnuget.psm1')
+        $expectedPath = (Join-Path ($toolsDir) 'package-downloader.psm1')
         if(!(Test-Path $expectedPath)){
             'Downloading [{0}] to [{1}]' -f $psNuGetDownloadUrl,$expectedPath | Write-Verbose
             (New-Object System.Net.WebClient).DownloadFile($psNuGetDownloadUrl, $expectedPath)
         }
         
-        if(!$expectedPath){throw ('Unable to download getnuget.psm1')}
+        if(!$expectedPath){throw ('Unable to download package-downloader.psm1')}
 
-        if(!(get-module 'getnuget')){
+        if(!(get-module package-downloader)){
             'importing module into global [{0}]' -f $expectedPath | Write-Output
             Import-Module $expectedPath -DisableNameChecking -Force -Scope Global
         }
