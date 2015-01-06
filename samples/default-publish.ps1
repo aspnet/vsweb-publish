@@ -29,7 +29,7 @@ $defaultPublishSettings = New-Object psobject -Property @{
 function Enable-PsNuGet{
     [cmdletbinding()]
     param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\psnuget\",
-        $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/package-downloader.psm1')
+        $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/rename/package-downloader.psm1')
     process{
 		if(get-module package-downloader){
 			# TODO: we should check the version loaded and skip removing if the correct version is already loaded.
@@ -104,7 +104,7 @@ function Enable-NuGetModule{
 
 try{
 	Enable-PsNuGet
-	Enable-NuGetModule -name 'publish-module' -version '0.0.16-beta'
+	Enable-NuGetModule -name 'publish-module' -version '0.0.17-beta'
 
 	$whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
 

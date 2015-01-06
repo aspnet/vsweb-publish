@@ -1,7 +1,7 @@
 [cmdletbinding()]
 param(
     [Parameter(Position=0)]
-    $versionToInstall = '0.0.16-beta',
+    $versionToInstall = '0.0.17-beta',
     [Parameter(Position=1)]
     $toolsDir = ("$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\tools\"),
     [Parameter(Position=2)]
@@ -13,7 +13,7 @@ $script:moduleName = 'publish-module'
 function GetPublishModuleFile{
     [cmdletbinding()]
     param(
-        $versionToInstall = '0.0.16-beta',
+        $versionToInstall = '0.0.17-beta',
         $toolsDir = ("$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\tools\"),
         $nugetDownloadUrl = 'http://nuget.org/nuget.exe'
     )
@@ -36,7 +36,7 @@ function GetPublishModuleFile{
 function Enable-PsNuGet{
     [cmdletbinding()]
     param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\psnuget\",
-        $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/master/package-downloader.psm1')
+        $psNuGetDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/rename/package-downloader.psm1')
     process{
         if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory }
 
