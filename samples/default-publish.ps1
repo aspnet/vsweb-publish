@@ -62,46 +62,6 @@ function Enable-PackageDownloader{
     }
 }
 
-function Enable-NuGetModule{
-    [cmdletbinding()]
-    param(
-        [Parameter(Mandatory=$true,Position=0)]
-        $name,
-        $moduleFileName,
-        [Parameter(Mandatory=$true,Position=1)] # later we can make this optional
-        $version,
-        [Parameter(Position=2)]
-        $toolsDir = $global:PkgDownloaderSettings.DefaultToolsDir
-    )
-    process{
-        if(!$moduleFileName){$moduleFileName = $name}
-
-		if(!(get-module $name)){
-			# TODO: we should check the version loaded and skip removing if the correct version is already loaded.
-			remove-module $name | Out-Null
-		}
-
-        if(!(get-module $name)){
-            $localmodpath = Join-Path $defaultPublishSettings.LocalInstallDir ('{0}.{1}\tools\{2}.psm1' -f $name,$version,$moduleFileName)
-
-            if(Test-Path $localmodpath){
-                'importing module [{0}={1}] from local install dir' -f $name, $localmodpath | Write-Verbose
-                Import-Module $localmodpath -DisableNameChecking -Force -Scope Global
-            }
-
-        }
-
-        if(!(get-module $name)){
-            $installDir = Enable-PackageDownloader -name $name -version $version
-            $moduleFile = (join-path $installDir ("tools\{0}.psm1" -f $moduleFileName))
-            Import-Module $moduleFile -DisableNameChecking
-        }
-        else{
-            'module [{0}] is already loaded skipping' -f $name | Write-Verbose
-        }
-    }
-}
-
 try{
 	Enable-PackageDownloader
 	Enable-NuGetModule -name 'publish-module' -version '0.0.17-beta'
