@@ -36,15 +36,6 @@ function Enable-PackageDownloader{
 			remove-module package-downloader | Out-Null
 		}
 
-        # try to local from local install first
-        if(!(get-module package-downloader)){
-            $localpkgdownloadernugetpath = Join-Path $defaultPublishSettings.LocalInstallDir 'package-downloader.psm1'
-            if(Test-Path $localpkgdownloadernugetpath){
-                'importing module [package-downloader="{0}"] from local install dir' -f $localpkgdownloadernugetpath | Write-Output
-                Import-Module $localpkgdownloadernugetpath -DisableNameChecking -Force -Scope Global
-            }
-        }
-
         if(!(get-module package-downloader)){
             if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory -WhatIf:$false }
 
@@ -62,9 +53,32 @@ function Enable-PackageDownloader{
     }
 }
 
+function Enable-PublishModule{
+    [cmdletbinding()]
+    param()
+    process{
+		if(get-module publish-module){
+			remove-module publish-module | Out-Null
+		}
+
+        if(!(get-module publish-module)){
+            $localpublishmodulepath = Join-Path $defaultPublishSettings.LocalInstallDir 'publish-module.psm1'
+            if(Test-Path $localpublishmodulepath){
+                'importing module [publish-module="{0}"] from local install dir' -f $localpublishmodulepath | Write-Verbose
+                Import-Module $localpublishmodulepath -DisableNameChecking -Force -Scope Global
+				$true
+            }
+        }
+    }
+}
+
 try{
-	Enable-PackageDownloader
-	Enable-NuGetModule -name 'publish-module' -version '0.0.17-beta'
+
+	if (!(Enable-PublishModule))
+	{
+		Enable-PackageDownloader
+		Enable-NuGetModule -name 'publish-module' -version '0.0.17-beta'
+	}
 
 	$whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
 

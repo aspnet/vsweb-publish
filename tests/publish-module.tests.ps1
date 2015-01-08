@@ -179,9 +179,3 @@ Describe 'Get-MSDeployFullUrlFor tests'{
     }
 }
 
-Describe 'Get-VisualStudio2015InstallPath tests' {
-    It 'Returns a value' {
-        Get-VisualStudio2015InstallPath | Should Not Be $null
-    }
-}
-
