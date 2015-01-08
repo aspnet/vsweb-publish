@@ -36,15 +36,6 @@ function Enable-PackageDownloader{
 			remove-module package-downloader | Out-Null
 		}
 
-        # try to local from local install first
-        if(!(get-module package-downloader)){
-            $localpkgdownloadernugetpath = Join-Path $defaultPublishSettings.LocalInstallDir 'package-downloader.psm1'
-            if(Test-Path $localpkgdownloadernugetpath){
-                'importing module [package-downloader="{0}"] from local install dir' -f $localpkgdownloadernugetpath | Write-Verbose
-                Import-Module $localpkgdownloadernugetpath -DisableNameChecking -Force -Scope Global
-            }
-        }
-
         if(!(get-module package-downloader)){
             if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory -WhatIf:$false }
 
