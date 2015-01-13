@@ -42,13 +42,13 @@ Describe 'MSDeploy unit tests' {
         
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='MSDeploy'
-            'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
-            'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="somepassword-here"
+            'MSDeployServiceURL'='contoso.scm.azurewebsites.net:443';`
+            'DeployIisAppPath'='contoso';'Username'='$contoso';'Password'="somepassword-here"
         }
 
         [string]$lastCommand = ($global:lastArgsToGetMSDeploy -join ' ')
-        $lastCommand.Contains("ComputerName='https://sayedkdemo2.scm.azurewebsites.net/msdeploy.axd'") | Should Be $true
-        $lastCommand.Contains('UserName=''$sayedkdemo2''') | Should Be $true
+        $lastCommand.Contains("ComputerName='https://contoso.scm.azurewebsites.net/msdeploy.axd'") | Should Be $true
+        $lastCommand.Contains('UserName=''$contoso''') | Should Be $true
         $lastCommand.Contains("Password='somepassword-here'") | Should Be $true
         $lastCommand.Contains("AuthType='Basic'") | Should Be $true
         $lastCommand.Contains('-verb:sync') | Should Be $true
@@ -60,8 +60,8 @@ Describe 'MSDeploy unit tests' {
         
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='MSDeploy'
-            'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
-            'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="somepassword-here"
+            'MSDeployServiceURL'='contoso.scm.azurewebsites.net:443';`
+            'DeployIisAppPath'='contoso';'Username'='$contoso';'Password'="somepassword-here"
         }
 
         [string]$lastCommand = ($global:lastArgsToGetMSDeploy -join ' ')
@@ -75,8 +75,8 @@ Describe 'MSDeploy unit tests' {
     It 'Passing whatif passes the appropriate switch' {        
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='MSDeploy'
-            'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
-            'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="somepassword-here"
+            'MSDeployServiceURL'='contoso.scm.azurewebsites.net:443';`
+            'DeployIisAppPath'='contoso';'Username'='$contoso';'Password'="somepassword-here"
         } -WhatIf
 
         [string]$lastCommand = ($global:lastArgsToGetMSDeploy -join ' ')
@@ -93,8 +93,8 @@ Describe 'MSDeploy unit tests' {
         
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='FileSystem'
-            'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
-            'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="somepassword-here"
+            'MSDeployServiceURL'='contoso.scm.azurewebsites.net:443';`
+            'DeployIisAppPath'='contoso';'Username'='$contoso';'Password'="somepassword-here"
             'WebPublishMethodOverride'="$overrideValue" 
         }
 
@@ -121,8 +121,8 @@ Describe 'Encrypt web.config' {
     It 'Can encrypt web.config' {
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='MSDeploy'
-            'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
-            'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="somepassword-here"
+            'MSDeployServiceURL'='contoso.scm.azurewebsites.net:443';`
+            'DeployIisAppPath'='contoso';'Username'='$contoso';'Password'="somepassword-here"
             'EncryptWebConfig'="$true"
         }
 
@@ -147,8 +147,8 @@ Describe 'MSDeploy App Offline' {
     It 'AppOffline default' {
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='MSDeploy'
-            'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
-            'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="somepassword-here"
+            'MSDeployServiceURL'='contoso.scm.azurewebsites.net:443';`
+            'DeployIisAppPath'='contoso';'Username'='$contoso';'Password'="somepassword-here"
             'EnableMSDeployAppOffline'='true'
         }
 
@@ -160,8 +160,8 @@ Describe 'MSDeploy App Offline' {
     It 'AppOffline with custom file' {
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='MSDeploy'
-            'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
-            'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="somepassword-here"
+            'MSDeployServiceURL'='contoso.scm.azurewebsites.net:443';`
+            'DeployIisAppPath'='contoso';'Username'='$contoso';'Password'="somepassword-here"
             'EnableMSDeployAppOffline'='true'
             'AppOfflineTemplate'='offline-template.html'
         }
