@@ -1,6 +1,8 @@
 [cmdletbinding(SupportsShouldProcess=$true)]
 param($publishProperties, $packOutput)
 
+# to learn more about this file visit http://go.microsoft.com/fwlink/?LinkId=524327
+
 function Get-VisualStudio2015InstallPath{
     [cmdletbinding()]
     param()
