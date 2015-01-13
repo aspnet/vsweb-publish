@@ -172,8 +172,8 @@ This will publish the folder based on the properties in $publishProperties
 .EXAMPLE
  Publish-AspNet -packOutput $packOutput -publishProperties @{
      'WebPublishMethod'='MSDeploy'
-     'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
-     'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"}
+     'MSDeployServiceURL'='contoso.scm.azurewebsites.net:443';`
+     'DeployIisAppPath'='contoso';'Username'='$contoso';'Password'="$env:PublishPwd"}
 
 .EXAMPLE
 Publish-AspNet -packOutput $packOutput -publishProperties @{
@@ -184,8 +184,8 @@ Publish-AspNet -packOutput $packOutput -publishProperties @{
 .EXAMPLE
 Publish-AspNet -packOutput $packOutput -publishProperties @{
      'WebPublishMethod'='MSDeploy'
-     'MSDeployServiceURL'='sayedkdemo2.scm.azurewebsites.net:443';`
-'DeployIisAppPath'='sayedkdemo2';'Username'='$sayedkdemo2';'Password'="$env:PublishPwd"
+     'MSDeployServiceURL'='contoso.scm.azurewebsites.net:443';`
+'DeployIisAppPath'='contoso';'Username'='$contoso';'Password'="$env:PublishPwd"
  	'ExcludeFiles'=@(
 		@{'absolutepath'='wwwroot\\test.txt'},
 		@{'absolutepath'='wwwroot\\_references.js'}
@@ -403,7 +403,7 @@ function Get-MSDeployFullUrlFor{
     [cmdletbinding()]
     param($msdeployServiceUrl)
     process{
-        # Convert sayedkdemo.scm.azurewebsites.net:443 to https://sayedkdemo.scm.azurewebsites.net/msdeploy.axd
+        # Convert contoso.scm.azurewebsites.net:443 to https://contoso.scm.azurewebsites.net/msdeploy.axd
         # TODO: This needs to be improved, it only works with Azure Websites. We have code for this.
         'https://{0}/msdeploy.axd' -f $msdeployServiceUrl.TrimEnd(':443')
     }

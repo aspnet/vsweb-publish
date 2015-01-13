@@ -36,7 +36,7 @@ function GetPublishModuleFile{
 function Enable-PackageDownloader{
     [cmdletbinding()]
     param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\package-downloader\",
-        $pkgDownloaderDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/release/package-downloader.psm1')
+        $pkgDownloaderDownloadUrl = 'http://go.microsoft.com/fwlink/?LinkId=524325') # package-downloader.psm1
     process{
         if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory }
 
