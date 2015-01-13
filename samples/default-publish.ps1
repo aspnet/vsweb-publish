@@ -32,7 +32,6 @@ function Enable-PackageDownloader{
         $pkgDownloaderDownloadUrl = 'http://go.microsoft.com/fwlink/?LinkId=524325') # package-downloader.psm1
     process{
 		if(get-module package-downloader){
-			# TODO: we should check the version loaded and skip removing if the correct version is already loaded.
 			remove-module package-downloader | Out-Null
 		}
 

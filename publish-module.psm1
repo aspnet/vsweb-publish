@@ -270,7 +270,6 @@ function Publish-AspNetMSDeploy{
                 -retryAttempts=2 
                 -userAgent="VS14.0:PublishDialog:WTE14.0.51027.0"
             #>
-            # TODO: Get wwwroot value from $publishProperties
 
             $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties 
 
@@ -404,7 +403,7 @@ function Get-MSDeployFullUrlFor{
     param($msdeployServiceUrl)
     process{
         # Convert contoso.scm.azurewebsites.net:443 to https://contoso.scm.azurewebsites.net/msdeploy.axd
-        # TODO: This needs to be improved, it only works with Azure Websites. We have code for this.
+        # TODO: This needs to be improved, it only works with Azure Websites currently.
         'https://{0}/msdeploy.axd' -f $msdeployServiceUrl.TrimEnd(':443')
     }
 }
