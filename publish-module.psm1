@@ -235,6 +235,10 @@ function Publish-AspNet{
             $publishProperties['WebPublishMethod'] = $publishProperties['WebPublishMethodOverride']
         }
 
+        if(!([System.IO.Path]::IsPathRooted($packOutput))){
+            $packOutput = [System.IO.Path]::GetFullPath((Join-Path $pwd $packOutput))
+        }
+
         $pubMethod = $publishProperties['WebPublishMethod']
         'Publishing with publish method [{0}]' -f $pubMethod | Write-Output
 
@@ -342,7 +346,8 @@ function Publish-AspNetFileSystem{
         # if it's a relative path then update it to a full path
         if(!([System.IO.Path]::IsPathRooted($pubOut))){
             $pubOut = [System.IO.Path]::GetFullPath((Join-Path $pwd $pubOut))
-        }        
+            $publishProperties['publishUrl'] = "$pubOut"
+        }
 
         'Publishing files to {0}' -f $pubOut | Write-Output
 

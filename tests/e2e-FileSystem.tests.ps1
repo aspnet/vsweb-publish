@@ -68,6 +68,28 @@ Describe 'FileSystem e2e publish tests' {
         $filesafter.length | Should Be $numPublishFiles
     }
 
+    It 'Can publish with a relative path for publishUrl' {
+        # publish the pack output to a new temp folder
+        $publishDest = (Join-Path $TestDrive 'e2eFileSystem\relpathPackOutput')
+        # verify the folder is empty
+        $filesbefore = (Get-ChildItem $publishDest -Recurse -File -ErrorAction SilentlyContinue)
+        $filesbefore.length | Should Be 0
+
+        Push-Location
+        Set-Location $mvcPackDir
+
+        Publish-AspNet -packOutput .\ -publishProperties @{
+            'WebPublishMethod'='FileSystem'
+            'publishUrl'="$publishDest"
+        }
+        
+        Pop-Location
+
+        # check to see that the files exist
+        $filesafter = (Get-ChildItem $publishDest -Recurse -File)
+        $filesafter.length | Should Be $numPublishFiles
+    }
+
     It 'Can exclude files when a single file is passed in' {
         $publishDest = (Join-Path $TestDrive 'e2eFileSystem\exclude01')
         # verify the folder is empty
