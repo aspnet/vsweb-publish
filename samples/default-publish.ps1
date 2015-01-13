@@ -78,7 +78,7 @@ try{
 	if (!(Enable-PublishModule))
 	{
 		Enable-PackageDownloader
-		Enable-NuGetModule -name 'publish-module' -version '0.0.17-beta'
+		Enable-NuGetModule -name 'publish-module' -version '0.0.18-beta'
 	}
 
 	$whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
