@@ -68,6 +68,25 @@ Describe 'FileSystem e2e publish tests' {
         $filesafter.length | Should Be $numPublishFiles
     }
 
+    <# doesn't work yet
+    It 'Publish file system can publish to a dir with a space' {
+        # publish the pack output to a new temp folder
+        $publishDest = (Join-Path $TestDrive 'e2eFileSystem\PublishUrl WithSpace\')
+        # verify the folder is empty
+        $filesbefore = (Get-ChildItem $publishDest -Recurse -File -ErrorAction SilentlyContinue)
+        $filesbefore.length | Should Be 0
+
+        Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
+            'WebPublishMethod'='FileSystem'
+            'publishUrl'="$publishDest"
+        }
+        
+        # check to see that the files exist
+        $filesafter = (Get-ChildItem $publishDest -Recurse -File)
+        $filesafter.length | Should Be $numPublishFiles
+    }
+    #>
+
     It 'Can publish with a relative path for publishUrl' {
         # publish the pack output to a new temp folder
         $publishDest = (Join-Path $TestDrive 'e2eFileSystem\relpathPackOutput')
