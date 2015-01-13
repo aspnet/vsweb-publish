@@ -171,3 +171,13 @@ Describe 'MSDeploy App Offline' {
         $lastCommand.Contains(',appofflinetemplate="offline-template.html"') | Should Be $true
     }
 }
+
+Describe 'Get-MSDeploy tests'{
+    It 'can call Get-MSDeploy and get a path to a file that exists' {
+        $msdeployPath = Get-MSDeploy
+
+        
+        $msdeployPath | Should Exist
+        (Get-Item $msdeployPath) -is [System.IO.FileInfo] | Should Be $true
+    }
+}

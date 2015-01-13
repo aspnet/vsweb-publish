@@ -366,35 +366,31 @@ function Publish-AspNetFileSystem{
     }
 }
 
-function Get-MSDeploy {
+function Get-MSDeploy{
     [cmdletbinding()]
     param()
     process{
-        $msdInstallLoc = $env:MSDeployPath
-        if(!($msdInstallLoc)) {
-        # TODO: Get this from HKLM SOFTWARE\Microsoft\IIS Extensions\MSDeploy See MSDeploy VS task for implementation
-            $progFilesFolder = (Get-ChildItem env:"ProgramFiles").Value
-            $msdLocToCheck = @()
-            $msdLocToCheck += ("{0}\IIS\Microsoft Web Deploy V3\msdeploy.exe" -f $progFilesFolder)
-            $msdLocToCheck += ("{0}\IIS\Microsoft Web Deploy V2\msdeploy.exe" -f $progFilesFolder)
-            $msdLocToCheck += ("{0}\IIS\Microsoft Web Deploy\msdeploy.exe" -f $progFilesFolder)
-           
-            foreach($locToCheck in $msdLocToCheck) {
-                "Looking for msdeploy.exe at [{0}]" -f $locToCheck | Write-Verbose | Out-Null
-                if(Test-Path $locToCheck) {
-                    $msdInstallLoc = $locToCheck
-                    break;
-                }
-            }        
+        $keysToCheck = @('hklm:\SOFTWARE\Microsoft\IIS Extensions\MSDeploy\3','hklm:\SOFTWARE\Microsoft\IIS Extensions\MSDeploy\2','hklm:\SOFTWARE\Microsoft\IIS Extensions\MSDeploy\1')
+
+        foreach($keyToCheck in $keysToCheck){
+            if(Test-Path $keyToCheck){
+                $installPath = (Get-itemproperty $keyToCheck -Name InstallPath | select -ExpandProperty InstallPath)
+            }
+
+            if($installPath){
+                break;
+            }
         }
-    
-        if(!$msdInstallLoc){
+
+        if(!$installPath){
             throw "Unable to find msdeploy.exe, please install it and try again"
         }
-    
-        "Found msdeploy.exe at [{0}]" -f $msdInstallLoc | Write-Verbose | Out-Null
 
-        return $msdInstallLoc
+        [string]$msdInstallLoc = (join-path $installPath 'msdeploy.exe')
+
+        "Found msdeploy.exe at [{0}]" -f $msdInstallLoc | Write-Verbose
+        
+        $msdInstallLoc        
     }
 }
 
