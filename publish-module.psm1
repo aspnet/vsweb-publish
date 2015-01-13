@@ -337,10 +337,16 @@ function Publish-AspNetFileSystem{
         $packOutput
     )
     process{
-        $pubOut = $publishProperties['publishUrl']
+        [ValidateNotNullOrEmpty()]$pubOut = $publishProperties['publishUrl']
+        
+        # if it's a relative path then update it to a full path
+        if(!([System.IO.Path]::IsPathRooted($pubOut))){
+            $pubOut = [System.IO.Path]::GetFullPath((Join-Path $pwd $pubOut))
+        }        
+
         'Publishing files to {0}' -f $pubOut | Write-Output
 
-        # we can use msdeploy.exe because it supports incremental publish/skips/replacements/etc
+        # we use msdeploy.exe because it supports incremental publish/skips/replacements/etc
         # msdeploy.exe -verb:sync -source:contentPath='C:\srcpath' -dest:contentPath='c:\destpath'
         
         $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties
