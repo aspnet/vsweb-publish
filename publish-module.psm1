@@ -262,8 +262,8 @@ function Publish-AspNetMSDeploy{
 
             <#
             "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe" 
-                -source:IisApp='C:\Users\vramak\AppData\Local\Temp\AspNetPublish\WebApplication184-93\wwwroot' 
-                -dest:IisApp='vramak4',ComputerName='https://vramak4.scm.azurewebsites.net/msdeploy.axd',UserName='$vramak4',Password='<PWD>',IncludeAcls='False',AuthType='Basic' 
+                -source:IisApp='C:\Users\contoso\AppData\Local\Temp\AspNetPublish\WebApplication1\wwwroot' 
+                -dest:IisApp='vramak4',ComputerName='https://contoso.scm.azurewebsites.net/msdeploy.axd',UserName='$contoso',Password='<PWD>',IncludeAcls='False',AuthType='Basic' 
                 -verb:sync 
                 -enableRule:DoNotDeleteRule 
                 -enableLink:contentLibExtension 
@@ -370,17 +370,22 @@ function Get-MSDeploy{
     [cmdletbinding()]
     param()
     process{
-        $keysToCheck = @('hklm:\SOFTWARE\Microsoft\IIS Extensions\MSDeploy\3','hklm:\SOFTWARE\Microsoft\IIS Extensions\MSDeploy\2','hklm:\SOFTWARE\Microsoft\IIS Extensions\MSDeploy\1')
+		$installPath = $env:msdeployinstallpath
 
-        foreach($keyToCheck in $keysToCheck){
-            if(Test-Path $keyToCheck){
-                $installPath = (Get-itemproperty $keyToCheck -Name InstallPath | select -ExpandProperty InstallPath)
-            }
+		if(!$installPath)
+		{
+			$keysToCheck = @('hklm:\SOFTWARE\Microsoft\IIS Extensions\MSDeploy\3','hklm:\SOFTWARE\Microsoft\IIS Extensions\MSDeploy\2','hklm:\SOFTWARE\Microsoft\IIS Extensions\MSDeploy\1')
 
-            if($installPath){
-                break;
-            }
-        }
+			foreach($keyToCheck in $keysToCheck){
+				if(Test-Path $keyToCheck){
+					$installPath = (Get-itemproperty $keyToCheck -Name InstallPath | select -ExpandProperty InstallPath)
+				}
+
+				if($installPath){
+					break;
+				}
+			}
+		}
 
         if(!$installPath){
             throw "Unable to find msdeploy.exe, please install it and try again"
