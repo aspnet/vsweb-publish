@@ -49,7 +49,7 @@ function Enable-PackageDownloader{
             if(!$expectedPath){throw ('Unable to download package-downloader.psm1')}
 
             'importing module [{0}]' -f $expectedPath | Write-Output
-            Import-Module $expectedPath -DisableNameChecking -Force -Scope Global
+            Import-Module $expectedPath -DisableNameChecking -Force
         }
     }
 }
@@ -66,7 +66,7 @@ function Enable-PublishModule{
             $localpublishmodulepath = Join-Path $defaultPublishSettings.LocalInstallDir 'publish-module.psm1'
             if(Test-Path $localpublishmodulepath){
                 'importing module [publish-module="{0}"] from local install dir' -f $localpublishmodulepath | Write-Verbose
-                Import-Module $localpublishmodulepath -DisableNameChecking -Force -Scope Global
+                Import-Module $localpublishmodulepath -DisableNameChecking -Force
 				$true
             }
         }
@@ -75,13 +75,14 @@ function Enable-PublishModule{
 
 try{
 
-	if (!(Enable-PublishModule))
-	{
+	if (!(Enable-PublishModule)){
 		Enable-PackageDownloader
 		Enable-NuGetModule -name 'publish-module' -version '1.0.0-pre'
 	}
 
-	$whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
+	if($PSCmdlet){
+		$whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
+	}
 
 	'Calling Publish-AspNet' | Write-Verbose
 	# call Publish-AspNet to perform the publish operation

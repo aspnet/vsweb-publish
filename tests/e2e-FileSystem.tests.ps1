@@ -26,14 +26,14 @@ else{
 Describe 'FileSystem e2e publish tests' {
     [string]$mvcSourceFolder = (resolve-path (Join-Path $samplesdir 'MvcApplication'))
     [string]$mvcPackDir = (resolve-path (Join-Path $samplesdir 'MvcApplication-packOutput'))
-    [int]$numPublishFiles = ((Get-ChildItem $mvcPackDir -Recurse -File)).Length
+    [int]$numPublishFiles = ((Get-ChildItem $mvcPackDir -Recurse) | Where-Object { !$_.PSIsContainer }).Length
 
     It 'Publish file system' {
         # publish the pack output to a new temp folder
         $publishDest = (Join-Path $TestDrive 'e2eFileSystem\Basic01')
         # verify the folder is empty
-        $filesbefore = (Get-ChildItem $publishDest -Recurse -File -ErrorAction SilentlyContinue)
-        $filesbefore.length | Should Be 0
+        $filesbefore = (Get-ChildItem $publishDest -Recurse -ErrorAction SilentlyContinue) | Where-Object { !$_.PSIsContainer }
+        $filesbefore | Should BeNullOrEmpty
 
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='FileSystem'
@@ -41,7 +41,7 @@ Describe 'FileSystem e2e publish tests' {
         }
         
         # check to see that the files exist
-        $filesafter = (Get-ChildItem $publishDest -Recurse -File)
+        $filesafter = (Get-ChildItem $publishDest -Recurse) | Where-Object { !$_.PSIsContainer }
         $filesafter.length | Should Be $numPublishFiles
     }
 
@@ -49,8 +49,8 @@ Describe 'FileSystem e2e publish tests' {
         # publish the pack output to a new temp folder
         $publishDest = (Join-Path $TestDrive 'e2eFileSystem\relpathPublishUrl')
         # verify the folder is empty
-        $filesbefore = (Get-ChildItem $publishDest -Recurse -File -ErrorAction SilentlyContinue)
-        $filesbefore.length | Should Be 0
+        $filesbefore = (Get-ChildItem $publishDest -Recurse -ErrorAction SilentlyContinue) | Where-Object { !$_.PSIsContainer }
+        $filesbefore | Should BeNullOrEmpty
 
         Push-Location
         mkdir $publishDest
@@ -64,7 +64,7 @@ Describe 'FileSystem e2e publish tests' {
         Pop-Location
 
         # check to see that the files exist
-        $filesafter = (Get-ChildItem $publishDest -Recurse -File)
+        $filesafter = (Get-ChildItem $publishDest -Recurse) | Where-Object { !$_.PSIsContainer }
         $filesafter.length | Should Be $numPublishFiles
     }
 
@@ -91,8 +91,8 @@ Describe 'FileSystem e2e publish tests' {
         # publish the pack output to a new temp folder
         $publishDest = (Join-Path $TestDrive 'e2eFileSystem\relpathPackOutput')
         # verify the folder is empty
-        $filesbefore = (Get-ChildItem $publishDest -Recurse -File -ErrorAction SilentlyContinue)
-        $filesbefore.length | Should Be 0
+        $filesbefore = (Get-ChildItem $publishDest -Recurse -ErrorAction SilentlyContinue) | Where-Object { !$_.PSIsContainer }
+        $filesbefore | Should BeNullOrEmpty
 
         Push-Location
         Set-Location $mvcPackDir
@@ -105,15 +105,15 @@ Describe 'FileSystem e2e publish tests' {
         Pop-Location
 
         # check to see that the files exist
-        $filesafter = (Get-ChildItem $publishDest -Recurse -File)
+        $filesafter = (Get-ChildItem $publishDest -Recurse) | Where-Object { !$_.PSIsContainer }
         $filesafter.length | Should Be $numPublishFiles
     }
 
     It 'Can exclude files when a single file is passed in' {
         $publishDest = (Join-Path $TestDrive 'e2eFileSystem\exclude01')
         # verify the folder is empty
-        $filesbefore = (Get-ChildItem $publishDest -Recurse -File -ErrorAction SilentlyContinue)
-        $filesbefore.length | Should Be 0
+        $filesbefore = (Get-ChildItem $publishDest -Recurse -ErrorAction SilentlyContinue) | Where-Object { !$_.PSIsContainer }
+        $filesbefore | Should BeNullOrEmpty
 
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='FileSystem'
@@ -124,7 +124,7 @@ Describe 'FileSystem e2e publish tests' {
         }
         
         # check to see that the files exist
-        $filesafter = (Get-ChildItem $publishDest -Recurse -File)
+        $filesafter = (Get-ChildItem $publishDest -Recurse) | Where-Object { !$_.PSIsContainer }
         $filesafter.length | Should Be ($numPublishFiles-1)
     }
 
@@ -132,7 +132,7 @@ Describe 'FileSystem e2e publish tests' {
         $publishDest = (Join-Path $TestDrive 'e2eFileSystem\exclude02')
         # verify the folder is empty
         $filesbefore = (Get-ChildItem $publishDest -Recurse -ErrorAction SilentlyContinue)
-        $filesbefore.length | Should Be 0
+        $filesbefore | Should BeNullOrEmpty
 
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='FileSystem'
@@ -144,7 +144,7 @@ Describe 'FileSystem e2e publish tests' {
         }
         
         # check to see that the files exist
-        $filesafter = (Get-ChildItem $publishDest -Recurse -File)
+        $filesafter = (Get-ChildItem $publishDest -Recurse) | Where-Object { !$_.PSIsContainer }
         $filesafter.length | Should Be ($numPublishFiles-2)
     }
 

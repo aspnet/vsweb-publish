@@ -3,7 +3,7 @@ param()
 
 $script:AspNetPublishHandlers = @{}
 
-$global:AspNetPublishSettings = New-Object PSObject -Property @{
+$global:AspNetPublishSettings = New-Object -TypeName PSCustomObject @{
     MsdeployDefaultProperties = @{
     'MSDeployUseChecksum'=$true
     'WebRoot'='wwwroot'
@@ -12,8 +12,6 @@ $global:AspNetPublishSettings = New-Object PSObject -Property @{
     'EnableMSDeployBackup' = $false
     }
 }
-
-$global:publishModuleSettings = New-Object psobject -Property @{}
 
 function Register-AspnetPublishHandler{
     [cmdletbinding()]
@@ -54,18 +52,19 @@ function GetInternal-ExcludeFilesArg{
     process{
         $excludeFiles = $publishProperties['ExcludeFiles']
         foreach($exclude in $excludeFiles){
-            [string]$objName = $exclude['objectname']
+		    if($exclude){
+				[string]$objName = $exclude['objectname']
 
-            if([string]::IsNullOrEmpty($objName)){
-                $objName = 'filePath'
-            }
+				if([string]::IsNullOrEmpty($objName)){
+					$objName = 'filePath'
+				}
 
-            [ValidateNotNullOrEmpty()]
-            $excludePath = $exclude['absolutepath']
+				$excludePath = $exclude['absolutepath']
 
-            # output the result to the return list
-            ('-skip:objectName={0},absolutePath={1}' -f $objName, $excludePath)
-        }
+				# output the result to the return list
+				('-skip:objectName={0},absolutePath={1}' -f $objName, $excludePath)
+			}	
+		}
     }
 }
 
@@ -75,24 +74,26 @@ function GetInternal-ReplacementsMSDeployArgs{
         $publishProperties
     )
     process{
-        foreach($replace in ($publishProperties['Replacements'])){                
-            $typeValue = $replace['type']
-            if(!$typeValue){ $typeValue = 'TextFile' }
+        foreach($replace in ($publishProperties['Replacements'])){     
+		    if($replace){           
+				$typeValue = $replace['type']
+				if(!$typeValue){ $typeValue = 'TextFile' }
                 
-            $file = $replace['file']
-            $match = $replace['match']
-            $newValue = $replace['newValue']
+				$file = $replace['file']
+				$match = $replace['match']
+				$newValue = $replace['newValue']
 
-            if($file -and $match -and $newValue){
-                $setParam = ('-setParam:type={0},scope={1},match={2},value={3}' -f $typeValue,$file, $match,$newValue)
-                'Adding setparam [{0}]' -f $setParam | Write-Verbose
+				if($file -and $match -and $newValue){
+					$setParam = ('-setParam:type={0},scope={1},match={2},value={3}' -f $typeValue,$file, $match,$newValue)
+					'Adding setparam [{0}]' -f $setParam | Write-Verbose
 
-                # return it
-                $setParam
-            }
-            else{
-                'Skipping replacement because its missing a required value.[file="{0}",match="{1}",newValue="{2}"]' -f $file,$match,$newValue | Write-Verbose
-            }
+					# return it
+					$setParam
+				}
+				else{
+					'Skipping replacement because its missing a required value.[file="{0}",match="{1}",newValue="{2}"]' -f $file,$match,$newValue | Write-Verbose
+				}
+			}
         }       
     }
 }
@@ -274,7 +275,6 @@ function Publish-AspNetMSDeploy{
             $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties 
 
             # WebRoot is a required property which has a default
-            [ValidateNotNullOrEmpty()]
             $webroot = $publishProperties['WebRoot']
 
             $webrootOutputFolder = (get-item (Join-Path $packOutput $webroot)).FullName
@@ -340,7 +340,8 @@ function Publish-AspNetFileSystem{
         $packOutput
     )
     process{
-        [ValidateNotNullOrEmpty()]$pubOut = $publishProperties['publishUrl']
+        
+        $pubOut = $publishProperties['publishUrl']
         
         # if it's a relative path then update it to a full path
         if(!([System.IO.Path]::IsPathRooted($pubOut))){
