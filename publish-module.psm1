@@ -52,19 +52,19 @@ function GetInternal-ExcludeFilesArg{
     process{
         $excludeFiles = $publishProperties['ExcludeFiles']
         foreach($exclude in $excludeFiles){
-		    if($exclude){
-				[string]$objName = $exclude['objectname']
+            if($exclude){
+                [string]$objName = $exclude['objectname']
 
-				if([string]::IsNullOrEmpty($objName)){
-					$objName = 'filePath'
-				}
+                if([string]::IsNullOrEmpty($objName)){
+                    $objName = 'filePath'
+                }
 
-				$excludePath = $exclude['absolutepath']
+                $excludePath = $exclude['absolutepath']
 
-				# output the result to the return list
-				('-skip:objectName={0},absolutePath={1}' -f $objName, $excludePath)
-			}	
-		}
+                # output the result to the return list
+                ('-skip:objectName={0},absolutePath={1}' -f $objName, $excludePath)
+            }	
+        }
     }
 }
 
@@ -75,25 +75,25 @@ function GetInternal-ReplacementsMSDeployArgs{
     )
     process{
         foreach($replace in ($publishProperties['Replacements'])){     
-		    if($replace){           
-				$typeValue = $replace['type']
-				if(!$typeValue){ $typeValue = 'TextFile' }
+            if($replace){           
+                $typeValue = $replace['type']
+                if(!$typeValue){ $typeValue = 'TextFile' }
                 
-				$file = $replace['file']
-				$match = $replace['match']
-				$newValue = $replace['newValue']
+                $file = $replace['file']
+                $match = $replace['match']
+                $newValue = $replace['newValue']
 
-				if($file -and $match -and $newValue){
-					$setParam = ('-setParam:type={0},scope={1},match={2},value={3}' -f $typeValue,$file, $match,$newValue)
-					'Adding setparam [{0}]' -f $setParam | Write-Verbose
+                if($file -and $match -and $newValue){
+                    $setParam = ('-setParam:type={0},scope={1},match={2},value={3}' -f $typeValue,$file, $match,$newValue)
+                    'Adding setparam [{0}]' -f $setParam | Write-Verbose
 
-					# return it
-					$setParam
-				}
-				else{
-					'Skipping replacement because its missing a required value.[file="{0}",match="{1}",newValue="{2}"]' -f $file,$match,$newValue | Write-Verbose
-				}
-			}
+                    # return it
+                    $setParam
+                }
+                else{
+                    'Skipping replacement because its missing a required value.[file="{0}",match="{1}",newValue="{2}"]' -f $file,$match,$newValue | Write-Verbose
+                }
+            }
         }       
     }
 }
@@ -151,11 +151,6 @@ function GetInternal-SharedMSDeployParametersFrom{
             $sharedArgs.ExtraArgs += '-disablerule:BackupRule'
         }
 
-        if(!($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))){
-            $sharedArgs.ExtraArgs +='-whatif'
-            # $sharedArgs.ExtraArgs +='-xml'
-        }
-
         # add excludes
         $sharedArgs.ExtraArgs += (GetInternal-ExcludeFilesArg -publishProperties $publishProperties)
         # add replacements
@@ -178,48 +173,48 @@ This will publish the folder based on the properties in $publishProperties
 
 .EXAMPLE
 Publish-AspNet -packOutput $packOutput -publishProperties @{
-	'WebPublishMethod'='FileSystem'
-	'publishUrl'="$publishDest"
-	}
+    'WebPublishMethod'='FileSystem'
+    'publishUrl'="$publishDest"
+    }
 
 .EXAMPLE
 Publish-AspNet -packOutput $packOutput -publishProperties @{
      'WebPublishMethod'='MSDeploy'
      'MSDeployServiceURL'='contoso.scm.azurewebsites.net:443';`
 'DeployIisAppPath'='contoso';'Username'='$contoso';'Password'="$env:PublishPwd"
- 	'ExcludeFiles'=@(
-		@{'absolutepath'='wwwroot\\test.txt'},
-		@{'absolutepath'='wwwroot\\_references.js'}
+    'ExcludeFiles'=@(
+        @{'absolutepath'='wwwroot\\test.txt'},
+        @{'absolutepath'='wwwroot\\_references.js'}
 )} 
 
 .EXAMPLE
 Publish-AspNet -packOutput $packOutput -publishProperties @{
-	'WebPublishMethod'='FileSystem'
-	'publishUrl'="$publishDest"
-	'ExcludeFiles'=@(
-		@{'absolutepath'='wwwroot\\test.txt'},
-		@{'absolutepath'='wwwroot\\_references.js'})
-	'Replacements' = @(
-		@{'file'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
-	}
+    'WebPublishMethod'='FileSystem'
+    'publishUrl'="$publishDest"
+    'ExcludeFiles'=@(
+        @{'absolutepath'='wwwroot\\test.txt'},
+        @{'absolutepath'='wwwroot\\_references.js'})
+    'Replacements' = @(
+        @{'file'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
+    }
 
 Publish-AspNet -packOutput $packOutput -publishProperties @{
-	'WebPublishMethod'='FileSystem'
-	'publishUrl'="$publishDest"
-	'ExcludeFiles'=@(
-		@{'absolutepath'='wwwroot\\test.txt'},
-		@{'absolutepath'='c:\\full\\path\\ok\\as\\well\\_references.js'})
-	'Replacements' = @(
-		@{'file'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
-	}
+    'WebPublishMethod'='FileSystem'
+    'publishUrl'="$publishDest"
+    'ExcludeFiles'=@(
+        @{'absolutepath'='wwwroot\\test.txt'},
+        @{'absolutepath'='c:\\full\\path\\ok\\as\\well\\_references.js'})
+    'Replacements' = @(
+        @{'file'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
+    }
 
 .EXAMPLE
 Publish-AspNet -packOutput $packOutput -publishProperties @{
-	'WebPublishMethod'='FileSystem'
-	'publishUrl'="$publishDest"
-	'EnableMSDeployAppOffline'='true'
-	'AppOfflineTemplate'='offline-template.html'
-	'MSDeployUseChecksum'='true'
+    'WebPublishMethod'='FileSystem'
+    'publishUrl'="$publishDest"
+    'EnableMSDeployAppOffline'='true'
+    'AppOfflineTemplate'='offline-template.html'
+    'MSDeployUseChecksum'='true'
 }
 #>
 function Publish-AspNet{
@@ -244,7 +239,6 @@ function Publish-AspNet{
         'Publishing with publish method [{0}]' -f $pubMethod | Write-Output
 
         # get the handler based on WebPublishMethod, and call it.
-        # it seems that -whatif and -verbose are flowing through
         &(Get-AspnetPublishHandler -name $pubMethod) $publishProperties $packOutput
     }
 }
@@ -290,9 +284,9 @@ function Publish-AspNetMSDeploy{
             $publishArgs += '-enableLink:contentLibExtension'
             $publishArgs += $sharedArgs.ExtraArgs
 
-            'Calling msdeploy with the call {0}' -f (($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')) | Write-Output
-            'Calling msdeploy with the call {0}' -f (($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')) | Write-Verbose
-            & (Get-MSDeploy) $publishArgs
+            $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
+            Print-MSDeployCommand -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')
+            Execute-MSDeployCommand -command $command
         }
         else{
             throw 'publishProperties is empty, cannot publish'
@@ -362,8 +356,33 @@ function Publish-AspNetFileSystem{
         $publishArgs += '-verb:sync'
         $publishArgs += $sharedArgs.ExtraArgs
 
-        'Calling msdeploy to publish to file system with the command: [{0} {1}]' -f (Get-MSDeploy),($publishArgs -join ' ') | Write-Output
-        & (Get-MSDeploy) $publishArgs
+        $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
+        Print-MSDeployCommand -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ')
+        Execute-MSDeployCommand -command $command
+    }
+}
+
+function Print-MSDeployCommand{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0)]
+        $msdeployPath,
+        [Parameter(Mandatory=$true,Position=1)]
+        $msdeployParameters
+    )
+    process{
+        'Calling msdeploy with the command: ["{0}" {1}]' -f $msdeployPath, $msdeployParameters | Write-Output
+    }
+}
+
+function Execute-MSDeployCommand{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0)]
+        $command
+    )
+    process{
+        cmd.exe /C $command
     }
 }
 
@@ -371,22 +390,21 @@ function Get-MSDeploy{
     [cmdletbinding()]
     param()
     process{
-		$installPath = $env:msdeployinstallpath
+        $installPath = $env:msdeployinstallpath
 
-		if(!$installPath)
-		{
-			$keysToCheck = @('hklm:\SOFTWARE\Microsoft\IIS Extensions\MSDeploy\3','hklm:\SOFTWARE\Microsoft\IIS Extensions\MSDeploy\2','hklm:\SOFTWARE\Microsoft\IIS Extensions\MSDeploy\1')
+        if(!$installPath){
+            $keysToCheck = @('hklm:\SOFTWARE\Microsoft\IIS Extensions\MSDeploy\3','hklm:\SOFTWARE\Microsoft\IIS Extensions\MSDeploy\2','hklm:\SOFTWARE\Microsoft\IIS Extensions\MSDeploy\1')
 
-			foreach($keyToCheck in $keysToCheck){
-				if(Test-Path $keyToCheck){
-					$installPath = (Get-itemproperty $keyToCheck -Name InstallPath | select -ExpandProperty InstallPath)
-				}
+            foreach($keyToCheck in $keysToCheck){
+                if(Test-Path $keyToCheck){
+                    $installPath = (Get-itemproperty $keyToCheck -Name InstallPath | select -ExpandProperty InstallPath)
+                }
 
-				if($installPath){
-					break;
-				}
-			}
-		}
+                if($installPath){
+                    break;
+                }
+            }
+        }
 
         if(!$installPath){
             throw "Unable to find msdeploy.exe, please install it and try again"
@@ -396,7 +414,7 @@ function Get-MSDeploy{
 
         "Found msdeploy.exe at [{0}]" -f $msdInstallLoc | Write-Verbose
         
-        $msdInstallLoc        
+        $msdInstallLoc
     }
 }
 

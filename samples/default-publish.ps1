@@ -33,9 +33,9 @@ function Enable-PackageDownloader{
     param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\package-downloader\",
         $pkgDownloaderDownloadUrl = 'http://go.microsoft.com/fwlink/?LinkId=524325') # package-downloader.psm1
     process{
-		if(get-module package-downloader){
-			remove-module package-downloader | Out-Null
-		}
+        if(get-module package-downloader){
+            remove-module package-downloader | Out-Null
+        }
 
         if(!(get-module package-downloader)){
             if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory -WhatIf:$false }
@@ -58,16 +58,16 @@ function Enable-PublishModule{
     [cmdletbinding()]
     param()
     process{
-		if(get-module publish-module){
-			remove-module publish-module | Out-Null
-		}
+        if(get-module publish-module){
+            remove-module publish-module | Out-Null
+        }
 
         if(!(get-module publish-module)){
             $localpublishmodulepath = Join-Path $defaultPublishSettings.LocalInstallDir 'publish-module.psm1'
             if(Test-Path $localpublishmodulepath){
                 'importing module [publish-module="{0}"] from local install dir' -f $localpublishmodulepath | Write-Verbose
                 Import-Module $localpublishmodulepath -DisableNameChecking -Force
-				$true
+                $true
             }
         }
     }
@@ -75,19 +75,15 @@ function Enable-PublishModule{
 
 try{
 
-	if (!(Enable-PublishModule)){
-		Enable-PackageDownloader
-		Enable-NuGetModule -name 'publish-module' -version '1.0.0-pre'
-	}
+    if (!(Enable-PublishModule)){
+        Enable-PackageDownloader
+        Enable-NuGetModule -name 'publish-module' -version '1.0.0-pre'
+    }
 
-	if($PSCmdlet){
-		$whatifpassed = !($PSCmdlet.ShouldProcess($env:COMPUTERNAME,"publish"))
-	}
-
-	'Calling Publish-AspNet' | Write-Verbose
-	# call Publish-AspNet to perform the publish operation
-	Publish-AspNet -publishProperties $publishProperties -packOutput $packOutput -Verbose -WhatIf:$whatifpassed
+    'Calling Publish-AspNet' | Write-Verbose
+    # call Publish-AspNet to perform the publish operation
+    Publish-AspNet -publishProperties $publishProperties -packOutput $packOutput -Verbose
 }
 catch{
-	"An error occured during publish.`n{0}" -f $_.Exception.Message | Write-Error
+    "An error occured during publish.`n{0}" -f $_.Exception.Message | Write-Error
 }
