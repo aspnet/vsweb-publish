@@ -195,7 +195,7 @@ Publish-AspNet -packOutput $packOutput -publishProperties @{
         @{'absolutepath'='wwwroot\\test.txt'},
         @{'absolutepath'='wwwroot\\_references.js'})
     'Replacements' = @(
-        @{'file'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
+        @{'file'='test.txt$';'match'='REPLACEME';'newValue'='updated2222'})
     }
 
 Publish-AspNet -packOutput $packOutput -publishProperties @{
@@ -205,7 +205,7 @@ Publish-AspNet -packOutput $packOutput -publishProperties @{
         @{'absolutepath'='wwwroot\\test.txt'},
         @{'absolutepath'='c:\\full\\path\\ok\\as\\well\\_references.js'})
     'Replacements' = @(
-        @{'file'='foo.txt$';'match'='REPLACEME';'newValue'='updated2222'})
+        @{'file'='test.txt$';'match'='REPLACEME';'newValue'='updated2222'})
     }
 
 .EXAMPLE
