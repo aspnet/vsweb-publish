@@ -10,6 +10,7 @@ $global:AspNetPublishSettings = New-Object -TypeName PSCustomObject @{
     'SkipExtraFilesOnServer'=$true
     'retryAttempts' = 2
     'EnableMSDeployBackup' = $false
+	'DeleteExistingFiles' = $false
     }
 }
 
@@ -133,10 +134,16 @@ function GetInternal-SharedMSDeployParametersFrom{
             $offlineArgs = GetInternal-PublishAppOfflineProperties -publishProperties $publishProperties
             $sharedArgs.ExtraArgs += $offlineArgs.AdditionalArguments
             $sharedArgs.DestFragment += $offlineArgs.DestFragment
+	        
+			if($publishProperties['SkipExtraFilesOnServer'] -eq $true){
+		        $sharedArgs.ExtraArgs += '-enableRule:DoNotDeleteRule'
+		    }
         }
 
-        if($publishProperties['SkipExtraFilesOnServer'] -eq $true){
-            $sharedArgs.ExtraArgs += '-enableRule:DoNotDeleteRule'
+		if($publishProperties['WebPublishMethod'] -eq 'FileSystem'){
+			if($publishProperties['DeleteExistingFiles'] -eq $false){
+		        $sharedArgs.ExtraArgs += '-enableRule:DoNotDeleteRule'
+		    }
         }
 
         if($publishProperties['retryAttempts']){
@@ -195,7 +202,7 @@ Publish-AspNet -packOutput $packOutput -publishProperties @{
         @{'absolutepath'='wwwroot\\test.txt'},
         @{'absolutepath'='wwwroot\\_references.js'})
     'Replacements' = @(
-        @{'file'='test.txt$';'match'='REPLACEME';'newValue'='updated2222'})
+        @{'file'='test.txt$';'match'='REPLACEME';'newValue'='updatedValue'})
     }
 
 Publish-AspNet -packOutput $packOutput -publishProperties @{
@@ -205,7 +212,7 @@ Publish-AspNet -packOutput $packOutput -publishProperties @{
         @{'absolutepath'='wwwroot\\test.txt'},
         @{'absolutepath'='c:\\full\\path\\ok\\as\\well\\_references.js'})
     'Replacements' = @(
-        @{'file'='test.txt$';'match'='REPLACEME';'newValue'='updated2222'})
+        @{'file'='test.txt$';'match'='REPLACEME';'newValue'='updatedValue'})
     }
 
 .EXAMPLE
