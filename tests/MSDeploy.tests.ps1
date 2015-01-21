@@ -69,7 +69,7 @@ Describe 'MSDeploy unit tests' {
         }
 
         [string]$lastCommand = ($global:lastArgsToGetMSDeploy)
-        $lastCommand.Contains('-usechecksum') | Should Be $true
+        $lastCommand.Contains('-usechecksum') | Should Be $false
         $lastCommand.Contains('-enableLink:contentLibExtension') | Should Be $true
         $lastCommand.Contains("-enableRule:DoNotDeleteRule") | Should Be $true
         $lastCommand.Contains("-retryAttempts:2") | Should Be $true
