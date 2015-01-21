@@ -5,7 +5,7 @@ $script:AspNetPublishHandlers = @{}
 
 $global:AspNetPublishSettings = New-Object -TypeName PSCustomObject @{
     MsdeployDefaultProperties = @{
-    'MSDeployUseChecksum'=$true
+    'MSDeployUseChecksum'=$false
     'WebRoot'='wwwroot'
     'SkipExtraFilesOnServer'=$true
     'retryAttempts' = 2
