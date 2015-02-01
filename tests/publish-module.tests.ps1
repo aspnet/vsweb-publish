@@ -179,3 +179,32 @@ Describe 'Get-MSDeployFullUrlFor tests'{
     }
 }
 
+Describe "Execute-CommandString tests"{
+    It 'executes the command'{
+        $strToPrint = 'contoso'
+        $commandToExec = ('echo {0}' -f $strToPrint)
+        $result = (Execute-CommandString -command $commandToExec)
+
+        $result | Should be $strToPrint
+    }
+
+    It 'fails when the command is invalid' {
+        $strToPrint = 'contoso'
+        $commandToExec = ('echodddd {0}' -f $strToPrint)
+        {Execute-CommandString -command $commandToExec} | Should Throw
+    }
+
+    It 'does not throw on invalid commands if ignoreExitCode is passed' {
+        $strToPrint = 'contoso'
+        $commandToExec = ('echodddd {0}' -f $strToPrint)
+        {Execute-CommandString -command $commandToExec -ignoreExitCode} | Should Not Throw
+    }
+
+    It 'accepts a single value from the pipeline'{
+        'echo contoso' | Execute-CommandString
+    }
+
+    It 'accepts a multiple values from the pipeline'{
+        @('echo contoso','echo contoso-u') | Execute-CommandString
+    }
+}

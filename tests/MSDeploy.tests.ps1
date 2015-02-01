@@ -29,13 +29,13 @@ Describe 'MSDeploy unit tests' {
     [string]$mvcPackDir = (resolve-path (Join-Path $samplesdir 'MvcApplication-packOutput'))
 
 
-    Mock Print-MSDeployCommand {
+    Mock Print-CommandString {
         return {
             $msdeployParameters
         } 
     } -param { $global:lastArgsToGetMSDeploy = $msdeployParameters } -ModuleName 'publish-module'
 
-    Mock Execute-MSDeployCommand {
+    Mock Execute-CommandString {
         return {
         $command
         }
@@ -114,13 +114,13 @@ Describe 'Encrypt web.config' {
     [string]$mvcSourceFolder = (resolve-path (Join-Path $samplesdir 'MvcApplication'))
     [string]$mvcPackDir = (resolve-path (Join-Path $samplesdir 'MvcApplication-packOutput'))
 
-    Mock Print-MSDeployCommand {
+    Mock Print-CommandString {
         return {
             $msdeployParameters
         }
     } -param { $global:lastArgsToGetMSDeploy = $msdeployParameters } -ModuleName 'publish-module'
 
-    Mock Execute-MSDeployCommand {
+    Mock Execute-CommandString {
         return {
         $command
         }
@@ -144,13 +144,13 @@ Describe 'MSDeploy App Offline' {
     [string]$mvcSourceFolder = (resolve-path (Join-Path $samplesdir 'MvcApplication'))
     [string]$mvcPackDir = (resolve-path (Join-Path $samplesdir 'MvcApplication-packOutput'))
    
-    Mock Print-MSDeployCommand {
+    Mock Print-CommandString {
         return {
             $msdeployParameters
         }
     } -param { $global:lastArgsToGetMSDeploy = $msdeployParameters } -ModuleName 'publish-module'
 
-    Mock Execute-MSDeployCommand {
+    Mock Execute-CommandString {
         return {
         $command
         }

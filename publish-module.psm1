@@ -292,8 +292,8 @@ function Publish-AspNetMSDeploy{
             $publishArgs += $sharedArgs.ExtraArgs
 
             $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
-            Print-MSDeployCommand -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')
-            Execute-MSDeployCommand -command $command
+            Print-CommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')
+            Execute-CommandString -command $command
         }
         else{
             throw 'publishProperties is empty, cannot publish'
@@ -364,12 +364,12 @@ function Publish-AspNetFileSystem{
         $publishArgs += $sharedArgs.ExtraArgs
 
         $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
-        Print-MSDeployCommand -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ')
-        Execute-MSDeployCommand -command $command
+        Print-CommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ')
+        Execute-CommandString -command $command
     }
 }
 
-function Print-MSDeployCommand{
+function Print-CommandString{
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true,Position=0)]
@@ -382,14 +382,25 @@ function Print-MSDeployCommand{
     }
 }
 
-function Execute-MSDeployCommand{
+function Execute-CommandString{
     [cmdletbinding()]
     param(
-        [Parameter(Mandatory=$true,Position=0)]
-        $command
+        [Parameter(Mandatory=$true,Position=0,ValueFromPipeline=$true)]
+        [string[]]$command,
+
+        [switch]
+        $ignoreExitCode
     )
     process{
-        cmd.exe /C $command
+        foreach($cmdToExec in $command){
+            'Executing command [{0}]' -f $cmdToExec | Write-Verbose
+            cmd.exe /C $cmdToExec
+
+            if(-not $ignoreExitCode -and ($LASTEXITCODE -ne 0)){
+                $msg = ('The command [{0}] exited with code [{1}]' -f $cmdToExec, $LASTEXITCODE)
+                throw $msg
+            }
+        }
     }
 }
 
