@@ -25,7 +25,7 @@ function Get-VisualStudio2015InstallPath{
 }
 
 $defaultPublishSettings = New-Object psobject -Property @{
-    LocalInstallDir = ("{0}Extensions\Microsoft\Web Tools\Publish\Scripts\0.0.19-beta\" -f (Get-VisualStudio2015InstallPath))
+    LocalInstallDir = ("{0}Extensions\Microsoft\Web Tools\Publish\Scripts\1.0.0-pre\" -f (Get-VisualStudio2015InstallPath))
 }
 
 function Enable-PackageDownloader{
@@ -77,7 +77,7 @@ try{
 
     if (!(Enable-PublishModule)){
         Enable-PackageDownloader
-        Enable-NuGetModule -name 'publish-module' -version '0.0.19-beta'
+        Enable-NuGetModule -name 'publish-module' -version '1.0.0-pre'
     }
 
     'Calling Publish-AspNet' | Write-Verbose
