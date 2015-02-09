@@ -9,9 +9,9 @@ function Enable-PackageDownloader{
         if(!(get-module package-downloader)){            
             if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory | Out-Null }
 
-            $modPath = (join-path $toolsDir 'package-downloader.0.0.18-beta\tools\package-downloader.psm1')
+            $modPath = (join-path $toolsDir 'package-downloader.1.0.0-pre\tools\package-downloader.psm1')
             if(!(Test-Path $modPath)){
-                $nugetArgs = @('install','package-downloader','-prerelease','-version','0.0.18-beta','-OutputDirectory',(Resolve-Path $toolsDir).ToString())
+                $nugetArgs = @('install','package-downloader','-prerelease','-version','1.0.0-pre','-OutputDirectory',(Resolve-Path $toolsDir).ToString())
                 $nugetDestPath = Join-Path -Path $toolsDir -ChildPath nuget.exe
                 if(!(Test-Path $nugetDestPath)){ (New-Object System.Net.WebClient).DownloadFile($nugetDownloadUrl, $nugetDestPath) | Out-Null }
                 if(!(Test-Path $nugetDestPath)){ throw 'unable to download nuget' }
