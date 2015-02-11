@@ -5,12 +5,13 @@ $script:AspNetPublishHandlers = @{}
 
 $global:AspNetPublishSettings = New-Object -TypeName PSCustomObject @{
     MsdeployDefaultProperties = @{
-    'MSDeployUseChecksum'=$false
-    'WebRoot'='wwwroot'
-    'SkipExtraFilesOnServer'=$true
-    'retryAttempts' = 2
-    'EnableMSDeployBackup' = $false
-	'DeleteExistingFiles' = $false
+        'MSDeployUseChecksum'=$false
+        'WebRoot'='wwwroot'
+        'SkipExtraFilesOnServer'=$true
+        'retryAttempts' = 2
+        'EnableMSDeployBackup' = $false
+	    'DeleteExistingFiles' = $false
+        'MSDeployPackageContentFoldername'='website'
     }
 }
 
@@ -307,6 +308,70 @@ function Publish-AspNetMSDeploy{
     }
 }
 
+function Escape-TextForRegularExpressions{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [string]$text
+    )
+    process{
+        # TODO: Get code from EscapeTextForRegularExpressions task
+        $text.Replace('\','\\')
+    }
+}
+
+function Publish-AspNetMSDeployPackage{
+    [cmdletbinding(SupportsShouldProcess=$true)]
+    param(
+        [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+        $publishProperties,
+        [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+        $packOutput
+    )
+    process{
+        if($publishProperties){
+            $packageDestFilepah = $publishProperties['DesktopBuildPackageLocation']
+
+            if(!$packageDestFilepah){
+                throw ('The package destination property (DesktopBuildPackageLocation) was not found in the publish properties')
+            }
+
+            <#
+            "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe" 
+                -source:IisApp='C:\Users\contoso\AppData\Local\Temp\AspNetPublish\WebApplication1\wwwroot' 
+                -dest:package=c:\temp\path\contosoweb.zip
+                -verb:sync 
+                -enableRule:DoNotDeleteRule 
+                -enableLink:contentLibExtension 
+                -retryAttempts=2 
+            #>
+
+            $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties 
+
+            # WebRoot is a required property which has a default
+            $webroot = $publishProperties['WebRoot']
+
+            $webrootOutputFolder = (get-item (Join-Path $packOutput $webroot)).FullName
+            $publishArgs = @()
+            $publishArgs += ('-source:IisApp=''{0}''' -f "$webrootOutputFolder")
+            $publishArgs += ('-dest:package={0}' -f $packageDestFilepah)
+            $publishArgs += '-verb:sync'
+            $publishArgs += '-enableLink:contentLibExtension'
+            $packageContentFolder = $publishProperties['MSDeployPackageContentFoldername']
+            if(!$packageContentFolder){ $packageContentFolder = 'website' }
+            $publishArgs += ('-replace:match=''{0}'',replace=''{1}''' -f (Escape-TextForRegularExpressions $packOutput), $packageContentFolder )
+            $publishArgs += $sharedArgs.ExtraArgs
+
+            $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
+            Print-CommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')
+            Execute-CommandString -command $command
+        }
+        else{
+            throw 'publishProperties is empty, cannot publish'
+        }
+    }
+}
+
 <#
 .SYNOPSIS
 If the passed in $publishProperties has values for appOffline the
@@ -467,6 +532,19 @@ function InternalRegister-AspNetKnownPublishHandlers{
             )
 
             Publish-AspNetMSDeploy -publishProperties $publishProperties -packOutput $packOutput
+        }
+
+        'Registering MSDeploy package handler' | Write-Verbose
+        Register-AspnetPublishHandler -name 'Package' -force -handler {
+            [cmdletbinding()]
+            param(
+                [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+                $publishProperties,
+                [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+                $packOutput
+            )
+
+            Publish-AspNetMSDeployPackage -publishProperties $publishProperties -packOutput $packOutput
         }
 
         'Registering FileSystem handler' | Write-Verbose
