@@ -5,6 +5,8 @@ param(
     [switch]$build,
     [Parameter(ParameterSetName='clean',Position=0)]
     [switch]$clean,
+    [Parameter(ParameterSetName='getversion',Position=0)]
+    [switch]$getversion,
     [Parameter(ParameterSetName='updateversion',Position=0)]
     [switch]$updateversion,
     [Parameter(ParameterSetName='createnugetlocalrepo',Position=0)]
@@ -334,12 +336,13 @@ function CreateLocalNuGetRepo{
 
 # Begin script here
 
-if(!$updateversion -and !$createnugetlocalrepo -and !$clean){
+if(!$getversion -and !$updateversion -and !$createnugetlocalrepo -and !$clean){
     # build is the default option
     $build = $true
 }
 
 if($build){ Build }
+elseif($getversion){ GetExistingVersion }
 elseif($updateversion){ UpdateVersion -newversion $newversion }
 elseif($createnugetlocalrepo){ CreateLocalNuGetRepo }
 elseif($clean){ Clean }
