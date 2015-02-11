@@ -126,7 +126,7 @@ Describe 'InternalReset-AspNetPublishHandlers' {
         Get-AspnetPublishHandler -name 'customhandler2'| Should Not Be $null
         
         InternalReset-AspNetPublishHandlers
-        (Get-AspnetPublishHandler -name 'customhandler2') | Should be $null
+        {Get-AspnetPublishHandler -name 'customhandler2'} | Should Throw
         Get-AspnetPublishHandler -name 'MSDeploy' | Should Not Be $null
         Get-AspnetPublishHandler -name 'FileSystem' | Should Not Be $null
     }
@@ -157,8 +157,8 @@ Describe 'Get-AspnetPublishHandler tests' {
         InternalReset-AspNetPublishHandlers
     }
 
-    It 'Returns null for unregistered names' {
-        Get-AspnetPublishHandler -name 'some-unregistered-name' | Should Be $null
+    It 'throws when the handler was not found' {
+        {Get-AspnetPublishHandler -name 'some-unregistered-name'} | Should Throw
     }
 }
 
