@@ -122,10 +122,10 @@ This function assumes that the name of the PS module is the name of the .psm1 fi
 and that file is in the tools\ folder in the NuGet package.
 
 .EXAMPLE
-Enable-NuGetModule -name 'publish-module' -version '1.0.0-pre'
+Enable-NuGetModule -name 'publish-module' -version '1.0.1-beta1'
 
 .EXAMPLE
-Enable-NuGetModule -name 'publish-module-blob' -version '1.0.0-pre'
+Enable-NuGetModule -name 'publish-module-blob' -version '1.0.1-beta1'
 #>
 
 # For now this function has to be declared directly in the publish

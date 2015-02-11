@@ -3,7 +3,7 @@ param($publishProperties, $packOutput)
 
 function Ensure-PublishModuleLoaded{
     [cmdletbinding()]
-    param($versionToInstall = '1.0.0-pre',
+    param($versionToInstall = '1.0.1-beta1',
         $installScriptUrl = 'http://go.microsoft.com/fwlink/?LinkId=524326', # GetPublishModule.ps1
         $toolsDir = ("$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\tools\"),
         $installScriptPath = (Join-Path $toolsDir 'GetPublishModule.ps1'))
