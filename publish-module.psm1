@@ -41,7 +41,13 @@ function Get-AspnetPublishHandler{
         $name
     )
     process{
-        $script:AspNetPublishHandlers[$name]
+        $foundHandler = $script:AspNetPublishHandlers[$name]
+
+        if(!$foundHandler){
+            throw ('AspnetPublishHandler with name "{0}" was not found' -f $name)
+        }
+
+        $foundHandler
     }
 }
 
