@@ -363,7 +363,7 @@ function Publish-AspNetMSDeployPackage{
             $publishArgs += $sharedArgs.ExtraArgs
 
             $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
-            Print-CommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')
+            Print-CommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ')
             Execute-CommandString -command $command
         }
         else{
