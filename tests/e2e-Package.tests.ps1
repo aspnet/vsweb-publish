@@ -31,12 +31,15 @@ function Extract-ZipFile {
         [Parameter(Position=1,Mandatory=$true)]
         $destination
     )
+    begin{
+        [Reflection.Assembly]::LoadWithPartialName('System.IO.Compression.FileSystem') | Out-Null
+    }
     process{
-        $appObj = new-object -com shell.application
-        $zip = $appObj.NameSpace($file)
-        foreach($item in $zip.items()) {
-            $appObj.Namespace($destination).copyhere($item)
+        'Extracting zip file [{0}] to {1}' -f $file,$destination | Write-Verbose
+        if(!(Test-Path $destination)){
+            New-Item -ItemType Directory -Path $destination | Out-Null
         }
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($file,$destination) | Out-Null
     }
 }
 
