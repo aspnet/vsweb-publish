@@ -3,7 +3,7 @@ param(
     $useCustomMSDeploy
 )
 
-if(($useCustomMSDeploy -eq $null) -and $env:e2ePkgTestUseCustomMSDeploy){
+if($env:e2ePkgTestUseCustomMSDeploy){
     $useCustomMSDeploy = $true
 }
 
