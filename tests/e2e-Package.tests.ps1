@@ -1,5 +1,11 @@
 ﻿[cmdletbinding()]
-param()
+param(
+    $useCustomMSDeploy
+)
+
+if(($useCustomMSDeploy -eq $null) -and $env:e2ePkgTestUseCustomMSDeploy){
+    $useCustomMSDeploy = $true
+}
 
 function Get-ScriptDirectory
 {
@@ -11,6 +17,7 @@ $scriptDir = ((Get-ScriptDirectory) + "\")
 $moduleName = 'publish-module'
 $modulePath = (Join-Path $scriptDir ('..\{0}.psm1' -f $moduleName))
 $samplesdir = (Join-Path $scriptDir 'SampleFiles')
+$msdeployDownloadUrl = 'https://sayed02.blob.core.windows.net/download/msdeploy-v3-01-.zip'
 
 if(Test-Path $modulePath){
     "Importing module from [{0}]" -f $modulePath | Write-Verbose
@@ -44,6 +51,25 @@ function Extract-ZipFile {
 }
 
 Describe 'Package e2e publish tests' {
+    if($useCustomMSDeploy){
+        # download the .zip file and extract it
+        $downloadDest = (Join-Path $TestDrive 'msdeploy.zip')
+        (New-Object System.Net.WebClient).DownloadFile($msdeployDownloadUrl, $downloadDest)
+        if(!(Test-Path $downloadDest)){
+            throw ('Unable to download msdeploy to [{0}]' -f $downloadDest)
+        }
+        $msdExtractFolder = (New-Item -ItemType Directory -Path (join-path $TestDrive 'MSDeployBin')).FullName
+        Unblock-File $downloadDest
+        Extract-ZipFile -file $downloadDest -destination $msdExtractFolder
+        $msdeployExePath = (Join-Path $msdExtractFolder 'msdeploy.exe')
+        if(!(Test-Path $msdeployExePath)){
+            throw ('could not find msdeploy.exe at [{0}]' -f $msdeployExePath)
+        }
+
+        'Updating msdeploy.exe to point to [{0}]' -f $msdeployExePath | Write-Verbose
+        $env:msdeployinstallpath = $msdExtractFolder
+    }
+
     [string]$mvcSourceFolder = (resolve-path (Join-Path $samplesdir 'MvcApplication'))
     [string]$mvcPackDir = (resolve-path (Join-Path $samplesdir 'MvcApplication-packOutput'))
     [int]$numPublishFiles = ((Get-ChildItem $mvcPackDir -Recurse) | Where-Object { !$_.PSIsContainer }).Length
@@ -91,5 +117,8 @@ Describe 'Package e2e publish tests' {
     It 'Can publish to a relative path for' {
     }
     #>
+
+    # reset this back to the default
+    $env:msdeployinstallpath = $null
 }
 
