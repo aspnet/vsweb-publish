@@ -10,7 +10,7 @@ $global:PkgDownloaderSettings = New-Object PSObject -Property @{
     This will return nuget from the $toolsDir. If it is not there then it
     will automatically be downloaded before the call completes.
 #>
-function Get-Nuget(){
+function Get-Nuget{
     [cmdletbinding()]
     param(
         $toolsDir = ("$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\tools\"),
@@ -43,6 +43,28 @@ function Get-Nuget(){
     }
 }
 
+function Execute-CommandString{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0,ValueFromPipeline=$true)]
+        [string[]]$command,
+
+        [switch]
+        $ignoreExitCode
+    )
+    process{
+        foreach($cmdToExec in $command){
+            'Executing command [{0}]' -f $cmdToExec | Write-Verbose
+            cmd.exe /D /C $cmdToExec
+
+            if(-not $ignoreExitCode -and ($LASTEXITCODE -ne 0)){
+                $msg = ('The command [{0}] exited with code [{1}]' -f $cmdToExec, $LASTEXITCODE)
+                throw $msg
+            }
+        }
+    }
+}
+
 <#
 .SYNOPSIS
     This will return the path to where the given NuGet package is installed
@@ -60,7 +82,7 @@ function Get-PackageDownloaderInstallPath{
     )
     process{
         $pathToFoundPkgFolder = $null
-		$toolsDir=(([uri]($toolsDir)).AbsolutePath)
+        $toolsDir=(get-item $toolsDir).FullName
 		$expectedNuGetPkgFolder = ((Get-Item -Path (join-path $toolsDir (('{0}.{1}' -f $name, $version))) -ErrorAction SilentlyContinue))
 
         if($expectedNuGetPkgFolder){
@@ -89,17 +111,22 @@ function Enable-PackageDownloader{
         if(!(Test-Path $toolsDir)){
             New-Item -Path $toolsDir -ItemType Directory | out-null 
         }
+        $toolsDir = (Get-Item $toolsDir).FullName.TrimEnd('\')
         # if it's already installed just return the path
         $installPath = (Get-PackageDownloaderInstallPath -name $name -version $version -toolsDir $toolsDir)
         if(!$installPath){
             # install the nuget package and then return the path
-            $outdir = ([uri]('{0}' -f (Resolve-Path $toolsDir).ToString())).AbsolutePath
+            $outdir = (get-item (Resolve-Path $toolsDir)).FullName.TrimEnd("\") # nuget.exe doesn't work well with trailing slash
 
-            $cmdArgs = @('install',$name,'-Version',$version,'-prerelease','-OutputDirectory',$outdir)
-            $nugetPath = (Get-Nuget -toolsDir $outdir)
-            set-alias nugettemp $nugetPath | Out-Null
-            'Calling nuget to install a package with the following args. [{0} {1}]' -f $nugetPath, ($cmdArgs -join ' ') | Write-Verbose
-            nugettemp $cmdArgs | Out-Null
+            # set working directory to avoid needing to specify OutputDiretory, having issues with spaces
+            Push-Location | Out-Null
+            Set-Location $outdir | Out-Null
+            $cmdArgs = @('install',$name,'-Version',$version,'-prerelease')
+            
+            $nugetCommand = ('"{0}" {1}' -f (Get-Nuget -toolsDir $outdir), ($cmdArgs -join ' ' ))
+            'Calling nuget to install a package with the following args. [{0}}]' -f $nugetCommand | Write-Verbose
+            Execute-CommandString -command $nugetCommand | Out-Null
+            Pop-Location | Out-Null
 
             $installPath = (Get-PackageDownloaderInstallPath -name $name -version $version -toolsDir $toolsDir)
         }
