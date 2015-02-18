@@ -465,7 +465,7 @@ function Execute-CommandString{
     process{
         foreach($cmdToExec in $command){
             'Executing command [{0}]' -f $cmdToExec | Write-Verbose
-            cmd.exe /C $cmdToExec
+            cmd.exe /D /C $cmdToExec
 
             if(-not $ignoreExitCode -and ($LASTEXITCODE -ne 0)){
                 $msg = ('The command [{0}] exited with code [{1}]' -f $cmdToExec, $LASTEXITCODE)
