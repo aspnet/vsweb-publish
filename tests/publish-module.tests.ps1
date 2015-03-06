@@ -76,7 +76,7 @@ Describe 'Register-AspnetPublishHandler tests' {
         Get-AspnetPublishHandler -name 'customhandler' | Should Be $handler1
     }
 
-    It 'If a handler is already registered with that name the new will override wih force' {
+    It 'If a handler is already registered with that name the new will override with force' {
         [scriptblock]$handler1 = {
             [cmdletbinding()]
             param(
@@ -136,6 +136,7 @@ Describe 'Get-AspnetPublishHandler tests' {
     It 'Returns the known handlers' {
         Get-AspnetPublishHandler -name 'MSDeploy' | Should Not Be $null
         Get-AspnetPublishHandler -name 'FileSystem' | Should Not Be $null
+        Get-AspnetPublishHandler -name 'Docker' | Should Not Be $null
     }
 
     It 'Returns the custom handlers' {
@@ -208,3 +209,36 @@ Describe "Execute-CommandString tests"{
         @('echo contoso','echo contoso-u') | Execute-CommandString
     }
 }
+
+Describe "Execute-PowershellCommandString tests"{
+    It 'executes the command'{
+        $strToPrint = 'contoso'
+        $commandToExec = ('echo {0}' -f $strToPrint)
+
+        $result = (Execute-PowershellCommandString $commandToExec)
+        $result | Should be $strToPrint
+    }
+
+    It 'fails when the command is invalid' {
+        $strToPrint = 'contoso'
+        $commandToExec = ('echodddd {0}' -f $strToPrint)
+
+        {Execute-PowershellCommandString -command $commandToExec} | Should Throw
+    }
+
+    It 'does not throw on invalid commands if ignoreException is passed' {
+        $strToPrint = 'contoso'
+        $commandToExec = ('echodddd {0}' -f $strToPrint)
+
+        {Execute-PowershellCommandString -ignoreException -command $commandToExec} | Should Not Throw
+    }
+
+    It 'accepts a single value from the pipeline'{
+        'echo contoso' | Execute-PowershellCommandString
+    }
+
+    It 'accepts a multiple values from the pipeline'{
+        @('echo contoso','echo contoso-u') | Execute-PowershellCommandString
+    }
+}
+

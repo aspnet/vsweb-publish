@@ -299,7 +299,7 @@ function Publish-AspNetMSDeploy{
             $publishArgs += $sharedArgs.ExtraArgs
 
             $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
-            Print-CommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')
+            Print-MSDeployCommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')
             Execute-CommandString -command $command
         }
         else{
@@ -363,7 +363,7 @@ function Publish-AspNetMSDeployPackage{
             $publishArgs += $sharedArgs.ExtraArgs
 
             $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
-            Print-CommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ')
+            Print-MSDeployCommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ')
             Execute-CommandString -command $command
         }
         else{
@@ -435,12 +435,142 @@ function Publish-AspNetFileSystem{
         $publishArgs += $sharedArgs.ExtraArgs
 
         $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
-        Print-CommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ')
+        Print-MSDeployCommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ')
         Execute-CommandString -command $command
     }
 }
 
-function Print-CommandString{
+function Publish-AspNetDocker{
+    [cmdletbinding(SupportsShouldProcess=$true)]
+    param(
+        [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+        $publishProperties,
+        [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+        $packOutput
+    )
+    process{
+        if($publishProperties){
+            
+            # find out the right Dockerfile
+            $projectFolder = $(get-childitem (Join-Path $packOutput approot\src))[0];
+            $dockerfileRoot = Join-Path $projectFolder.FullName Properties\PublishProfiles
+
+            $dockerfileRelPath = $publishProperties['DockerfileRelativePath']
+            if($dockerfileRelPath){
+                $dockerfilePath = Resolve-Path (Join-Path $dockerfileRoot $dockerfileRelPath)
+            }
+            else {
+                $dockerfilePath = Resolve-Path (Join-Path $dockerfileRoot Dockerfile)
+            }
+            if(!(Test-Path $dockerfilePath)) {
+                throw 'cannot find Dockerfile: $dockerfilePath'
+            }
+        
+            # add ProjectName property value
+            $publishProperties['ProjectName'] = $projectFolder.Name
+            
+            # replace tokens in Dockerfile and copy it to the right locations
+            Write-Verbose "Replacing tokens in Dockerfile: $dockerfilePath"
+            $targetDockerfilePath = Join-Path $packOutput Dockerfile
+            Get-Content $dockerfilePath -Raw | Replace-TokensInString $publishProperties | Out-File $targetDockerfilePath -Encoding ASCII
+            cp $targetDockerfilePath $projectFolder.FullName
+            
+            # Deploy the app to a container
+            Deploy-DockerWebApp $publishProperties $packOutput
+        }
+        else{
+            throw 'publishProperties is empty, cannot publish'
+        }
+    }
+}
+
+function Replace-TokensInString{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory = $true,Position = 0)]
+        $publishProperties,
+        [Parameter(Mandatory = $true,Position = 1, ValueFromPipeline = $true)]
+        $targetString
+    )
+    process {
+        $matchEvaluator = {
+            param ($m)
+            
+            $value = $publishProperties[$m.Groups[1].Value]
+            if ($value)
+            {
+                return $value
+            }
+            return $m.Value
+        }
+        ([Regex]"\{\{([^\}]+)\}\}").Replace($targetString, $matchEvaluator)
+    }
+}
+
+function Deploy-DockerWebApp{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory = $true,Position = 0)]
+        $publishProperties,
+        [Parameter(Mandatory = $true,Position = 1)]
+        $packOutput
+    )
+    process {
+    
+        $dockerServerUrl = $publishProperties["DockerServerUrl"]
+        $imageName = $publishProperties["DockerImageName"]
+        $baseImageName = $publishProperties["DockerBaseImageName"]
+        $hostPort = $publishProperties["DockerPublishHostPort"]
+        $containerPort = $publishProperties["DockerPublishContainerPort"]
+        $commandOptions = $publishProperties["DockerCommandOptions"]
+        $appType = $publishProperties["DockerAppType"]
+
+        Write-Verbose "Package output path: $packOutput"
+        Write-Verbose "DockerHost: $dockerServerUrl"
+        Write-Verbose "DockerImageName: $imageName"
+        Write-Verbose "DockerBaseImageName: $baseImageName"
+        Write-Verbose "DockerPublishHostPort: $hostPort"
+        Write-Verbose "DockerPublishContainerPort: $containerPort"
+        Write-Verbose "DockerCommandOptions: $commandOptions"
+        Write-Verbose "DockerAppType: $appType"
+
+        # set docker host information
+        $env:DOCKER_HOST = "$dockerServerUrl"
+
+        # remove all containers associated with the image name or with the same port mapping to the host
+        # ignore any errors because we don't know if there are any existing conflicting containers
+        Write-Verbose "Querying for old conflicting containers..."
+        $command = 'docker {0} ps -a | select-string -pattern "{1}|:{2}->" | foreach {{ Write-Output $_.ToString().split()[0] }}' -f $commandOptions,$imageName,$hostPort
+        $command | Print-CommandString
+        $oldContainerIds = ($command | Execute-PowershellCommandString)
+        if ($oldContainerIds) {
+            Write-Verbose "Cleaning up old containers $oldContainerIds"
+            $command = 'docker {0} rm -f {1}' -f $commandOptions,$oldContainerIds
+            $command | Print-CommandString
+            $command | Execute-PowershellCommandString | Write-Verbose
+        }
+
+        Write-Verbose "Building docker image: $imageName"
+        $command = 'docker {0} build -t {1} {2}' -f $commandOptions,$imageName,$packOutput
+        $command | Print-CommandString
+        $command | Execute-PowershellCommandString | Write-Verbose
+
+        Write-Verbose "Starting docker container: $imageName"
+        $command = 'docker {0} run -t -d -p {1}:{2} {3}' -f $commandOptions,$hostPort,$containerPort,$imageName
+        $command | Print-CommandString
+        $containerId = ($command | Execute-PowershellCommandString)
+        Write-Verbose "New container ID: $containerId"
+        
+        if($appType -eq "Web") {
+            $command = 'Start-Process -FilePath "http://{0}:{1}"' -f (new-object -typename System.Uri $dockerServerUrl).Host,$hostPort
+            $command | Print-CommandString
+            sleep 5
+            $command | Execute-PowershellCommandString -ignoreException
+        }
+    }
+}
+
+function Print-MSDeployCommandString{
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true,Position=0)]
@@ -450,6 +580,17 @@ function Print-CommandString{
     )
     process{
         'Calling msdeploy with the command: ["{0}" {1}]' -f $msdeployPath, $msdeployParameters | Write-Output
+    }
+}
+
+function Print-CommandString{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0,ValueFromPipeline=$true)]
+        $command
+    )
+    process{
+        'Executing command: [{0}]' -f $command | Write-Output
     }
 }
 
@@ -470,6 +611,32 @@ function Execute-CommandString{
             if(-not $ignoreExitCode -and ($LASTEXITCODE -ne 0)){
                 $msg = ('The command [{0}] exited with code [{1}]' -f $cmdToExec, $LASTEXITCODE)
                 throw $msg
+            }
+        }
+    }
+}
+
+function Execute-PowershellCommandString {
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0,ValueFromPipeline=$true)]
+        [string[]]$command,
+
+        [switch]
+        $ignoreException
+    )
+    process{
+        foreach($cmdToExec in $command){
+            'Executing command [{0}]' -f $cmdToExec | Write-Verbose
+
+            try {
+                Invoke-Expression -Command $cmdToExec
+            }
+            catch {
+                if(-not $ignoreException) {
+                    $msg = ('The command [{0}] exited with exception [{1}]' -f $cmdToExec, $_.ToString())
+                    throw $msg
+                }
             }
         }
     }
@@ -558,6 +725,19 @@ function InternalRegister-AspNetKnownPublishHandlers{
             )
     
             Publish-AspNetFileSystem -publishProperties $publishProperties -packOutput $packOutput
+        }
+        
+        'Registering Docker handler' | Write-Verbose
+        Register-AspnetPublishHandler -name 'Docker' -force -handler {
+            [cmdletbinding()]
+            param(
+                [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+                $publishProperties,
+                [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+                $packOutput
+            )
+    
+            Publish-AspNetDocker -publishProperties $publishProperties -packOutput $packOutput
         }
     }
 }

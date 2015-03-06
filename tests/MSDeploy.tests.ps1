@@ -29,7 +29,7 @@ Describe 'MSDeploy unit tests' {
     [string]$mvcPackDir = (resolve-path (Join-Path $samplesdir 'MvcApplication-packOutput'))
 
 
-    Mock Print-CommandString {
+    Mock Print-MSDeployCommandString {
         return {
             $msdeployParameters
         } 
@@ -114,7 +114,7 @@ Describe 'Encrypt web.config' {
     [string]$mvcSourceFolder = (resolve-path (Join-Path $samplesdir 'MvcApplication'))
     [string]$mvcPackDir = (resolve-path (Join-Path $samplesdir 'MvcApplication-packOutput'))
 
-    Mock Print-CommandString {
+    Mock Print-MSDeployCommandString {
         return {
             $msdeployParameters
         }
@@ -144,7 +144,7 @@ Describe 'MSDeploy App Offline' {
     [string]$mvcSourceFolder = (resolve-path (Join-Path $samplesdir 'MvcApplication'))
     [string]$mvcPackDir = (resolve-path (Join-Path $samplesdir 'MvcApplication-packOutput'))
    
-    Mock Print-CommandString {
+    Mock Print-MSDeployCommandString {
         return {
             $msdeployParameters
         }
