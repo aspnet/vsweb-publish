@@ -13,6 +13,9 @@ $global:AspNetPublishSettings = New-Object -TypeName PSCustomObject @{
 	    'DeleteExistingFiles' = $false
         'MSDeployPackageContentFoldername'='website'
     }
+    DockerDefaultProperties = @{
+        'TestWebPageAttempts'=10
+    }
 }
 
 function Register-AspnetPublishHandler{
@@ -570,7 +573,7 @@ function Publish-DockerContainerApp{
             }
             $url = 'http://{0}:{1}' -f $host, $hostPort
             
-            if(!(Test-WebPage -url $url -attempts 10)){
+            if(!(Test-WebPage -url $url -attempts $global:AspNetPublishSettings.DockerDefaultProperties.TestWebPageAttempts)){
                 $command = 'Start-Process -FilePath "{0}"' -f $url
                 $command | Execute-CommandString -useInvokeExpression -ignoreErrors
                 'Publish succeeded: {0}' -f $url | Write-Output
