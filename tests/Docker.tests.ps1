@@ -24,7 +24,7 @@ else{
 }
 
 Describe 'Docker publish unit tests' {
-    Mock Deploy-DockerWebApp {
+    Mock Publish-DockerContainerApp {
         return {
             $command
         }
@@ -65,7 +65,7 @@ Describe 'Docker publish unit tests' {
 
         Test-Path $targetDockerfile | Should Be $true
         Test-Path $targetDockerfile2 | Should Be $true
-        $(Get-Content $targetDockerfile -Raw).Trim() | Should BeExactly $(Get-Content $tokenReplacedDockerfilePath -Raw)
+        $(Get-Content $targetDockerfile -Raw).Trim() | Should BeExactly $(Get-Content $tokenReplacedDockerfilePath -Raw).Trim()
     }
     
     It 'Verify the custom Dockerfile is located and tokens are replaced correctly' {
@@ -79,6 +79,17 @@ Describe 'Docker publish unit tests' {
         
         Test-Path $targetDockerfile | Should Be $true
         Test-Path $targetDockerfile2 | Should Be $true
-        $(Get-Content $targetDockerfile -Raw).Trim() | Should BeExactly $(Get-Content $tokenReplacedDockerfilePath -Raw)
+        $(Get-Content $targetDockerfile -Raw).Trim() | Should BeExactly $(Get-Content $tokenReplacedDockerfilePath -Raw).Trim()
+    }
+}
+
+Describe 'Test-WebPage unit tests' {
+
+    It 'Verify the Test-WebPage return false for non-existing webpage' {
+        Test-WebPage "http://somenonexistingpage.com/" 1 | Should Be $false
+    }
+    
+    It 'Verify the Test-WebPage return true for existing webpage' {
+        Test-WebPage "http://www.microsoft.com" 1 | Should Be $true
     }
 }

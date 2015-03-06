@@ -24,20 +24,20 @@ else{
 }
 
 Describe 'MSDeploy unit tests' {
-    $global:lastArgsToGetMSDeploy = $null
+    $global:lastCommandToGetMSDeploy = $null
     [string]$mvcSourceFolder = (resolve-path (Join-Path $samplesdir 'MvcApplication'))
     [string]$mvcPackDir = (resolve-path (Join-Path $samplesdir 'MvcApplication-packOutput'))
 
 
-    Mock Print-MSDeployCommandString {
+    Mock Print-CommandString {
         return {
-            $msdeployParameters
+            $command
         } 
-    } -param { $global:lastArgsToGetMSDeploy = $msdeployParameters } -ModuleName 'publish-module'
+    } -param { $global:lastCommandToGetMSDeploy = $command } -ModuleName 'publish-module'
 
     Mock Execute-CommandString {
         return {
-        $command
+            $command
         }
     } -ModuleName 'publish-module'
 
@@ -51,7 +51,7 @@ Describe 'MSDeploy unit tests' {
             'DeployIisAppPath'='contoso';'Username'='$contoso';'Password'="somepassword-here"
         }
 
-        [string]$lastCommand = ($global:lastArgsToGetMSDeploy)
+        [string]$lastCommand = ($global:lastCommandToGetMSDeploy)
         $lastCommand.Contains("ComputerName='https://contoso.scm.azurewebsites.net/msdeploy.axd'") | Should Be $true
         $lastCommand.Contains('UserName=''$contoso''') | Should Be $true
         $lastCommand.Contains("AuthType='Basic'") | Should Be $true
@@ -68,7 +68,7 @@ Describe 'MSDeploy unit tests' {
             'DeployIisAppPath'='contoso';'Username'='$contoso';'Password'="somepassword-here"
         }
 
-        [string]$lastCommand = ($global:lastArgsToGetMSDeploy)
+        [string]$lastCommand = ($global:lastCommandToGetMSDeploy)
         $lastCommand.Contains('-usechecksum') | Should Be $false
         $lastCommand.Contains('-enableLink:contentLibExtension') | Should Be $true
         $lastCommand.Contains("-enableRule:DoNotDeleteRule") | Should Be $true
@@ -84,7 +84,7 @@ Describe 'MSDeploy unit tests' {
             'DeployIisAppPath'='contoso';'Username'='$contoso';'Password'="somepassword-here"
         } -WhatIf
 
-        [string]$lastCommand = ($global:lastArgsToGetMSDeploy -join ' ')
+        [string]$lastCommand = ($global:lastCommandToGetMSDeploy -join ' ')
         $lastCommand.Contains('-whatif') | Should Be $true
     }
     #>
@@ -114,15 +114,15 @@ Describe 'Encrypt web.config' {
     [string]$mvcSourceFolder = (resolve-path (Join-Path $samplesdir 'MvcApplication'))
     [string]$mvcPackDir = (resolve-path (Join-Path $samplesdir 'MvcApplication-packOutput'))
 
-    Mock Print-MSDeployCommandString {
+    Mock Print-CommandString {
         return {
-            $msdeployParameters
+            $command
         }
-    } -param { $global:lastArgsToGetMSDeploy = $msdeployParameters } -ModuleName 'publish-module'
+    } -param { $global:lastCommandToGetMSDeploy = $command } -ModuleName 'publish-module'
 
     Mock Execute-CommandString {
         return {
-        $command
+            $command
         }
     } -ModuleName 'publish-module'
 
@@ -135,7 +135,7 @@ Describe 'Encrypt web.config' {
             'EncryptWebConfig'="$true"
         }
 
-        [string]$lastCommand = ($global:lastArgsToGetMSDeploy).ToLowerInvariant()
+        [string]$lastCommand = ($global:lastCommandToGetMSDeploy).ToLowerInvariant()
         $lastCommand.Contains('-EnableRule:EncryptWebConfig'.ToLowerInvariant()) | Should Be $true
     }
 }
@@ -144,15 +144,15 @@ Describe 'MSDeploy App Offline' {
     [string]$mvcSourceFolder = (resolve-path (Join-Path $samplesdir 'MvcApplication'))
     [string]$mvcPackDir = (resolve-path (Join-Path $samplesdir 'MvcApplication-packOutput'))
    
-    Mock Print-MSDeployCommandString {
+    Mock Print-CommandString {
         return {
-            $msdeployParameters
+            $command
         }
-    } -param { $global:lastArgsToGetMSDeploy = $msdeployParameters } -ModuleName 'publish-module'
+    } -param { $global:lastCommandToGetMSDeploy = $command } -ModuleName 'publish-module'
 
     Mock Execute-CommandString {
         return {
-        $command
+            $command
         }
     } -ModuleName 'publish-module'
 
@@ -164,7 +164,7 @@ Describe 'MSDeploy App Offline' {
             'EnableMSDeployAppOffline'='true'
         }
 
-        [string]$lastCommand = ($global:lastArgsToGetMSDeploy).ToLowerInvariant()
+        [string]$lastCommand = ($global:lastCommandToGetMSDeploy).ToLowerInvariant()
         $lastCommand.Contains('-enablerule:appoffline') | Should Be $true
         $lastCommand.Contains('appofflinetemplate') | Should Be $false
     }
@@ -178,7 +178,7 @@ Describe 'MSDeploy App Offline' {
             'AppOfflineTemplate'='offline-template.html'
         }
 
-        [string]$lastCommand = ($global:lastArgsToGetMSDeploy).ToLowerInvariant()
+        [string]$lastCommand = ($global:lastCommandToGetMSDeploy).ToLowerInvariant()
         $lastCommand.Contains('-enablerule:appoffline') | Should Be $true
         $lastCommand.Contains(',appofflinetemplate="offline-template.html"') | Should Be $true
     }

@@ -187,58 +187,33 @@ Describe "Execute-CommandString tests"{
         $result = (Execute-CommandString -command $commandToExec)
 
         $result | Should be $strToPrint
-    }
-
-    It 'fails when the command is invalid' {
-        $strToPrint = 'contoso'
-        $commandToExec = ('echodddd {0}' -f $strToPrint)
-        {Execute-CommandString -command $commandToExec} | Should Throw
-    }
-
-    It 'does not throw on invalid commands if ignoreExitCode is passed' {
-        $strToPrint = 'contoso'
-        $commandToExec = ('echodddd {0}' -f $strToPrint)
-        {Execute-CommandString -command $commandToExec -ignoreExitCode} | Should Not Throw
-    }
-
-    It 'accepts a single value from the pipeline'{
-        'echo contoso' | Execute-CommandString
-    }
-
-    It 'accepts a multiple values from the pipeline'{
-        @('echo contoso','echo contoso-u') | Execute-CommandString
-    }
-}
-
-Describe "Execute-PowershellCommandString tests"{
-    It 'executes the command'{
-        $strToPrint = 'contoso'
-        $commandToExec = ('echo {0}' -f $strToPrint)
-
-        $result = (Execute-PowershellCommandString $commandToExec)
+        
+        $result = (Execute-CommandString $commandToExec -useInvokeExpression)
         $result | Should be $strToPrint
     }
 
     It 'fails when the command is invalid' {
         $strToPrint = 'contoso'
         $commandToExec = ('echodddd {0}' -f $strToPrint)
-
-        {Execute-PowershellCommandString -command $commandToExec} | Should Throw
+        {Execute-CommandString -command $commandToExec} | Should Throw
+        {Execute-CommandString -command $commandToExec -useInvokeExpression} | Should Throw
     }
 
-    It 'does not throw on invalid commands if ignoreException is passed' {
+    It 'does not throw on invalid commands if ignoreExitCode is passed' {
         $strToPrint = 'contoso'
         $commandToExec = ('echodddd {0}' -f $strToPrint)
-
-        {Execute-PowershellCommandString -ignoreException -command $commandToExec} | Should Not Throw
+        {Execute-CommandString -command $commandToExec -ignoreErrors} | Should Not Throw
+        {Execute-CommandString -command $commandToExec -ignoreErrors -useInvokeExpression} | Should Not Throw
     }
 
     It 'accepts a single value from the pipeline'{
-        'echo contoso' | Execute-PowershellCommandString
+        'echo contoso' | Execute-CommandString
+        'echo contoso' | Execute-CommandString -useInvokeExpression
     }
 
     It 'accepts a multiple values from the pipeline'{
-        @('echo contoso','echo contoso-u') | Execute-PowershellCommandString
+        @('echo contoso','echo contoso-u') | Execute-CommandString
+        @('echo contoso','echo contoso-u') | Execute-CommandString -useInvokeExpression
     }
 }
 

@@ -299,8 +299,8 @@ function Publish-AspNetMSDeploy{
             $publishArgs += $sharedArgs.ExtraArgs
 
             $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
-            Print-MSDeployCommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')
-            Execute-CommandString -command $command
+            $command.Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}') | Print-CommandString
+            $command | Execute-CommandString
         }
         else{
             throw 'publishProperties is empty, cannot publish'
@@ -361,10 +361,10 @@ function Publish-AspNetMSDeployPackage{
             if(!$packageContentFolder){ $packageContentFolder = 'website' }
             $publishArgs += ('-replace:match=''{0}'',replace=''{1}''' -f (Escape-TextForRegularExpressions $packOutput), $packageContentFolder )
             $publishArgs += $sharedArgs.ExtraArgs
-
+            
             $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
-            Print-MSDeployCommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ')
-            Execute-CommandString -command $command
+            $command | Print-CommandString
+            $command | Execute-CommandString
         }
         else{
             throw 'publishProperties is empty, cannot publish'
@@ -435,8 +435,8 @@ function Publish-AspNetFileSystem{
         $publishArgs += $sharedArgs.ExtraArgs
 
         $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
-        Print-MSDeployCommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ')
-        Execute-CommandString -command $command
+        $command | Print-CommandString
+        $command | Execute-CommandString
     }
 }
 
@@ -473,10 +473,10 @@ function Publish-AspNetDocker{
             Write-Verbose "Replacing tokens in Dockerfile: $dockerfilePath"
             $targetDockerfilePath = Join-Path $packOutput Dockerfile
             Get-Content $dockerfilePath -Raw | Replace-TokensInString $publishProperties | Out-File $targetDockerfilePath -Encoding ASCII
-            cp $targetDockerfilePath $projectFolder.FullName
+            Copy-Item -Path $targetDockerfilePath -Destination $projectFolder.FullName
             
-            # Deploy the app to a container
-            Deploy-DockerWebApp $publishProperties $packOutput
+            # Publish the application to a Docker container
+            Publish-DockerContainerApp $publishProperties $packOutput
         }
         else{
             throw 'publishProperties is empty, cannot publish'
@@ -494,20 +494,21 @@ function Replace-TokensInString{
     )
     process {
         $matchEvaluator = {
-            param ($m)
+            param ($match)
             
-            $value = $publishProperties[$m.Groups[1].Value]
-            if ($value)
-            {
-                return $value
+            $value = $publishProperties[$match.Groups[1].Value]
+            if ($value) {
+                $value
             }
-            return $m.Value
+            else {
+                $match.Value
+            }
         }
         ([Regex]"\{\{([^\}]+)\}\}").Replace($targetString, $matchEvaluator)
     }
 }
 
-function Deploy-DockerWebApp{
+function Publish-DockerContainerApp{
     [cmdletbinding()]
     param(
         [Parameter(Mandatory = $true,Position = 0)]
@@ -525,61 +526,102 @@ function Deploy-DockerWebApp{
         $commandOptions = $publishProperties["DockerCommandOptions"]
         $appType = $publishProperties["DockerAppType"]
 
-        Write-Verbose "Package output path: $packOutput"
-        Write-Verbose "DockerHost: $dockerServerUrl"
-        Write-Verbose "DockerImageName: $imageName"
-        Write-Verbose "DockerBaseImageName: $baseImageName"
-        Write-Verbose "DockerPublishHostPort: $hostPort"
-        Write-Verbose "DockerPublishContainerPort: $containerPort"
-        Write-Verbose "DockerCommandOptions: $commandOptions"
-        Write-Verbose "DockerAppType: $appType"
+        "Package output path: {0}" -f $packOutput | Write-Verbose
+        "DockerHost: {0}" -f $dockerServerUrl | Write-Verbose
+        "DockerImageName: {0}" -f $imageName | Write-Verbose
+        "DockerBaseImageName: {0}" -f $baseImageName | Write-Verbose
+        "DockerPublishHostPort: {0}" -f $hostPort | Write-Verbose
+        "DockerPublishContainerPort: {0}" -f $containerPort | Write-Verbose
+        "DockerCommandOptions: {0}" -f $commandOptions | Write-Verbose
+        "DockerAppType: {0}" -f $appType | Write-Verbose
 
         # set docker host information
-        $env:DOCKER_HOST = "$dockerServerUrl"
+        $command = '$env:DOCKER_HOST = "{0}"' -f $dockerServerUrl
+        $command | Print-CommandString
+        $command | Execute-CommandString -useInvokeExpression | Write-Verbose
 
         # remove all containers associated with the image name or with the same port mapping to the host
-        # ignore any errors because we don't know if there are any existing conflicting containers
-        Write-Verbose "Querying for old conflicting containers..."
+        'Querying for conflicting containers...' | Write-Verbose
         $command = 'docker {0} ps -a | select-string -pattern "{1}|:{2}->" | foreach {{ Write-Output $_.ToString().split()[0] }}' -f $commandOptions,$imageName,$hostPort
         $command | Print-CommandString
-        $oldContainerIds = ($command | Execute-PowershellCommandString)
+        $oldContainerIds = ($command | Execute-CommandString -useInvokeExpression)
         if ($oldContainerIds) {
-            Write-Verbose "Cleaning up old containers $oldContainerIds"
+            'Cleaning up old containers {0}' -f $oldContainerIds | Write-Verbose
             $command = 'docker {0} rm -f {1}' -f $commandOptions,$oldContainerIds
             $command | Print-CommandString
-            $command | Execute-PowershellCommandString | Write-Verbose
+            $command | Execute-CommandString -useInvokeExpression | Write-Verbose
         }
 
-        Write-Verbose "Building docker image: $imageName"
+        'Building docker image: {0}' -f $imageName | Write-Verbose
         $command = 'docker {0} build -t {1} {2}' -f $commandOptions,$imageName,$packOutput
         $command | Print-CommandString
-        $command | Execute-PowershellCommandString | Write-Verbose
+        $command | Execute-CommandString -useInvokeExpression | Write-Verbose
 
-        Write-Verbose "Starting docker container: $imageName"
+        'Starting docker container: {0}' -f $imageName | Write-Verbose
         $command = 'docker {0} run -t -d -p {1}:{2} {3}' -f $commandOptions,$hostPort,$containerPort,$imageName
         $command | Print-CommandString
-        $containerId = ($command | Execute-PowershellCommandString)
-        Write-Verbose "New container ID: $containerId"
+        $containerId = ($command | Execute-CommandString -useInvokeExpression)
+        'New container ID: {0}' -f $containerId | Write-Verbose
         
         if($appType -eq "Web") {
-            $command = 'Start-Process -FilePath "http://{0}:{1}"' -f (new-object -typename System.Uri $dockerServerUrl).Host,$hostPort
-            $command | Print-CommandString
-            sleep 5
-            $command | Execute-PowershellCommandString -ignoreException
+            $host = ([System.Uri]$dockerServerUrl).Host
+            if(-not $host) {
+                $host = ([System.Uri]"http://$dockerServerUrl").Host
+            }
+            $url = 'http://{0}:{1}' -f $host, $hostPort
+            
+            if(!(Test-WebPage -url $url -attempts 10)){
+                $command = 'Start-Process -FilePath "{0}"' -f $url
+                $command | Execute-CommandString -useInvokeExpression -ignoreErrors
+                'Publish succeeded: {0}' -f $url | Write-Output
+            }
+            else {
+                'Publish was completed, but the webpage "{0}" cannot be reached.' -f $url | Write-Output
+            }
+        }
+        else {
+            'Publish succeeded.' | Write-Output
         }
     }
 }
 
-function Print-MSDeployCommandString{
+function Test-WebPage{
     [cmdletbinding()]
     param(
-        [Parameter(Mandatory=$true,Position=0)]
-        $msdeployPath,
-        [Parameter(Mandatory=$true,Position=1)]
-        $msdeployParameters
+        [Parameter(Mandatory=$true,Position=0,ValueFromPipeline=$true)]
+        $url,
+        
+        [Parameter(Mandatory=$false,Position=1)]
+        [int]$attempts = 1,
+        
+        [Parameter(Mandatory=$false,Position=2)]
+        [int]$retryIntervalInSeconds = 3
     )
     process{
-        'Calling msdeploy with the command: ["{0}" {1}]' -f $msdeployPath, $msdeployParameters | Write-Output
+        $result = $false
+        $request = [System.Net.WebRequest]::Create($url)
+        for ($i=1; $i -le $attempts; $i++) {
+            try {
+                'Trying to connect to page "{0}", attempt {1}' -f $url, $i | Write-Verbose
+                $response = $request.GetResponse()
+                $status = [int]$response.StatusCode
+                if($status -eq 200){
+                    $result = $true
+                    break
+                }
+            }
+            catch {
+            }
+            finally {
+                if($response){
+                    $response.Close()
+                }
+            }
+            if($i -lt $attempts) {
+                sleep $retryIntervalInSeconds
+            }
+        }
+        $result
     }
 }
 
@@ -590,7 +632,7 @@ function Print-CommandString{
         $command
     )
     process{
-        'Executing command: [{0}]' -f $command | Write-Output
+        'Executing command [{0}]' -f $command | Write-Output
     }
 }
 
@@ -599,42 +641,32 @@ function Execute-CommandString{
     param(
         [Parameter(Mandatory=$true,Position=0,ValueFromPipeline=$true)]
         [string[]]$command,
+        
+        [switch]
+        $useInvokeExpression,
 
         [switch]
-        $ignoreExitCode
+        $ignoreErrors
     )
     process{
         foreach($cmdToExec in $command){
             'Executing command [{0}]' -f $cmdToExec | Write-Verbose
-            cmd.exe /D /C $cmdToExec
-
-            if(-not $ignoreExitCode -and ($LASTEXITCODE -ne 0)){
-                $msg = ('The command [{0}] exited with code [{1}]' -f $cmdToExec, $LASTEXITCODE)
-                throw $msg
+            if($useInvokeExpression){
+                try {
+                    Invoke-Expression -Command $cmdToExec
+                }
+                catch {
+                    if(-not $ignoreErrors){
+                        $msg = ('The command [{0}] exited with exception [{1}]' -f $cmdToExec, $_.ToString())
+                        throw $msg
+                    }
+                }
             }
-        }
-    }
-}
+            else {
+                cmd.exe /D /C $cmdToExec
 
-function Execute-PowershellCommandString {
-    [cmdletbinding()]
-    param(
-        [Parameter(Mandatory=$true,Position=0,ValueFromPipeline=$true)]
-        [string[]]$command,
-
-        [switch]
-        $ignoreException
-    )
-    process{
-        foreach($cmdToExec in $command){
-            'Executing command [{0}]' -f $cmdToExec | Write-Verbose
-
-            try {
-                Invoke-Expression -Command $cmdToExec
-            }
-            catch {
-                if(-not $ignoreException) {
-                    $msg = ('The command [{0}] exited with exception [{1}]' -f $cmdToExec, $_.ToString())
+                if(-not $ignoreErrors -and ($LASTEXITCODE -ne 0)){
+                    $msg = ('The command [{0}] exited with code [{1}]' -f $cmdToExec, $LASTEXITCODE)
                     throw $msg
                 }
             }
