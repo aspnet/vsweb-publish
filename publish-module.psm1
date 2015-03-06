@@ -552,18 +552,18 @@ function Publish-DockerContainerApp{
             'Cleaning up old containers {0}' -f $oldContainerIds | Write-Verbose
             $command = 'docker {0} rm -f {1}' -f $commandOptions,$oldContainerIds
             $command | Print-CommandString
-            $command | Execute-CommandString -useInvokeExpression | Write-Verbose
+            $command | Execute-CommandString | Write-Verbose
         }
 
         'Building docker image: {0}' -f $imageName | Write-Verbose
         $command = 'docker {0} build -t {1} {2}' -f $commandOptions,$imageName,$packOutput
         $command | Print-CommandString
-        $command | Execute-CommandString -useInvokeExpression | Write-Verbose
+        $command | Execute-CommandString | Write-Verbose
 
         'Starting docker container: {0}' -f $imageName | Write-Verbose
         $command = 'docker {0} run -t -d -p {1}:{2} {3}' -f $commandOptions,$hostPort,$containerPort,$imageName
         $command | Print-CommandString
-        $containerId = ($command | Execute-CommandString -useInvokeExpression)
+        $containerId = ($command | Execute-CommandString)
         'New container ID: {0}' -f $containerId | Write-Verbose
         
         if($appType -eq "Web") {
