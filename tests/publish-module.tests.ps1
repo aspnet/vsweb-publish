@@ -76,7 +76,7 @@ Describe 'Register-AspnetPublishHandler tests' {
         Get-AspnetPublishHandler -name 'customhandler' | Should Be $handler1
     }
 
-    It 'If a handler is already registered with that name the new will override wih force' {
+    It 'If a handler is already registered with that name the new will override with force' {
         [scriptblock]$handler1 = {
             [cmdletbinding()]
             param(
@@ -136,6 +136,7 @@ Describe 'Get-AspnetPublishHandler tests' {
     It 'Returns the known handlers' {
         Get-AspnetPublishHandler -name 'MSDeploy' | Should Not Be $null
         Get-AspnetPublishHandler -name 'FileSystem' | Should Not Be $null
+        Get-AspnetPublishHandler -name 'Docker' | Should Not Be $null
     }
 
     It 'Returns the custom handlers' {
@@ -186,25 +187,33 @@ Describe "Execute-CommandString tests"{
         $result = (Execute-CommandString -command $commandToExec)
 
         $result | Should be $strToPrint
+        
+        $result = (Execute-CommandString $commandToExec -useInvokeExpression)
+        $result | Should be $strToPrint
     }
 
     It 'fails when the command is invalid' {
         $strToPrint = 'contoso'
         $commandToExec = ('echodddd {0}' -f $strToPrint)
         {Execute-CommandString -command $commandToExec} | Should Throw
+        {Execute-CommandString -command $commandToExec -useInvokeExpression} | Should Throw
     }
 
     It 'does not throw on invalid commands if ignoreExitCode is passed' {
         $strToPrint = 'contoso'
         $commandToExec = ('echodddd {0}' -f $strToPrint)
-        {Execute-CommandString -command $commandToExec -ignoreExitCode} | Should Not Throw
+        {Execute-CommandString -command $commandToExec -ignoreErrors} | Should Not Throw
+        {Execute-CommandString -command $commandToExec -ignoreErrors -useInvokeExpression} | Should Not Throw
     }
 
     It 'accepts a single value from the pipeline'{
         'echo contoso' | Execute-CommandString
+        'echo contoso' | Execute-CommandString -useInvokeExpression
     }
 
     It 'accepts a multiple values from the pipeline'{
         @('echo contoso','echo contoso-u') | Execute-CommandString
+        @('echo contoso','echo contoso-u') | Execute-CommandString -useInvokeExpression
     }
 }
+

@@ -13,6 +13,9 @@ $global:AspNetPublishSettings = New-Object -TypeName PSCustomObject @{
 	    'DeleteExistingFiles' = $false
         'MSDeployPackageContentFoldername'='website'
     }
+    DockerDefaultProperties = @{
+        'TestWebPageAttempts'=10
+    }
 }
 
 function Register-AspnetPublishHandler{
@@ -299,8 +302,8 @@ function Publish-AspNetMSDeploy{
             $publishArgs += $sharedArgs.ExtraArgs
 
             $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
-            Print-CommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ').Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}')
-            Execute-CommandString -command $command
+            $command.Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}') | Print-CommandString
+            $command | Execute-CommandString
         }
         else{
             throw 'publishProperties is empty, cannot publish'
@@ -361,10 +364,10 @@ function Publish-AspNetMSDeployPackage{
             if(!$packageContentFolder){ $packageContentFolder = 'website' }
             $publishArgs += ('-replace:match=''{0}'',replace=''{1}''' -f (Escape-TextForRegularExpressions $packOutput), $packageContentFolder )
             $publishArgs += $sharedArgs.ExtraArgs
-
+            
             $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
-            Print-CommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ')
-            Execute-CommandString -command $command
+            $command | Print-CommandString
+            $command | Execute-CommandString
         }
         else{
             throw 'publishProperties is empty, cannot publish'
@@ -435,21 +438,204 @@ function Publish-AspNetFileSystem{
         $publishArgs += $sharedArgs.ExtraArgs
 
         $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
-        Print-CommandString -msdeployPath (Get-MSDeploy) -msdeployParameters ($publishArgs -join ' ')
-        Execute-CommandString -command $command
+        $command | Print-CommandString
+        $command | Execute-CommandString
+    }
+}
+
+function Publish-AspNetDocker{
+    [cmdletbinding(SupportsShouldProcess=$true)]
+    param(
+        [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+        $publishProperties,
+        [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+        $packOutput
+    )
+    process{
+        if($publishProperties){
+            
+            # find out the right Dockerfile
+            $projectFolder = $(get-childitem (Join-Path $packOutput approot\src))[0];
+            $dockerfileRoot = Join-Path $projectFolder.FullName Properties\PublishProfiles
+
+            $dockerfileRelPath = $publishProperties['DockerfileRelativePath']
+            if($dockerfileRelPath){
+                $dockerfilePath = Resolve-Path (Join-Path $dockerfileRoot $dockerfileRelPath)
+            }
+            else {
+                $dockerfilePath = Resolve-Path (Join-Path $dockerfileRoot Dockerfile)
+            }
+            if(!(Test-Path $dockerfilePath)) {
+                throw 'cannot find Dockerfile: $dockerfilePath'
+            }
+        
+            # add ProjectName property value
+            $publishProperties['ProjectName'] = $projectFolder.Name
+            
+            # replace tokens in Dockerfile and copy it to the right locations
+            Write-Verbose "Replacing tokens in Dockerfile: $dockerfilePath"
+            $targetDockerfilePath = Join-Path $packOutput Dockerfile
+            Get-Content $dockerfilePath -Raw | Replace-TokensInString $publishProperties | Out-File $targetDockerfilePath -Encoding ASCII
+            Copy-Item -Path $targetDockerfilePath -Destination $projectFolder.FullName
+            
+            # Publish the application to a Docker container
+            Publish-DockerContainerApp $publishProperties $packOutput
+        }
+        else{
+            throw 'publishProperties is empty, cannot publish'
+        }
+    }
+}
+
+function Replace-TokensInString{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory = $true,Position = 0)]
+        $publishProperties,
+        [Parameter(Mandatory = $true,Position = 1, ValueFromPipeline = $true)]
+        $targetString
+    )
+    process {
+        $matchEvaluator = {
+            param ($match)
+            
+            $value = $publishProperties[$match.Groups[1].Value]
+            if ($value) {
+                $value
+            }
+            else {
+                $match.Value
+            }
+        }
+        ([Regex]"\{\{([^\}]+)\}\}").Replace($targetString, $matchEvaluator)
+    }
+}
+
+function Publish-DockerContainerApp{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory = $true,Position = 0)]
+        $publishProperties,
+        [Parameter(Mandatory = $true,Position = 1)]
+        $packOutput
+    )
+    process {
+    
+        $dockerServerUrl = $publishProperties["DockerServerUrl"]
+        $imageName = $publishProperties["DockerImageName"]
+        $baseImageName = $publishProperties["DockerBaseImageName"]
+        $hostPort = $publishProperties["DockerPublishHostPort"]
+        $containerPort = $publishProperties["DockerPublishContainerPort"]
+        $commandOptions = $publishProperties["DockerCommandOptions"]
+        $appType = $publishProperties["DockerAppType"]
+
+        "Package output path: {0}" -f $packOutput | Write-Verbose
+        "DockerHost: {0}" -f $dockerServerUrl | Write-Verbose
+        "DockerImageName: {0}" -f $imageName | Write-Verbose
+        "DockerBaseImageName: {0}" -f $baseImageName | Write-Verbose
+        "DockerPublishHostPort: {0}" -f $hostPort | Write-Verbose
+        "DockerPublishContainerPort: {0}" -f $containerPort | Write-Verbose
+        "DockerCommandOptions: {0}" -f $commandOptions | Write-Verbose
+        "DockerAppType: {0}" -f $appType | Write-Verbose
+
+        # set docker host information
+        $command = '$env:DOCKER_HOST = "{0}"' -f $dockerServerUrl
+        $command | Print-CommandString
+        $command | Execute-CommandString -useInvokeExpression | Write-Verbose
+
+        # remove all containers associated with the image name or with the same port mapping to the host
+        'Querying for conflicting containers...' | Write-Verbose
+        $command = 'docker {0} ps -a | select-string -pattern "{1}|:{2}->" | foreach {{ Write-Output $_.ToString().split()[0] }}' -f $commandOptions,$imageName,$hostPort
+        $command | Print-CommandString
+        $oldContainerIds = ($command | Execute-CommandString -useInvokeExpression)
+        if ($oldContainerIds) {
+            'Cleaning up old containers {0}' -f $oldContainerIds | Write-Verbose
+            $command = 'docker {0} rm -f {1}' -f $commandOptions,$oldContainerIds
+            $command | Print-CommandString
+            $command | Execute-CommandString | Write-Verbose
+        }
+
+        'Building docker image: {0}' -f $imageName | Write-Verbose
+        $command = 'docker {0} build -t {1} {2}' -f $commandOptions,$imageName,$packOutput
+        $command | Print-CommandString
+        $command | Execute-CommandString | Write-Verbose
+
+        'Starting docker container: {0}' -f $imageName | Write-Verbose
+        $command = 'docker {0} run -t -d -p {1}:{2} {3}' -f $commandOptions,$hostPort,$containerPort,$imageName
+        $command | Print-CommandString
+        $containerId = ($command | Execute-CommandString)
+        'New container ID: {0}' -f $containerId | Write-Verbose
+        
+        if($appType -eq "Web") {
+            $host = ([System.Uri]$dockerServerUrl).Host
+            if(-not $host) {
+                $host = ([System.Uri]"http://$dockerServerUrl").Host
+            }
+            $url = 'http://{0}:{1}' -f $host, $hostPort
+            
+            if(!(Test-WebPage -url $url -attempts $global:AspNetPublishSettings.DockerDefaultProperties.TestWebPageAttempts)){
+                $command = 'Start-Process -FilePath "{0}"' -f $url
+                $command | Execute-CommandString -useInvokeExpression -ignoreErrors
+                'Publish succeeded: {0}' -f $url | Write-Output
+            }
+            else {
+                'Publish was completed, but the webpage "{0}" cannot be reached.' -f $url | Write-Output
+            }
+        }
+        else {
+            'Publish succeeded.' | Write-Output
+        }
+    }
+}
+
+function Test-WebPage{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0,ValueFromPipeline=$true)]
+        $url,
+        
+        [Parameter(Mandatory=$false,Position=1)]
+        [int]$attempts = 1,
+        
+        [Parameter(Mandatory=$false,Position=2)]
+        [int]$retryIntervalInSeconds = 3
+    )
+    process{
+        $result = $false
+        $request = [System.Net.WebRequest]::Create($url)
+        for ($i=1; $i -le $attempts; $i++) {
+            try {
+                'Trying to connect to page "{0}", attempt {1}' -f $url, $i | Write-Verbose
+                $response = $request.GetResponse()
+                $status = [int]$response.StatusCode
+                if($status -eq 200){
+                    $result = $true
+                    break
+                }
+            }
+            catch {
+            }
+            finally {
+                if($response){
+                    $response.Close()
+                }
+            }
+            if($i -lt $attempts) {
+                sleep $retryIntervalInSeconds
+            }
+        }
+        $result
     }
 }
 
 function Print-CommandString{
     [cmdletbinding()]
     param(
-        [Parameter(Mandatory=$true,Position=0)]
-        $msdeployPath,
-        [Parameter(Mandatory=$true,Position=1)]
-        $msdeployParameters
+        [Parameter(Mandatory=$true,Position=0,ValueFromPipeline=$true)]
+        $command
     )
     process{
-        'Calling msdeploy with the command: ["{0}" {1}]' -f $msdeployPath, $msdeployParameters | Write-Output
+        'Executing command [{0}]' -f $command | Write-Output
     }
 }
 
@@ -458,18 +644,34 @@ function Execute-CommandString{
     param(
         [Parameter(Mandatory=$true,Position=0,ValueFromPipeline=$true)]
         [string[]]$command,
+        
+        [switch]
+        $useInvokeExpression,
 
         [switch]
-        $ignoreExitCode
+        $ignoreErrors
     )
     process{
         foreach($cmdToExec in $command){
             'Executing command [{0}]' -f $cmdToExec | Write-Verbose
-            cmd.exe /D /C $cmdToExec
+            if($useInvokeExpression){
+                try {
+                    Invoke-Expression -Command $cmdToExec
+                }
+                catch {
+                    if(-not $ignoreErrors){
+                        $msg = ('The command [{0}] exited with exception [{1}]' -f $cmdToExec, $_.ToString())
+                        throw $msg
+                    }
+                }
+            }
+            else {
+                cmd.exe /D /C $cmdToExec
 
-            if(-not $ignoreExitCode -and ($LASTEXITCODE -ne 0)){
-                $msg = ('The command [{0}] exited with code [{1}]' -f $cmdToExec, $LASTEXITCODE)
-                throw $msg
+                if(-not $ignoreErrors -and ($LASTEXITCODE -ne 0)){
+                    $msg = ('The command [{0}] exited with code [{1}]' -f $cmdToExec, $LASTEXITCODE)
+                    throw $msg
+                }
             }
         }
     }
@@ -558,6 +760,19 @@ function InternalRegister-AspNetKnownPublishHandlers{
             )
     
             Publish-AspNetFileSystem -publishProperties $publishProperties -packOutput $packOutput
+        }
+        
+        'Registering Docker handler' | Write-Verbose
+        Register-AspnetPublishHandler -name 'Docker' -force -handler {
+            [cmdletbinding()]
+            param(
+                [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+                $publishProperties,
+                [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+                $packOutput
+            )
+    
+            Publish-AspNetDocker -publishProperties $publishProperties -packOutput $packOutput
         }
     }
 }
