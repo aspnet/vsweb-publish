@@ -574,7 +574,7 @@ function Publish-DockerContainerApp{
             }
             $url = 'http://{0}:{1}' -f $host, $hostPort
             
-            if(!(Test-WebPage -url $url -attempts $global:AspNetPublishSettings.DockerDefaultProperties.TestWebPageAttempts)){
+            if(Test-WebPage -url $url -attempts $global:AspNetPublishSettings.DockerDefaultProperties.TestWebPageAttempts){
                 $command = 'Start-Process -FilePath "{0}"' -f $url
                 $command | Execute-CommandString -useInvokeExpression -ignoreErrors
                 'Publish succeeded: {0}' -f $url | Write-Output
