@@ -339,6 +339,12 @@ function Publish-AspNetMSDeployPackage{
                 throw ('The package destination property (DesktopBuildPackageLocation) was not found in the publish properties')
             }
 
+            # if the dir doesn't exist create it
+            $pkgDir = ((new-object -typename System.IO.FileInfo($packageDestFilepah)).Directory)
+            if(!($pkgDir.Exists)) {
+                $pkgDir.Create() | Out-Null
+            }
+
             <#
             "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe" 
                 -source:IisApp='C:\Users\contoso\AppData\Local\Temp\AspNetPublish\WebApplication1\wwwroot' 
@@ -473,7 +479,7 @@ function Publish-AspNetDocker{
             $publishProperties['ProjectName'] = $projectFolder.Name
             
             # replace tokens in Dockerfile and copy it to the right locations
-            Write-Verbose "Replacing tokens in Dockerfile: $dockerfilePath"
+            'Replacing tokens in Dockerfile: {0}' -f $dockerfilePath | Write-Verbose 
             $targetDockerfilePath = Join-Path $packOutput Dockerfile
             Get-Content $dockerfilePath -Raw | Replace-TokensInString $publishProperties | Out-File $targetDockerfilePath -Encoding ASCII
             Copy-Item -Path $targetDockerfilePath -Destination $projectFolder.FullName
@@ -549,6 +555,7 @@ function Publish-DockerContainerApp{
         $command | Print-CommandString
         $oldContainerIds = ($command | Execute-CommandString -useInvokeExpression)
         if ($oldContainerIds) {
+            $oldContainerIds = $oldContainerIds -Join ' '
             'Cleaning up old containers {0}' -f $oldContainerIds | Write-Verbose
             $command = 'docker {0} rm -f {1}' -f $commandOptions,$oldContainerIds
             $command | Print-CommandString
@@ -573,13 +580,13 @@ function Publish-DockerContainerApp{
             }
             $url = 'http://{0}:{1}' -f $host, $hostPort
             
-            if(!(Test-WebPage -url $url -attempts $global:AspNetPublishSettings.DockerDefaultProperties.TestWebPageAttempts)){
+            if(Test-WebPage -url $url -attempts $global:AspNetPublishSettings.DockerDefaultProperties.TestWebPageAttempts){
                 $command = 'Start-Process -FilePath "{0}"' -f $url
                 $command | Execute-CommandString -useInvokeExpression -ignoreErrors
                 'Publish succeeded: {0}' -f $url | Write-Output
             }
             else {
-                'Publish was completed, but the webpage "{0}" cannot be reached.' -f $url | Write-Output
+                'Publish was completed, but the webpage "{0}" cannot be reached. If the Docker server is in Azure, please make sure the endpoint "{1}" is already opened from Azure portal.' -f $url,$hostPort | Write-Output
             }
         }
         else {

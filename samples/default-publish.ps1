@@ -2,7 +2,7 @@
 param($publishProperties, $packOutput)
 
 # to learn more about this file visit http://go.microsoft.com/fwlink/?LinkId=524327
-
+$publishModuleVersoin = '1.0.1-beta1'
 function Get-VisualStudio2015InstallPath{
     [cmdletbinding()]
     param()
@@ -25,7 +25,7 @@ function Get-VisualStudio2015InstallPath{
 }
 
 $defaultPublishSettings = New-Object psobject -Property @{
-    LocalInstallDir = ("{0}Extensions\Microsoft\Web Tools\Publish\Scripts\1.0.1-beta1\" -f (Get-VisualStudio2015InstallPath))
+    LocalInstallDir = ("{0}Extensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f (Get-VisualStudio2015InstallPath),$publishModuleVersoin )
 }
 
 function Enable-PackageDownloader{
@@ -77,7 +77,7 @@ try{
 
     if (!(Enable-PublishModule)){
         Enable-PackageDownloader
-        Enable-NuGetModule -name 'publish-module' -version '1.0.1-beta1'
+        Enable-NuGetModule -name 'publish-module' -version $publishModuleVersoin
     }
 
     'Calling Publish-AspNet' | Write-Verbose

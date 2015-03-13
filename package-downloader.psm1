@@ -124,7 +124,7 @@ function Enable-PackageDownloader{
             $cmdArgs = @('install',$name,'-Version',$version,'-prerelease')
             
             $nugetCommand = ('"{0}" {1}' -f (Get-Nuget -toolsDir $outdir), ($cmdArgs -join ' ' ))
-            'Calling nuget to install a package with the following args. [{0}}]' -f $nugetCommand | Write-Verbose
+            'Calling nuget to install a package with the following args. [{0}]' -f $nugetCommand | Write-Verbose
             Execute-CommandString -command $nugetCommand | Out-Null
             Pop-Location | Out-Null
 
