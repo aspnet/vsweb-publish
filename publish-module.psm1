@@ -339,6 +339,12 @@ function Publish-AspNetMSDeployPackage{
                 throw ('The package destination property (DesktopBuildPackageLocation) was not found in the publish properties')
             }
 
+            # if the dir doesn't exist create it
+            $pkgDir = ((new-object -typename System.IO.FileInfo($packageDestFilepah)).Directory)
+            if(!($pkgDir.Exists)) {
+                $pkgDir.Create() | Out-Null
+            }
+
             <#
             "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe" 
                 -source:IisApp='C:\Users\contoso\AppData\Local\Temp\AspNetPublish\WebApplication1\wwwroot' 
