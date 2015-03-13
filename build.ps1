@@ -23,6 +23,9 @@ param(
     [string]$nugetApiKey = ($env:NuGetApiKey),
 
     [Parameter(ParameterSetName='build',Position=4)]
+    [string]$nugetUrl = $null,
+
+    [Parameter(ParameterSetName='build',Position=5)]
     [switch]$skipTests,
 
     # updateversion parameters
@@ -52,7 +55,7 @@ $global:publishmodbuildsettings = New-Object PSObject -Property @{
     If nuget is in the tools
     folder then it will be downloaded there.
 #>
-function Get-Nuget(){
+function Get-Nuget{
     [cmdletbinding()]
     param(
         $toolsDir = ("$env:LOCALAPPDATA\LigerShark\tools\"),
@@ -89,16 +92,24 @@ function Get-Nuget(){
 function PublishNuGetPackage{
     [cmdletbinding()]
     param(
-        [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
+        [Parameter(Mandatory=$true,ValueFromPipeline=$true,Position=0)]
         [string]$nugetPackages,
 
-        [Parameter(Mandatory=$true)]
-        $nugetApiKey
+        [Parameter(Position=1)]
+        $nugetApiKey,
+
+        [Parameter(Position=2)]
+        [string]$nugetUrl
     )
     process{
         foreach($nugetPackage in $nugetPackages){
             $pkgPath = (get-item $nugetPackage).FullName
             $cmdArgs = @('push',$pkgPath,$nugetApiKey,'-NonInteractive')
+            
+            if($nugetUrl -and !([string]::IsNullOrWhiteSpace($nugetUrl))){
+                $cmdArgs += "-source"
+                $cmdArgs += $nugetUrl
+            }
 
             'Publishing nuget package with the following args: [nuget.exe {0}]' -f ($cmdArgs -join ' ') | Write-Verbose
             &(Get-Nuget) $cmdArgs
@@ -162,7 +173,7 @@ function Build{
         }
 
         if($publishToNuget){
-            (Get-ChildItem -Path $outputRoot '*.nupkg').FullName | PublishNuGetPackage -nugetApiKey $nugetApiKey
+            (Get-ChildItem -Path $outputRoot '*.nupkg').FullName | PublishNuGetPackage -nugetApiKey $nugetApiKey -nugetUrl $nugetUrl
         }
     }
 }

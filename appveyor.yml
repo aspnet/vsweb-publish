@@ -9,6 +9,8 @@ build_script:
 environment:
   NuGetApiKey:
     secure: HFUEQanhaxHV/sRQYznQqg7LToxSGeIoSvrmyY29PJ1eDbXxUuYrEQ6MPAsZIQFT
+  NuGetApiKeyStaging:
+    secure: HFUEQanhaxHV/sRQYznQqg7LToxSGeIoSvrmyY29PJ1eDbXxUuYrEQ6MPAsZIQFT
 
 artifacts:
   - path: 'OutputRoot\**\*'

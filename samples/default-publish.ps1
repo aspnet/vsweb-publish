@@ -1,5 +1,5 @@
 [cmdletbinding(SupportsShouldProcess=$true)]
-param($publishProperties, $packOutput)
+param($publishProperties, $packOutput, $nugetUrl)
 
 # to learn more about this file visit http://go.microsoft.com/fwlink/?LinkId=524327
 $publishModuleVersoin = '1.0.1-beta1'
@@ -30,7 +30,7 @@ $defaultPublishSettings = New-Object psobject -Property @{
 
 function Enable-PackageDownloader{
     [cmdletbinding()]
-    param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\package-downloader\",
+    param($toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\package-downloader-v1.01\",
         $pkgDownloaderDownloadUrl = 'http://go.microsoft.com/fwlink/?LinkId=524325') # package-downloader.psm1
     process{
         if(get-module package-downloader){
@@ -77,7 +77,7 @@ try{
 
     if (!(Enable-PublishModule)){
         Enable-PackageDownloader
-        Enable-NuGetModule -name 'publish-module' -version $publishModuleVersoin
+        Enable-NuGetModule -name 'publish-module' -version $publishModuleVersoin -nugetUrl $nugetUrl
     }
 
     'Calling Publish-AspNet' | Write-Verbose

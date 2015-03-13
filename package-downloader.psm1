@@ -105,7 +105,10 @@ function Enable-PackageDownloader{
         [Parameter(Mandatory=$true,Position=1)] # later we can make this optional
         $version,
         [Parameter(Position=2)]
-        $toolsDir = $global:PkgDownloaderSettings.DefaultToolsDir
+        $toolsDir = $global:PkgDownloaderSettings.DefaultToolsDir,
+
+        [Parameter(Position=3)]
+        [string]$nugetUrl = $null
     )
     process{
         if(!(Test-Path $toolsDir)){
@@ -123,6 +126,11 @@ function Enable-PackageDownloader{
             Set-Location $outdir | Out-Null
             $cmdArgs = @('install',$name,'-Version',$version,'-prerelease')
             
+            if($nugetUrl -and !([string]::IsNullOrWhiteSpace($nugetUrl))){
+                $cmdArgs += "-source"
+                $cmdArgs += $nugetUrl
+            }
+
             $nugetCommand = ('"{0}" {1}' -f (Get-Nuget -toolsDir $outdir), ($cmdArgs -join ' ' ))
             'Calling nuget to install a package with the following args. [{0}]' -f $nugetCommand | Write-Verbose
             Execute-CommandString -command $nugetCommand | Out-Null
@@ -166,11 +174,14 @@ function Enable-NuGetModule{
         [Parameter(Mandatory=$true,Position=1)] # later we can make this optional
         $version,
         [Parameter(Position=2)]
-        $toolsDir = $global:PkgDownloaderSettings.DefaultToolsDir
+        $toolsDir = $global:PkgDownloaderSettings.DefaultToolsDir,
+
+        [Parameter(Position=3)]
+        $nugetUrl = $null
     )
     process{
         if(!(get-module $name)){
-            $installDir = Enable-PackageDownloader -name $name -version $version
+            $installDir = Enable-PackageDownloader -name $name -version $version -nugetUrl $nugetUrl
             if(!$moduleFileName){$moduleFileName = $name}
             $moduleFile = (join-path $installDir ("tools\{0}.psm1" -f $moduleFileName))
             'Loading module from [{0}]' -f $moduleFile | Write-Verbose
