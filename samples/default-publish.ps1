@@ -89,7 +89,7 @@ function Publish-DockerContainerApp{
         $baseImageName = $publishProperties["DockerBaseImageName"]
         $hostPort = $publishProperties["DockerPublishHostPort"]
         $containerPort = $publishProperties["DockerPublishContainerPort"]
-        $commandOptions = $publishProperties["DockerCommandOptions"]
+        $authOptions = $publishProperties["DockerAuthOptions"]
         $appType = $publishProperties["DockerAppType"]
         $buildOnly = [System.Convert]::ToBoolean($publishProperties["DockerBuildOnly"])
         $removeConflictingContainers = [System.Convert]::ToBoolean($publishProperties["DockerRemoveConflictingContainers"])
@@ -100,7 +100,7 @@ function Publish-DockerContainerApp{
         "DockerBaseImageName: {0}" -f $baseImageName | Write-Verbose
         "DockerPublishHostPort: {0}" -f $hostPort | Write-Verbose
         "DockerPublishContainerPort: {0}" -f $containerPort | Write-Verbose
-        "DockerCommandOptions: {0}" -f $commandOptions | Write-Verbose
+        "DockerAuthOptions: {0}" -f $authOptions | Write-Verbose
         "DockerAppType: {0}" -f $appType | Write-Verbose
         "DockerBuildOnly: {0}" -f $buildOnly | Write-Verbose
         "DockerRemoveConflictingContainers: {0}" -f $removeConflictingContainers | Write-Verbose
@@ -113,26 +113,26 @@ function Publish-DockerContainerApp{
         if($removeConflictingContainers){
             # remove all containers with the same port mapping to the host
             'Querying for conflicting containers which has the same port mapped...' | Write-Verbose
-            $command = 'docker {0} ps -a | select-string -pattern ":{1}->" | foreach {{ Write-Output $_.ToString().split()[0] }}' -f $commandOptions,$hostPort
+            $command = 'docker {0} ps -a | select-string -pattern ":{1}->" | foreach {{ Write-Output $_.ToString().split()[0] }}' -f $authOptions,$hostPort
             $command | Print-CommandString
             $oldContainerIds = ($command | Execute-CommandString -useInvokeExpression)
             if ($oldContainerIds) {
                 $oldContainerIds = $oldContainerIds -Join ' '
                 'Cleaning up old containers {0}' -f $oldContainerIds | Write-Verbose
-                $command = 'docker {0} rm -f {1}' -f $commandOptions,$oldContainerIds
+                $command = 'docker {0} rm -f {1}' -f $authOptions,$oldContainerIds
                 $command | Print-CommandString
                 $command | Execute-CommandString | Write-Verbose
             }
         }
 
         'Building docker image: {0}' -f $imageName | Write-Verbose
-        $command = 'docker {0} build -t {1} {2}' -f $commandOptions,$imageName,$packOutput
+        $command = 'docker {0} build -t {1} {2}' -f $authOptions,$imageName,$packOutput
         $command | Print-CommandString
         $command | Execute-CommandString | Write-Verbose
 
         if(-not $buildOnly){
             'Starting docker container: {0}' -f $imageName | Write-Verbose
-            $command = 'docker {0} run -t -d -p {1}:{2} {3}' -f $commandOptions,$hostPort,$containerPort,$imageName
+            $command = 'docker {0} run -t -d -p {1}:{2} {3}' -f $authOptions,$hostPort,$containerPort,$imageName
             $command | Print-CommandString
             $containerId = ($command | Execute-CommandString)
             'New container ID: {0}' -f $containerId | Write-Verbose
