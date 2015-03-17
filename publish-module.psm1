@@ -484,8 +484,10 @@ function Publish-AspNetDocker{
             Get-Content $dockerfilePath -Raw | Replace-TokensInString $publishProperties | Out-File $targetDockerfilePath -Encoding ASCII
             Copy-Item -Path $targetDockerfilePath -Destination $projectFolder.FullName
             
-            # Publish the application to a Docker container
-            Publish-DockerContainerApp $publishProperties $packOutput
+            if (Get-Command 'Publish-DockerContainerApp' -ErrorAction SilentlyContinue){
+                # Publish the application to a Docker container
+                Publish-DockerContainerApp $publishProperties $packOutput
+            }
         }
         else{
             throw 'publishProperties is empty, cannot publish'
@@ -514,84 +516,6 @@ function Replace-TokensInString{
             }
         }
         ([Regex]"\{\{([^\}]+)\}\}").Replace($targetString, $matchEvaluator)
-    }
-}
-
-function Publish-DockerContainerApp{
-    [cmdletbinding()]
-    param(
-        [Parameter(Mandatory = $true,Position = 0)]
-        $publishProperties,
-        [Parameter(Mandatory = $true,Position = 1)]
-        $packOutput
-    )
-    process {
-    
-        $dockerServerUrl = $publishProperties["DockerServerUrl"]
-        $imageName = $publishProperties["DockerImageName"]
-        $baseImageName = $publishProperties["DockerBaseImageName"]
-        $hostPort = $publishProperties["DockerPublishHostPort"]
-        $containerPort = $publishProperties["DockerPublishContainerPort"]
-        $commandOptions = $publishProperties["DockerCommandOptions"]
-        $appType = $publishProperties["DockerAppType"]
-
-        "Package output path: {0}" -f $packOutput | Write-Verbose
-        "DockerHost: {0}" -f $dockerServerUrl | Write-Verbose
-        "DockerImageName: {0}" -f $imageName | Write-Verbose
-        "DockerBaseImageName: {0}" -f $baseImageName | Write-Verbose
-        "DockerPublishHostPort: {0}" -f $hostPort | Write-Verbose
-        "DockerPublishContainerPort: {0}" -f $containerPort | Write-Verbose
-        "DockerCommandOptions: {0}" -f $commandOptions | Write-Verbose
-        "DockerAppType: {0}" -f $appType | Write-Verbose
-
-        # set docker host information
-        $command = '$env:DOCKER_HOST = "{0}"' -f $dockerServerUrl
-        $command | Print-CommandString
-        $command | Execute-CommandString -useInvokeExpression | Write-Verbose
-
-        # remove all containers associated with the image name or with the same port mapping to the host
-        'Querying for conflicting containers...' | Write-Verbose
-        $command = 'docker {0} ps -a | select-string -pattern "{1}|:{2}->" | foreach {{ Write-Output $_.ToString().split()[0] }}' -f $commandOptions,$imageName,$hostPort
-        $command | Print-CommandString
-        $oldContainerIds = ($command | Execute-CommandString -useInvokeExpression)
-        if ($oldContainerIds) {
-            $oldContainerIds = $oldContainerIds -Join ' '
-            'Cleaning up old containers {0}' -f $oldContainerIds | Write-Verbose
-            $command = 'docker {0} rm -f {1}' -f $commandOptions,$oldContainerIds
-            $command | Print-CommandString
-            $command | Execute-CommandString | Write-Verbose
-        }
-
-        'Building docker image: {0}' -f $imageName | Write-Verbose
-        $command = 'docker {0} build -t {1} {2}' -f $commandOptions,$imageName,$packOutput
-        $command | Print-CommandString
-        $command | Execute-CommandString | Write-Verbose
-
-        'Starting docker container: {0}' -f $imageName | Write-Verbose
-        $command = 'docker {0} run -t -d -p {1}:{2} {3}' -f $commandOptions,$hostPort,$containerPort,$imageName
-        $command | Print-CommandString
-        $containerId = ($command | Execute-CommandString)
-        'New container ID: {0}' -f $containerId | Write-Verbose
-        
-        if($appType -eq "Web") {
-            $host = ([System.Uri]$dockerServerUrl).Host
-            if(-not $host) {
-                $host = ([System.Uri]"http://$dockerServerUrl").Host
-            }
-            $url = 'http://{0}:{1}' -f $host, $hostPort
-            
-            if(Test-WebPage -url $url -attempts $global:AspNetPublishSettings.DockerDefaultProperties.TestWebPageAttempts){
-                $command = 'Start-Process -FilePath "{0}"' -f $url
-                $command | Execute-CommandString -useInvokeExpression -ignoreErrors
-                'Publish succeeded: {0}' -f $url | Write-Output
-            }
-            else {
-                'Publish was completed, but the webpage "{0}" cannot be reached. If the Docker server is in Azure, please make sure the endpoint "{1}" is already opened from Azure portal.' -f $url,$hostPort | Write-Output
-            }
-        }
-        else {
-            'Publish succeeded.' | Write-Output
-        }
     }
 }
 
@@ -797,7 +721,7 @@ function InternalReset-AspNetPublishHandlers{
     }
 }
 
-Export-ModuleMember -function Get-*,Publish-*,Register-*,Enable-*
+Export-ModuleMember -function Get-*,Publish-*,Register-*,Enable-*,Print-*,Execute-*,Test-*
 if($env:IsDeveloperMachine){
     # you can set the env var to expose all functions to importer. easy for development.
     # this is required for executing pester test cases, it's set by build.ps1

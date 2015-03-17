@@ -24,12 +24,7 @@ else{
 }
 
 Describe 'Docker publish unit tests' {
-    Mock Publish-DockerContainerApp {
-        return {
-            $command
-        }
-    } -ModuleName 'publish-module'
-    
+
     $dockerPackDir = (resolve-path (Join-Path $samplesdir 'MvcApplication-packOutput'))
     $tokenReplacedDockerfilePath = (resolve-path (Join-Path $samplesdir 'Dockerfile - TokenReplaced'))
     $targetDockerfile = (Join-Path $dockerPackDir 'Dockerfile')
