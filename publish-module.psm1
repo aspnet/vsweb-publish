@@ -13,9 +13,6 @@ $global:AspNetPublishSettings = New-Object -TypeName PSCustomObject @{
 	    'DeleteExistingFiles' = $false
         'MSDeployPackageContentFoldername'='website'
     }
-    DockerDefaultProperties = @{
-        'TestWebPageAttempts'=10
-    }
 }
 
 function Register-AspnetPublishHandler{
@@ -449,115 +446,6 @@ function Publish-AspNetFileSystem{
     }
 }
 
-function Publish-AspNetDocker{
-    [cmdletbinding(SupportsShouldProcess=$true)]
-    param(
-        [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
-        $publishProperties,
-        [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
-        $packOutput
-    )
-    process{
-        if($publishProperties){
-            
-            # find out the right Dockerfile
-            $projectFolder = $(get-childitem (Join-Path $packOutput approot\src))[0];
-            $dockerfileRoot = Join-Path $projectFolder.FullName Properties\PublishProfiles
-
-            $dockerfileRelPath = $publishProperties['DockerfileRelativePath']
-            if($dockerfileRelPath){
-                $dockerfilePath = Resolve-Path (Join-Path $dockerfileRoot $dockerfileRelPath)
-            }
-            else {
-                $dockerfilePath = Resolve-Path (Join-Path $dockerfileRoot Dockerfile)
-            }
-            if(!(Test-Path $dockerfilePath)) {
-                throw 'cannot find Dockerfile: $dockerfilePath'
-            }
-        
-            # add ProjectName property value
-            $publishProperties['ProjectName'] = $projectFolder.Name
-            
-            # replace tokens in Dockerfile and copy it to the right locations
-            'Replacing tokens in Dockerfile: {0}' -f $dockerfilePath | Write-Verbose 
-            $targetDockerfilePath = Join-Path $packOutput Dockerfile
-            Get-Content $dockerfilePath -Raw | Replace-TokensInString $publishProperties | Out-File $targetDockerfilePath -Encoding ASCII
-            Copy-Item -Path $targetDockerfilePath -Destination $projectFolder.FullName
-            
-            if (Get-Command 'Publish-DockerContainerApp' -ErrorAction SilentlyContinue){
-                # Publish the application to a Docker container
-                Publish-DockerContainerApp $publishProperties $packOutput
-            }
-        }
-        else{
-            throw 'publishProperties is empty, cannot publish'
-        }
-    }
-}
-
-function Replace-TokensInString{
-    [cmdletbinding()]
-    param(
-        [Parameter(Mandatory = $true,Position = 0)]
-        $publishProperties,
-        [Parameter(Mandatory = $true,Position = 1, ValueFromPipeline = $true)]
-        $targetString
-    )
-    process {
-        $matchEvaluator = {
-            param ($match)
-            
-            $value = $publishProperties[$match.Groups[1].Value]
-            if ($value) {
-                $value
-            }
-            else {
-                $match.Value
-            }
-        }
-        ([Regex]"\{\{([^\}]+)\}\}").Replace($targetString, $matchEvaluator)
-    }
-}
-
-function Test-WebPage{
-    [cmdletbinding()]
-    param(
-        [Parameter(Mandatory=$true,Position=0,ValueFromPipeline=$true)]
-        $url,
-        
-        [Parameter(Mandatory=$false,Position=1)]
-        [int]$attempts = 1,
-        
-        [Parameter(Mandatory=$false,Position=2)]
-        [int]$retryIntervalInSeconds = 3
-    )
-    process{
-        $result = $false
-        $request = [System.Net.WebRequest]::Create($url)
-        for ($i=1; $i -le $attempts; $i++) {
-            try {
-                'Trying to connect to page "{0}", attempt {1}' -f $url, $i | Write-Verbose
-                $response = $request.GetResponse()
-                $status = [int]$response.StatusCode
-                if($status -eq 200){
-                    $result = $true
-                    break
-                }
-            }
-            catch {
-            }
-            finally {
-                if($response){
-                    $response.Close()
-                }
-            }
-            if($i -lt $attempts) {
-                sleep $retryIntervalInSeconds
-            }
-        }
-        $result
-    }
-}
 
 function Print-CommandString{
     [cmdletbinding()]
@@ -692,19 +580,6 @@ function InternalRegister-AspNetKnownPublishHandlers{
     
             Publish-AspNetFileSystem -publishProperties $publishProperties -packOutput $packOutput
         }
-        
-        'Registering Docker handler' | Write-Verbose
-        Register-AspnetPublishHandler -name 'Docker' -force -handler {
-            [cmdletbinding()]
-            param(
-                [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
-                $publishProperties,
-                [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
-                $packOutput
-            )
-    
-            Publish-AspNetDocker -publishProperties $publishProperties -packOutput $packOutput
-        }
     }
 }
 
@@ -721,7 +596,7 @@ function InternalReset-AspNetPublishHandlers{
     }
 }
 
-Export-ModuleMember -function Get-*,Publish-*,Register-*,Enable-*,Print-*,Execute-*,Test-*
+Export-ModuleMember -function Get-*,Publish-*,Register-*,Enable-*
 if($env:IsDeveloperMachine){
     # you can set the env var to expose all functions to importer. easy for development.
     # this is required for executing pester test cases, it's set by build.ps1
