@@ -339,6 +339,10 @@ function Publish-AspNetMSDeployPackage{
                 throw ('The package destination property (DesktopBuildPackageLocation) was not found in the publish properties')
             }
 
+            if(!([System.IO.Path]::IsPathRooted($packageDestFilepah))){
+                $packageDestFilepah = [System.IO.Path]::GetFullPath((Join-Path $pwd $packageDestFilepah))
+            }
+
             # if the dir doesn't exist create it
             $pkgDir = ((new-object -typename System.IO.FileInfo($packageDestFilepah)).Directory)
             if(!($pkgDir.Exists)) {
@@ -363,7 +367,7 @@ function Publish-AspNetMSDeployPackage{
             $webrootOutputFolder = (get-item (Join-Path $packOutput $webroot)).FullName
             $publishArgs = @()
             $publishArgs += ('-source:IisApp=''{0}''' -f "$webrootOutputFolder")
-            $publishArgs += ('-dest:package={0}' -f $packageDestFilepah)
+            $publishArgs += ('-dest:package=''{0}''' -f $packageDestFilepah)
             $publishArgs += '-verb:sync'
             $publishArgs += '-enableLink:contentLibExtension'
             $packageContentFolder = $publishProperties['MSDeployPackageContentFoldername']
