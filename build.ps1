@@ -113,6 +113,10 @@ function PublishNuGetPackage{
 
             'Publishing nuget package with the following args: [nuget.exe {0}]' -f ($cmdArgs -join ' ') | Write-Verbose
             &(Get-Nuget) $cmdArgs
+
+            if(get-command Push-AppveyorArtifact){
+                Push-AppveyorArtifact $pkgPath
+            }
         }
     }
 }
