@@ -422,9 +422,12 @@ function Publish-AspNetFileSystem{
         $packOutput
     )
     process{
-        
         $pubOut = $publishProperties['publishUrl']
         
+        if([string]::IsNullOrWhiteSpace($pubOut)){
+            throw ('publishUrl is a required property for FileSystem publish but it was empty.')
+        }
+
         # if it's a relative path then update it to a full path
         if(!([System.IO.Path]::IsPathRooted($pubOut))){
             $pubOut = [System.IO.Path]::GetFullPath((Join-Path $pwd $pubOut))
