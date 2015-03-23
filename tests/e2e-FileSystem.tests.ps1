@@ -201,5 +201,14 @@ Describe 'FileSystem e2e publish tests' {
         $webConfigInPublishDir | Should Not Contain $textToReplaceWebConfig
         $webConfigInPublishDir | Should Contain $textReplacemnetWebConfig
     }
+
+    It 'throws if publishUrl is empty' {
+        # publish the pack output to a new temp folder
+        $publishDest = (Join-Path $TestDrive 'e2eFileSystem\THrowIfPublishUrlEmpty')
+
+        {Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
+            'WebPublishMethod'='FileSystem'
+        }} | Should throw
+    }
 }
 

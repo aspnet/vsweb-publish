@@ -5,7 +5,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">  
   <metadata>
     <id>package-downloader</id>
-    <version>1.0.1-beta3</version>
+    <version>1.0.1-beta4</version>
     <authors>Sayed Ibrahim Hashimi</authors>
     <description>
       This nuget package contains a powershell module, package-downloader.psm1, which can be used do

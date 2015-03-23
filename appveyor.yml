@@ -11,6 +11,8 @@ environment:
     secure: HFUEQanhaxHV/sRQYznQqg7LToxSGeIoSvrmyY29PJ1eDbXxUuYrEQ6MPAsZIQFT
   NuGetApiKeyStaging:
     secure: HFUEQanhaxHV/sRQYznQqg7LToxSGeIoSvrmyY29PJ1eDbXxUuYrEQ6MPAsZIQFT
+  NuGetPrivateFeedUrl:
+    secure: oVpjg1GHzihvdCcsXYFwhuB3qD6lWsCXLS7xWJJna21Fk8ouML8iGULZ87a+jLO8a2SkLB8zFyCNOiPzdQsMBA==
 
 artifacts:
   - path: 'OutputRoot\**\*'

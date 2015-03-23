@@ -136,7 +136,6 @@ Describe 'Get-AspnetPublishHandler tests' {
     It 'Returns the known handlers' {
         Get-AspnetPublishHandler -name 'MSDeploy' | Should Not Be $null
         Get-AspnetPublishHandler -name 'FileSystem' | Should Not Be $null
-        Get-AspnetPublishHandler -name 'Docker' | Should Not Be $null
     }
 
     It 'Returns the custom handlers' {

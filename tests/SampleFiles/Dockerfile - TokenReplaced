@@ -1,9 +1,0 @@
-FROM MyAppImage:1.0.0
-
-MAINTAINER {{ShouldNotBeReplaced}} - MyAppImage:1.0.0
-
-ADD . /k
-
-WORKDIR /k/approot/src/MvcApplication
-
-ENTRYPOINT ["k", "Kestrel", "--server.urls", "http://localhost:8080"]

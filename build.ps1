@@ -168,6 +168,11 @@ function Build{
             Get-ChildItem -Path $outputRoot '*.nupkg' | Copy-Item -Destination $nugetDevRepo
         }
 
+        # push appveyor artifacts, the e2e tests use them
+        if((get-command Push-AppveyorArtifact -ErrorAction SilentlyContinue)){
+            (Get-ChildItem -Path $outputRoot '*.nupkg').FullName | % { Push-AppveyorArtifact $_ }
+        }
+        
         if(!$skipTests){
             Run-Tests
         }
@@ -285,7 +290,7 @@ function Run-Tests{
             $pesterArgs.Add('-EnableExit',$true)
         }
         if($env:PesterEnableCodeCoverage -eq $true){
-            $pesterArgs.Add('-CodeCoverage','..\publish-module.psm1')
+            $pesterArgs.Add('-CodeCoverage',@('..\publish-module.psm1','..\samples\default-publish.ps1'))
         }
 
         Invoke-Pester @pesterArgs
