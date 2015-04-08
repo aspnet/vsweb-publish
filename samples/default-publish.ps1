@@ -89,5 +89,5 @@ try{
     Publish-AspNet -publishProperties $publishProperties -packOutput $packOutput
 }
 catch{
-    "An error occured during publish.`n{0}" -f $_.Exception.Message | Write-Error
+    "An error occurred during publish.`n{0}" -f $_.Exception.Message | Write-Error
 }
