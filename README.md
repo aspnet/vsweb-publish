@@ -3,7 +3,10 @@ publish-module
 
 [![Build status](https://ci.appveyor.com/api/projects/status/uvst1gfhlafghey2?svg=true)](https://ci.appveyor.com/project/sayedihashimi/publish-module)
 
-We are not accepting contributions to this repo currently.
+In Visual Studio 2015 we have a new PowerShell based web publish process for ASP.NET 5. In this repository you'll find the [default Visual Studio web publish script](https://github.com/aspnet/vsweb-publish/blob/master/samples/default-publish.ps1), as well as the PowerShell modules that it depends on.
 
-More info coming soon...
 
+
+
+
+This project is part of ASP.NET 5. You can find samples, documentation and getting started instructions for ASP.NET 5 at the [Home](https://www.github.com/aspnet/home) repo.
