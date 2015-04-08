@@ -6,16 +6,17 @@
   <metadata>
     <id>publish-module-blob</id>
     <version>1.0.1-beta5</version>
-    <authors>Sayed Ibrahim Hashimi</authors>
+    <authors>Microsoft Open Technologies, Inc.</authors>
+    <owners>Microsoft Open Technologies, Inc.</owners>
     <description>
       NuGet package which contians a PS module which can be used to for web publishing.
       Note: this is just a sample.
     </description>    
     <language>en-US</language>
-    <projectUrl>https://github.com/sayedihashimi/publish-module/</projectUrl>
-    <licenseUrl>https://github.com/sayedihashimi/publish-module/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/aspnet/vsweb-publish/</projectUrl>
+    <licenseUrl>https://github.com/aspnet/vsweb-publish/blob/master/LICENSE.txt</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <copyright>Copyright 2013-2014 Sayed Ibrahim Hashimi</copyright>
+    <copyright>Copyright © Microsoft Corporation</copyright>
     <tags>msbuild</tags>
     <!-- This is hack to avoid having content in the package -->
     <frameworkAssemblies>
