@@ -257,22 +257,38 @@ function UpdateVersion{
 function LoadPester{
     [cmdletbinding()]
     param(
-        $pesterDir = (resolve-path (Join-Path $scriptDir 'contrib\pester\'))
+        $pesterDir = (Join-Path $scriptDir 'OutputRoot\contrib\pester\'),
+        $pesterVersion = '3.3.6'
     )
     process{
-        if(!(Get-Module pester)){
-            if($env:PesterDir -and (test-path $env:PesterDir)){
-                $pesterDir = $env:PesterDir
+        $pesterModulepath = (Join-Path $pesterDir ('Pester.{0}\tools\Pester.psm1' -f $pesterVersion))
+        if(!(Test-Path $pesterModulepath)){
+            if(!(Test-Path $pesterDir)){
+                New-Item -Path $pesterDir -ItemType Directory
             }
 
-            if(!(Test-Path $pesterDir)){
-                throw ('Pester dir not found at [{0}]' -f $pesterDir)
+            $pesterDir = (resolve-path $pesterDir)
+
+            Push-Location
+            try{
+                cd $pesterDir
+                &(Get-Nuget) install pester -version $pesterVersion
             }
-            $modFile = (Join-Path $pesterDir 'Pester.psm1')
-            'Loading pester from [{0}]' -f $modFile | Write-Verbose
-            Import-Module (Join-Path $pesterDir 'Pester.psm1')
+            finally{
+                Pop-Location
+            }
         }
+        else{
+            'Skipping pester download because it was found at [{0}]' -f $pesterModulepath | Write-Verbose
+        }
+
+        if(!(Test-Path $pesterModulepath)){
+            throw ('Pester not found at [{0}]' -f $pesterModulepath)
+        }
+
+        Import-Module $pesterModulepath -Force
     }
+
 }
 
 function Run-Tests{
