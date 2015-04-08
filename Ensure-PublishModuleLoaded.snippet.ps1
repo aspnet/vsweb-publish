@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Open Technologies, Inc. All rights reserved.
+# Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 <#
     Add the following snippet to your .ps1 file to ensure that the publish-module is loaded and ready for use
 #>
