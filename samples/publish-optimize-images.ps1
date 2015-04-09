@@ -7,7 +7,7 @@ param($publishProperties, $packOutput, $nugetUrl)
 $env:msdeployinstallpath = 'C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\'
 
 # to learn more about this file visit http://go.microsoft.com/fwlink/?LinkId=524327
-$publishModuleVersion = '1.0.1-beta5'
+$publishModuleVersion = '1.0.1'
 function Get-VisualStudio2015InstallPath{
     [cmdletbinding()]
     param()
