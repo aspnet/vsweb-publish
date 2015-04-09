@@ -10,8 +10,8 @@ param(
     [switch]$clean,
     [Parameter(ParameterSetName='getversion',Position=0)]
     [switch]$getversion,
-    [Parameter(ParameterSetName='updateversion',Position=0)]
-    [switch]$updateversion,
+    [Parameter(ParameterSetName='setversion',Position=0)]
+    [switch]$setversion,
     [Parameter(ParameterSetName='createnugetlocalrepo',Position=0)]
     [switch]$createnugetlocalrepo,
 
@@ -31,8 +31,8 @@ param(
     [Parameter(ParameterSetName='build',Position=5)]
     [switch]$skipTests,
 
-    # updateversion parameters
-    [Parameter(ParameterSetName='updateversion',Position=1,Mandatory=$true)]
+    # setversion parameters
+    [Parameter(ParameterSetName='setversion',Position=1,Mandatory=$true)]
     [string]$newversion,
 
     # createnugetlocalrepo parameters
@@ -222,7 +222,7 @@ function GetExistingVersion{
     }
 }
 
-function UpdateVersion{
+function Set-Version{
     [cmdletbinding()]
     param(
         [Parameter(Position=0,Mandatory=$true)]
@@ -371,18 +371,18 @@ function CreateLocalNuGetRepo{
 
 # Begin script here
 
-if(!$getversion -and !$updateversion -and !$createnugetlocalrepo -and !$clean){
+if(!$getversion -and !$newversion -and !$createnugetlocalrepo -and !$clean){
     # build is the default option
     $build = $true
 }
 
 if($build){ Build }
 elseif($getversion){ GetExistingVersion }
-elseif($updateversion){ UpdateVersion -newversion $newversion }
+elseif($newversion){ Set-Version -newversion $newversion }
 elseif($createnugetlocalrepo){ CreateLocalNuGetRepo }
 elseif($clean){ Clean }
 else{
-    $cmds = @('-build','-updateversion','-createnugetlocalrepo')
+    $cmds = @('-build','-setversion','-createnugetlocalrepo','-clean')
     'No command specified, please pass in one of the following [{0}]' -f ($cmds -join ' ') | Write-Error
 }
 
