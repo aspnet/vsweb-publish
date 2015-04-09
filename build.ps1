@@ -189,7 +189,7 @@ function Build{
 function Enable-PackageDownloader{
     [cmdletbinding()]
     param($toolsDir = "$env:LOCALAPPDATA\LigerShark\tools\package-downloader\",
-        $pkgDownloaderDownloadUrl = 'https://raw.githubusercontent.com/sayedihashimi/publish-module/release/package-downloader.psm1')
+        $pkgDownloaderDownloadUrl = 'https://raw.githubusercontent.com/aspnet/vsweb-publish/master/package-downloader.psm1')
     process{
         if(!(get-module package-downloader)){
             if(!(Test-Path $toolsDir)){ New-Item -Path $toolsDir -ItemType Directory -WhatIf:$false }
