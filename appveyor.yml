@@ -18,7 +18,7 @@ environment:
     secure: oVpjg1GHzihvdCcsXYFwhuB3qD6lWsCXLS7xWJJna21Fk8ouML8iGULZ87a+jLO8a2SkLB8zFyCNOiPzdQsMBA==
 
 artifacts:
-  - path: 'OutputRoot\**\*'
+  - path: 'OutputRoot\*'
 
 nuget:
   account_feed: true
