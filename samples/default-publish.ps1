@@ -10,12 +10,16 @@ function Get-VisualStudio2015InstallPath{
     [cmdletbinding()]
     param()
     process{
-        $keysToCheck = @('hklm:\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\14.0','hklm:\SOFTWARE\Microsoft\VisualStudio\14.0')
+        $keysToCheck = @('hklm:\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\14.0',
+                         'hklm:\SOFTWARE\Microsoft\VisualStudio\14.0',
+                         'hklm:\SOFTWARE\Wow6432Node\Microsoft\VWDExpress\14.0',
+                         'hklm:\SOFTWARE\Microsoft\VWDExpress\14.0'
+                         )
         [string]$vsInstallPath=$null
 
         foreach($keyToCheck in $keysToCheck){
             if(Test-Path $keyToCheck){
-                $vsInstallPath = (Get-itemproperty $keyToCheck -Name InstallDir | select -ExpandProperty InstallDir)
+                $vsInstallPath = (Get-itemproperty $keyToCheck -Name InstallDir -ErrorAction SilentlyContinue | select -ExpandProperty InstallDir -ErrorAction SilentlyContinue)
             }
 
             if($vsInstallPath){
@@ -27,8 +31,15 @@ function Get-VisualStudio2015InstallPath{
     }
 }
 
+$vsInstallPath = Get-VisualStudio2015InstallPath
+$publishModulePath = "{0}Extensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f $vsInstallPath,'1.0.1'
+
+if(!(Test-Path $publishModulePath)){
+	$publishModulePath = "{0}VWDExpressExtensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f $vsInstallPath,'1.0.1'
+}
+
 $defaultPublishSettings = New-Object psobject -Property @{
-    LocalInstallDir = ("{0}Extensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f (Get-VisualStudio2015InstallPath),'1.0.1' )
+    LocalInstallDir = $publishModulePath
 }
 
 function Enable-PackageDownloader{
