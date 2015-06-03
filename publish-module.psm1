@@ -14,7 +14,7 @@ $global:AspNetPublishSettings = New-Object -TypeName PSCustomObject @{
         'retryAttempts' = 2
         'EnableMSDeployBackup' = $false
 	    'DeleteExistingFiles' = $false
-        'MSDeployPackageContentFoldername'='website'
+        'MSDeployPackageContentFoldername'='website\'
     }
 }
 
