@@ -15,6 +15,7 @@ $global:AspNetPublishSettings = New-Object -TypeName PSCustomObject @{
         'EnableMSDeployBackup' = $false
 	    'DeleteExistingFiles' = $false
         'MSDeployPackageContentFoldername'='website'
+        'AllowUntrustedCertificate'='$false'
     }
 }
 
@@ -166,6 +167,10 @@ function GetInternal-SharedMSDeployParametersFrom{
 
         if($publishProperties['EnableMSDeployBackup'] -eq $false){
             $sharedArgs.ExtraArgs += '-disablerule:BackupRule'
+        }
+
+        if($publishProperties['AllowUntrustedCertificate'] -eq $true){
+            $sharedArgs.ExtraArgs += '-allowUntrusted'
         }
 
         # add excludes
