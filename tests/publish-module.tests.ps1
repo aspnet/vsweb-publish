@@ -168,14 +168,68 @@ Describe 'Get-MSDeploy tests' {
     }   
 }
 
-Describe 'Get-MSDeployFullUrlFor tests'{
+Describe 'InternalNormalize-MSDeployUrl tests'{
     # TODO: When we add support for all msdeploy sites we should beef up these test cases
-    It 'Returns the correct value for Azure WebSites' {
+    It 'Returns the correct value for Azure Web Apps' {
         # 'https://{0}/msdeploy.axd' -f $msdeployServiceUrl.TrimEnd(':443')
         $msdeployServiceUrl = 'sayedkdemo2.scm.azurewebsites.net:443'
         $expected = ('https://{0}/msdeploy.axd' -f $msdeployServiceUrl.TrimEnd(':443'))
 
-        Get-MSDeployFullUrlFor -msdeployServiceUrl $msdeployServiceUrl | Should Be $expected
+        GetInternal-MSDeployFullUrlFor -msdeployServiceUrl $msdeployServiceUrl | Should Be $expected
+    }
+
+    It 'wmsvc 1'{
+        $msdeployServiceUrl = 'sayedkdemo2.scm.azurewebsites.net:443'
+        $expected = ('https://{0}/msdeploy.axd' -f $msdeployServiceUrl.TrimEnd(':443'))
+        $actual = InternalNormalize-MSDeployUrl -serviceUrl $msdeployServiceUrl -method WMSVC
+        $actual | Should be $expected
+    }
+
+    It 'WMSVC 2'{
+        $msdeployServiceUrl = 'contoso'
+
+        $expected = ('https://contoso:8172/msdeploy.axd' -f $msdeployServiceUrl.TrimEnd(':443'))
+        $actual = InternalNormalize-MSDeployUrl -serviceUrl $msdeployServiceUrl -method WMSVC
+        $actual | Should be $expected
+    }
+
+    It 'WMSVC 3'{
+        $msdeployServiceUrl = 'deploy0924.contoso.com:8172'
+
+        $expected = 'https://deploy0924.contoso.com:8172/msdeploy.axd'
+        $actual = InternalNormalize-MSDeployUrl -serviceUrl $msdeployServiceUrl -method WMSVC
+        $actual | Should be $expected
+    }
+
+    It 'WMSVC 4'{
+        $msdeployServiceUrl = 'deploy0924.contoso.com'
+
+        $expected = 'https://deploy0924.contoso.com:8172/msdeploy.axd'
+        $actual = InternalNormalize-MSDeployUrl -serviceUrl $msdeployServiceUrl -method WMSVC
+        $actual | Should be $expected
+    }
+
+    It 'WMSVC 5'{
+        #deploy0924.contoso.com:8172/msdeploy.axd
+        $msdeployServiceUrl = 'deploy0924.contoso.com:8172/msdeploy.axd'
+
+        $expected = 'https://deploy0924.contoso.com:8172/msdeploy.axd'
+        $actual = InternalNormalize-MSDeployUrl -serviceUrl $msdeployServiceUrl -method WMSVC
+        $actual | Should be $expected
+    }
+
+    It 'can use wmsvc 2'{
+        $msdeployServiceUrl = 'deploy0924.contoso.com:8172'
+        $expected = 'https://deploy0924.contoso.com:8172/msdeploy.axd'
+        $actual = InternalNormalize-MSDeployUrl -serviceUrl $msdeployServiceUrl -method WMSVC
+        $actual | Should be $expected
+    }
+
+    It 'can use RemoteAgent'{
+        $msdeployServiceUrl = 'contoso.com'
+        $expected = ('http://{0}/MSDEPLOYAGENTSERVICE' -f $msdeployServiceUrl)
+        $actual = InternalNormalize-MSDeployUrl -serviceUrl $msdeployServiceUrl -method RemoteAgent
+        $actual | Should be $expected
     }
 }
 

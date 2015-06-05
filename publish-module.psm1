@@ -342,7 +342,7 @@ function Publish-AspNetMSDeploy{
             $publishArgs += ('-source:IisApp=''{0}''' -f "$webrootOutputFolder")
             $publishArgs += ('-dest:IisApp=''{0}'',ComputerName=''{1}'',UserName=''{2}'',Password=''{3}'',IncludeAcls=''False'',AuthType=''Basic''{4}' -f 
                                     $publishProperties['DeployIisAppPath'],
-                                    (Get-MSDeployFullUrlFor -msdeployServiceUrl $publishProperties['MSDeployServiceURL']),
+                                    (GetInternal-MSDeployFullUrlFor -msdeployServiceUrl $publishProperties['MSDeployServiceURL']),
                                     $publishProperties['UserName'],
                                     $publishPwd,
                                     $sharedArgs.DestFragment)
@@ -587,13 +587,83 @@ function Get-MSDeploy{
     }
 }
 
-function Get-MSDeployFullUrlFor{
+function GetInternal-MSDeployFullUrlFor{
     [cmdletbinding()]
     param($msdeployServiceUrl)
     process{
         # Convert contoso.scm.azurewebsites.net:443 to https://contoso.scm.azurewebsites.net/msdeploy.axd
         # TODO: This needs to be improved, it only works with Azure Websites currently.
         'https://{0}/msdeploy.axd' -f $msdeployServiceUrl.TrimEnd(':443')
+    }
+}
+
+function InternalNormalize-MSDeployUrl{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [string]$serviceUrl,
+
+        [ValidateSet('WMSVC','RemoteAgent','localhost')]
+        [string]$method = 'WMSVC'
+    )
+    process{
+        $tempUrl = $serviceUrl
+        $resultUrl = $serviceUrl
+
+        $httpsStr = 'https://'
+        $httpStr = 'http://'
+        $msdeployAxd = 'msdeploy.axd'
+
+        if(-not [string]::IsNullOrWhiteSpace($serviceUrl)){
+            if([string]::Compare($method,'WMSVC',[StringComparison]::OrdinalIgnoreCase) -eq 0){
+                # if no http or https then add one
+                if(-not ($serviceUrl.StartsWith($httpStr,[StringComparison]::OrdinalIgnoreCase) -or 
+                            $serviceUrl.StartsWith($httpsStr,[StringComparison]::OrdinalIgnoreCase)) ){
+
+                    $serviceUrl = [string]::Concat($httpsStr,$serviceUrl.TrimStart())
+                }
+                [System.Uri]$serviceUri = New-Object -TypeName 'System.Uri' $serviceUrl
+                [System.UriBuilder]$serviceUriBuilder = New-Object -TypeName 'System.UriBuilder' $serviceUrl
+
+
+                # if no port then add the default
+                if( $serviceUri.IsDefaultPort){
+                    $serviceUriBuilder.Port = 8172
+                }
+
+                # if no path then add one
+                if([string]::Compare('/',$serviceUriBuilder.Path,[StringComparison]::OrdinalIgnoreCase) -eq 0){
+                    $serviceUriBuilder.Path = $msdeployAxd
+                }
+
+                $resultUrl = $serviceUriBuilder.Uri.AbsoluteUri
+            }
+            elseif([string]::Compare($method,'RemoteAgent',[StringComparison]::OrdinalIgnoreCase) -eq 0){
+                if(-not ($serviceUrl.StartsWith($httpStr,[StringComparison]::OrdinalIgnoreCase) -or 
+                            $serviceUrl.StartsWith($httpsStr,[StringComparison]::OrdinalIgnoreCase)) ){
+
+                    $serviceUrl = [string]::Concat($httpStr,$serviceUrl.TrimStart())
+                }
+                [System.Uri]$serviceUri = New-Object -TypeName 'System.Uri' $serviceUrl
+                [System.UriBuilder]$serviceUriBuilder = New-Object -TypeName 'System.UriBuilder' $serviceUrl
+                # format of the expected string
+                # http://{computername}/MSDEPLOYAGENTSERVICE
+                # remote agent must start with http
+                $serviceUriBuilder.Scheme = 'http'
+                $serviceUriBuilder.Host = $serviceUri.Host
+                $serviceUriBuilder.Path = '/MSDEPLOYAGENTSERVICE'
+                
+                $resultUrl = $serviceUriBuilder.Uri.AbsoluteUri
+            }
+            else{
+                # see if it's for localhost
+                [System.Uri]$serviceUri = New-Object -TypeName 'System.Uri' $serviceUrl
+                $resultUrl = $serviceUri.AbsoluteUri
+            }
+        }
+
+        # return the result to the caller
+        $resultUrl        
     }
 }
 
