@@ -6,6 +6,14 @@ param()
 
 $script:AspNetPublishHandlers = @{}
 
+<#
+These settings can be overridden with environment variables.
+The name of the environment variable should use "Publish" as a
+prefix and the names below. For example:
+
+    $env:PublishMSDeployUseChecksum = $true
+    $env:PublishWebRoot = 'customwwwroot'
+#>
 $global:AspNetPublishSettings = New-Object -TypeName PSCustomObject @{
     MsdeployDefaultProperties = @{
         'MSDeployUseChecksum'=$false
@@ -14,10 +22,46 @@ $global:AspNetPublishSettings = New-Object -TypeName PSCustomObject @{
         'retryAttempts' = 2
         'EnableMSDeployBackup' = $false
 	    'DeleteExistingFiles' = $false
-        'AllowUntrustedCertificate'='$false'
+        'AllowUntrustedCertificate'= $false
         'MSDeployPackageContentFoldername'='website\'
     }
 }
+
+function InternalOverrideSettingsFromEnv{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0)]
+        [object[]]$settings = ($global:AspNetPublishSettings,$global:AspNetPublishSettings.MsdeployDefaultProperties),
+
+        [Parameter(Position=1)]
+        [string]$prefix = 'Publish'
+    )
+    process{
+        foreach($settingsObj in $settings){
+            if($settingsObj -eq $null){
+                continue
+            }
+
+            $settingNames = $null
+            if($settingsObj -is [hashtable]){
+                $settingNames = $settingsObj.Keys
+            }
+            else{
+                $settingNames = ($settingsObj | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name)
+
+            }
+
+            foreach($name in ($settingNames.Clone())){
+                $fullname = ('{0}{1}' -f $prefix,$name)
+                if(Test-Path "env:$fullname"){
+                    $settingsObj.$name = ((get-childitem "env:$fullname").Value)
+                }
+            }
+        }
+    }
+}
+
+InternalOverrideSettingsFromEnv -prefix 'Publish' -settings $global:AspNetPublishSettings,$global:AspNetPublishSettings.MsdeployDefaultProperties
 
 function Register-AspnetPublishHandler{
     [cmdletbinding()]
