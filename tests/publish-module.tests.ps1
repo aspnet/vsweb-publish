@@ -216,3 +216,24 @@ Describe "Execute-CommandString tests"{
     }
 }
 
+Describe 'settings tests'{
+    It 'can override setting via env var 1'{
+        if((Get-Module $moduleName)){ Remove-Module $moduleName -Force }
+        # $global:AspNetPublishSettings
+        # InternalOverrideSettingsFromEnv
+        $env:PublishMSDeployUseChecksum = $true
+        $env:PublishWebRoot = 'customwwwroot'
+
+        # InternalOverrideSettingsFromEnv
+        Import-Module $modulePath -Global -DisableNameChecking | Out-Null
+
+        $global:AspNetPublishSettings.MsdeployDefaultProperties.MSDeployUseChecksum | Should be $env:PublishMSDeployUseChecksum
+        $global:AspNetPublishSettings.MsdeployDefaultProperties.WebRoot | Should be $env:PublishWebRoot
+
+        Remove-Item -Path env:PublishMSDeployUseChecksum
+        Remove-Item -Path env:PublishWebRoot
+
+        Remove-Module $moduleName -Force | Out-Null
+        Import-Module $modulePath -Global -DisableNameChecking | Out-Null
+    }
+}
