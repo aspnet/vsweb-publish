@@ -175,60 +175,48 @@ Describe 'InternalNormalize-MSDeployUrl tests'{
         $msdeployServiceUrl = 'sayedkdemo2.scm.azurewebsites.net:443'
         $expected = ('https://{0}/msdeploy.axd' -f $msdeployServiceUrl.TrimEnd(':443'))
 
-        GetInternal-MSDeployFullUrlFor -msdeployServiceUrl $msdeployServiceUrl | Should Be $expected
+        InternalNormalize-MSDeployUrl -serviceUrl $msdeployServiceUrl | Should Be $expected
     }
 
-    It 'wmsvc 1'{
-        $msdeployServiceUrl = 'sayedkdemo2.scm.azurewebsites.net:443'
-        $expected = ('https://{0}/msdeploy.axd' -f $msdeployServiceUrl.TrimEnd(':443'))
-        $actual = InternalNormalize-MSDeployUrl -serviceUrl $msdeployServiceUrl -method WMSVC
-        $actual | Should be $expected
-    }
+    It 'can use wmsvc'{
+        $expectedActual = [ordered]@{
+            'contoso'='https://contoso:8172/msdeploy.axd'
+            'deploy0924.contoso.com:8172'='https://deploy0924.contoso.com:8172/msdeploy.axd'
+            'deploy0924.contoso.com'='https://deploy0924.contoso.com:8172/msdeploy.axd'
+            'deploy0924.contoso.com:8172/msdeploy.axd'='https://deploy0924.contoso.com:8172/msdeploy.axd'
+            'deploy0924.contoso.com:304'='https://deploy0924.contoso.com:304/msdeploy.axd'
+            's2.publish.antdir0.antares-test.contoso.net:444'='https://s2.publish.antdir0.antares-test.contoso.net:444/msdeploy.axd'
+            's2.publish.antdir0.antares-test.contoso.net:443'='https://s2.publish.antdir0.antares-test.contoso.net/msdeploy.axd'
+            's2.publish.antdir0.antares-test.contoso.net:80'='https://s2.publish.antdir0.antares-test.contoso.net:80/msdeploy.axd'
+        }
 
-    It 'WMSVC 2'{
-        $msdeployServiceUrl = 'contoso'
+        foreach($key in $expectedActual.Keys){
+            $serviceurl = $key
+            $expected = $expectedActual[$key]
 
-        $expected = ('https://contoso:8172/msdeploy.axd' -f $msdeployServiceUrl.TrimEnd(':443'))
-        $actual = InternalNormalize-MSDeployUrl -serviceUrl $msdeployServiceUrl -method WMSVC
-        $actual | Should be $expected
-    }
-
-    It 'WMSVC 3'{
-        $msdeployServiceUrl = 'deploy0924.contoso.com:8172'
-
-        $expected = 'https://deploy0924.contoso.com:8172/msdeploy.axd'
-        $actual = InternalNormalize-MSDeployUrl -serviceUrl $msdeployServiceUrl -method WMSVC
-        $actual | Should be $expected
-    }
-
-    It 'WMSVC 4'{
-        $msdeployServiceUrl = 'deploy0924.contoso.com'
-
-        $expected = 'https://deploy0924.contoso.com:8172/msdeploy.axd'
-        $actual = InternalNormalize-MSDeployUrl -serviceUrl $msdeployServiceUrl -method WMSVC
-        $actual | Should be $expected
-    }
-
-    It 'WMSVC 5'{
-        #deploy0924.contoso.com:8172/msdeploy.axd
-        $msdeployServiceUrl = 'deploy0924.contoso.com:8172/msdeploy.axd'
-
-        $expected = 'https://deploy0924.contoso.com:8172/msdeploy.axd'
-        $actual = InternalNormalize-MSDeployUrl -serviceUrl $msdeployServiceUrl -method WMSVC
-        $actual | Should be $expected
-    }
-
-    It 'can use wmsvc 2'{
-        $msdeployServiceUrl = 'deploy0924.contoso.com:8172'
-        $expected = 'https://deploy0924.contoso.com:8172/msdeploy.axd'
-        $actual = InternalNormalize-MSDeployUrl -serviceUrl $msdeployServiceUrl -method WMSVC
-        $actual | Should be $expected
+            InternalNormalize-MSDeployUrl -serviceUrl $serviceUrl -serviceMethod WMSVC | Should be $expected
+        }
     }
 
     It 'can use RemoteAgent'{
+        $expectedActual = [ordered]@{
+            'http://contoso'='http://contoso/MSDEPLOYAGENTSERVICE'
+            'contoso'='http://contoso/MSDEPLOYAGENTSERVICE'
+            'contoso.com'='http://contoso.com/MSDEPLOYAGENTSERVICE'
+        }
+
+        foreach($key in $expectedActual.Keys){
+            $serviceurl = $key
+            $expected = $expectedActual[$key]
+
+            InternalNormalize-MSDeployUrl -serviceUrl $serviceUrl -serviceMethod RemoteAgent | Should be $expected
+        }
+    }
+
+    It 'can use RemoteAgent old'{
         $msdeployServiceUrl = 'contoso.com'
         $expected = ('http://{0}/MSDEPLOYAGENTSERVICE' -f $msdeployServiceUrl)
-        $actual = InternalNormalize-MSDeployUrl -serviceUrl $msdeployServiceUrl -method RemoteAgent
+        $actual = InternalNormalize-MSDeployUrl -serviceUrl $msdeployServiceUrl -serviceMethod RemoteAgent
         $actual | Should be $expected
     }
 }

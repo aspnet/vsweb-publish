@@ -334,6 +334,11 @@ function Publish-AspNetMSDeploy{
 
             $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties 
 
+            $serviceMethod = 'WMSVC'
+            if(-not [string]::IsNullOrWhiteSpace($publishProperties['MSDeployPublishMethod'])){
+                $serviceMethod = $publishProperties['MSDeployPublishMethod']
+            }
+
             # WebRoot is a required property which has a default
             $webroot = $publishProperties['WebRoot']
 
@@ -342,7 +347,7 @@ function Publish-AspNetMSDeploy{
             $publishArgs += ('-source:IisApp=''{0}''' -f "$webrootOutputFolder")
             $publishArgs += ('-dest:IisApp=''{0}'',ComputerName=''{1}'',UserName=''{2}'',Password=''{3}'',IncludeAcls=''False'',AuthType=''Basic''{4}' -f 
                                     $publishProperties['DeployIisAppPath'],
-                                    (GetInternal-MSDeployFullUrlFor -msdeployServiceUrl $publishProperties['MSDeployServiceURL']),
+                                    (InternalNormalize-MSDeployUrl -serviceUrl $publishProperties['MSDeployServiceURL'] -serviceMethod $serviceMethod),
                                     $publishProperties['UserName'],
                                     $publishPwd,
                                     $sharedArgs.DestFragment)
@@ -587,24 +592,14 @@ function Get-MSDeploy{
     }
 }
 
-function GetInternal-MSDeployFullUrlFor{
-    [cmdletbinding()]
-    param($msdeployServiceUrl)
-    process{
-        # Convert contoso.scm.azurewebsites.net:443 to https://contoso.scm.azurewebsites.net/msdeploy.axd
-        # TODO: This needs to be improved, it only works with Azure Websites currently.
-        'https://{0}/msdeploy.axd' -f $msdeployServiceUrl.TrimEnd(':443')
-    }
-}
-
 function InternalNormalize-MSDeployUrl{
     [cmdletbinding()]
     param(
         [Parameter(Position=0,Mandatory=$true)]
         [string]$serviceUrl,
 
-        [ValidateSet('WMSVC','RemoteAgent','localhost')]
-        [string]$method = 'WMSVC'
+        [ValidateSet('WMSVC','RemoteAgent','InProc')]
+        [string]$serviceMethod = 'WMSVC'
     )
     process{
         $tempUrl = $serviceUrl
@@ -615,7 +610,7 @@ function InternalNormalize-MSDeployUrl{
         $msdeployAxd = 'msdeploy.axd'
 
         if(-not [string]::IsNullOrWhiteSpace($serviceUrl)){
-            if([string]::Compare($method,'WMSVC',[StringComparison]::OrdinalIgnoreCase) -eq 0){
+            if([string]::Compare($serviceMethod,'WMSVC',[StringComparison]::OrdinalIgnoreCase) -eq 0){
                 # if no http or https then add one
                 if(-not ($serviceUrl.StartsWith($httpStr,[StringComparison]::OrdinalIgnoreCase) -or 
                             $serviceUrl.StartsWith($httpsStr,[StringComparison]::OrdinalIgnoreCase)) ){
@@ -625,9 +620,9 @@ function InternalNormalize-MSDeployUrl{
                 [System.Uri]$serviceUri = New-Object -TypeName 'System.Uri' $serviceUrl
                 [System.UriBuilder]$serviceUriBuilder = New-Object -TypeName 'System.UriBuilder' $serviceUrl
 
-
-                # if no port then add the default
-                if( $serviceUri.IsDefaultPort){
+                # if it's https and the port was not passed in override it to 8172
+                if( ([string]::Compare('https',$serviceUriBuilder.Scheme,[StringComparison]::OrdinalIgnoreCase) -eq 0) -and
+                     -not $serviceUrl.Contains((':{0}' -f $serviceUriBuilder.Port)) ) {
                     $serviceUriBuilder.Port = 8172
                 }
 
@@ -638,19 +633,11 @@ function InternalNormalize-MSDeployUrl{
 
                 $resultUrl = $serviceUriBuilder.Uri.AbsoluteUri
             }
-            elseif([string]::Compare($method,'RemoteAgent',[StringComparison]::OrdinalIgnoreCase) -eq 0){
-                if(-not ($serviceUrl.StartsWith($httpStr,[StringComparison]::OrdinalIgnoreCase) -or 
-                            $serviceUrl.StartsWith($httpsStr,[StringComparison]::OrdinalIgnoreCase)) ){
-
-                    $serviceUrl = [string]::Concat($httpStr,$serviceUrl.TrimStart())
-                }
-                [System.Uri]$serviceUri = New-Object -TypeName 'System.Uri' $serviceUrl
+            elseif([string]::Compare($serviceMethod,'RemoteAgent',[StringComparison]::OrdinalIgnoreCase) -eq 0){
                 [System.UriBuilder]$serviceUriBuilder = New-Object -TypeName 'System.UriBuilder' $serviceUrl
-                # format of the expected string
                 # http://{computername}/MSDEPLOYAGENTSERVICE
-                # remote agent must start with http
+                # remote agent must use http
                 $serviceUriBuilder.Scheme = 'http'
-                $serviceUriBuilder.Host = $serviceUri.Host
                 $serviceUriBuilder.Path = '/MSDEPLOYAGENTSERVICE'
                 
                 $resultUrl = $serviceUriBuilder.Uri.AbsoluteUri
