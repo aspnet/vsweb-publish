@@ -210,5 +210,34 @@ Describe 'FileSystem e2e publish tests' {
             'WebPublishMethod'='FileSystem'
         }} | Should throw
     }
+    $script:samplepubxmlfilesys01 = @'
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <WebPublishMethod>FileSystem</WebPublishMethod>
+    <WebRoot>wwwroot</WebRoot>
+    <publishUrl>{0}</publishUrl>
+    <DeleteExistingFiles>False</DeleteExistingFiles>
+  </PropertyGroup>
+</Project>
+'@
+    It 'Publish file system using .pubxml' {
+        # publish the pack output to a new temp folder
+        $publishDest = (Join-Path $TestDrive 'e2eFileSystem\Pubfilesyspubxml')
+        $contents = ($script:samplepubxmlfilesys01 -f $publishDest)
+        $samplePath = 'get-propsfrompubxml\sample02.pubxml'
+        Setup -File -Path $samplePath -Content $contents
+        $pubxmlpath = Join-Path $TestDrive $samplePath
+
+        # verify the folder is empty
+        $filesbefore = (Get-ChildItem $publishDest -Recurse -ErrorAction SilentlyContinue) | Where-Object { !$_.PSIsContainer }
+        $filesbefore | Should BeNullOrEmpty
+
+        Publish-AspNet -packOutput $mvcPackDir -pubProfilePath $pubxmlpath
+
+        # check to see that the files exist
+        $filesafter = (Get-ChildItem $publishDest -Recurse) | Where-Object { !$_.PSIsContainer }
+        $filesafter.length | Should Be $numPublishFiles
+    }
 }
 

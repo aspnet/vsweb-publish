@@ -2,7 +2,7 @@
 # Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 [cmdletbinding(SupportsShouldProcess=$true)]
-param($publishProperties, $packOutput, $nugetUrl)
+param($publishProperties=@{}, $packOutput,$pubProfilePath, $nugetUrl)
 
 # to learn more about this file visit http://go.microsoft.com/fwlink/?LinkId=524327
 $publishModuleVersion = '1.0.1'
@@ -97,7 +97,7 @@ try{
 
     'Calling Publish-AspNet' | Write-Verbose
     # call Publish-AspNet to perform the publish operation
-    Publish-AspNet -publishProperties $publishProperties -packOutput $packOutput
+    Publish-AspNet -publishProperties $publishProperties -packOutput $packOutput -pubProfilePath $pubProfilePath
 }
 catch{
     "An error occurred during publish.`n{0}" -f $_.Exception.Message | Write-Error

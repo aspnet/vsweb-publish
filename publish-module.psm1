@@ -231,6 +231,17 @@ function GetInternal-SharedMSDeployParametersFrom{
 .SYNOPSIS
 This will publish the folder based on the properties in $publishProperties
 
+.PARAMETER publishProperties
+This is a hashtable containing the publish properties. See the examples here for more info on how to use this parameter.
+
+.PARAMETER packOutput
+The folder path to the output of the dnu publish command. This folder contains the files
+that will be published.
+
+.PARAMETER pubProfilePath
+Path to a publish profile (.pubxml file) to import publish properties from. If the same property exists in
+publishProperties and the publish profile then publishProperties will win.
+
 .EXAMPLE
  Publish-AspNet -packOutput $packOutput -publishProperties @{
      'WebPublishMethod'='MSDeploy'
@@ -286,15 +297,31 @@ Publish-AspNet -packOutput $packOutput -publishProperties @{
 function Publish-AspNet{
     [cmdletbinding(SupportsShouldProcess=$true)]
     param(
-        [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
-        $publishProperties,
+        [Parameter(Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+        [hashtable]$publishProperties = @{},
+
         [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
-        $packOutput
+        [System.IO.FileInfo]$packOutput,
+
+        [Parameter(Position=2,ValueFromPipelineByPropertyName=$true)]
+        [ValidateNotNull()]
+        [ValidateScript({Test-Path $_})]
+        [System.IO.FileInfo]$pubProfilePath
     )
     process{
         if($publishProperties['WebPublishMethodOverride']){
             'Overriding publish method from $publishProperties[''WebPublishMethodOverride''] to [{0}]' -f  ($publishProperties['WebPublishMethodOverride']) | Write-Verbose
             $publishProperties['WebPublishMethod'] = $publishProperties['WebPublishMethodOverride']
+        }
+
+        if(-not [string]::IsNullOrWhiteSpace($pubProfilePath)){
+            $profileProperties = Get-PropertiesFromPublishProfile -filepath $pubProfilePath
+            foreach($key in $profileProperties.Keys){
+                if(-not ($publishProperties.ContainsKey($key))){
+                    'Adding properties from publish profile [''{0}''=''{1}'']' -f $key,$profileProperties[$key] | Write-Verbose
+                    $publishProperties.Add($key,$profileProperties[$key])
+                }
+            }
         }
 
         if(!([System.IO.Path]::IsPathRooted($packOutput))){
@@ -509,6 +536,43 @@ function Publish-AspNetFileSystem{
     }
 }
 
+<#
+.SYNOPSIS
+    This can be used to read a publish profile to extract the property values into a hashtable.
+
+.PARAMETER filepath
+    Path to the publish profile to get the properties from. Currenlty this only supports reading
+    .pubxml files.
+
+.EXAMPLE
+    Get-PropertiesFromPublishProfile -filepath c:\projects\publish\devpublish.pubxml
+#>
+function Get-PropertiesFromPublishProfile{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [ValidateNotNull()]
+        [ValidateScript({Test-Path $_})]
+        [System.IO.FileInfo]$filepath
+    )
+    begin{
+        Add-Type -AssemblyName System.Core
+        Add-Type -AssemblyName Microsoft.Build
+    }
+    process{
+        'Reading publish properties from profile [{0}]' -f $filepath | Write-Verbose
+        # use MSBuild to get the project and read properties
+        $projectCollection = (New-Object Microsoft.Build.Evaluation.ProjectCollection)
+        $project = ([Microsoft.Build.Construction.ProjectRootElement]::Open([string]$filepath.Fullname, $projectCollection))
+
+        $properties = @{}
+        foreach($property in $project.Properties){
+            $properties[$property.Name]=$property.Value
+        }
+
+        $properties
+    }
+}
 
 function Print-CommandString{
     [cmdletbinding()]

@@ -288,3 +288,67 @@ Describe 'Escape-TextForRegularExpressions tests'{
         Escape-TextForRegularExpressions -text $input | Should be $expected
     }
 }
+
+Describe 'Get-PropertiesFromPublishProfile tests'{
+    $script:samplepubxml01 = @'
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <WebPublishMethod>MSDeploy</WebPublishMethod>
+    <LastUsedBuildConfiguration>Release</LastUsedBuildConfiguration>
+    <LastUsedPlatform>Any CPU</LastUsedPlatform>
+    <SiteUrlToLaunchAfterPublish>http://sayedhademo01.azurewebsites.net</SiteUrlToLaunchAfterPublish>
+    <LaunchSiteAfterPublish>True</LaunchSiteAfterPublish>
+    <ExcludeApp_Data>False</ExcludeApp_Data>
+    <CompileSource>False</CompileSource>
+    <UsePowerShell>True</UsePowerShell>
+    <WebRoot>wwwroot</WebRoot>
+    <MSDeployServiceURL>sayedhademo01.scm.azurewebsites.net:443</MSDeployServiceURL>
+    <DeployIisAppPath>sayedhademo01</DeployIisAppPath>
+    <RemoteSitePhysicalPath />
+    <SkipExtraFilesOnServer>True</SkipExtraFilesOnServer>
+    <MSDeployPublishMethod>WMSVC</MSDeployPublishMethod>
+    <EnableMSDeployBackup>True</EnableMSDeployBackup>
+    <UserName>$sayedhademo01</UserName>
+    <_SavePWD>True</_SavePWD>
+    <_DestinationType>AzureWebSite</_DestinationType>
+  </PropertyGroup>
+</Project>
+'@
+    $script:samplepubxmlfilesys01 = @'
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <WebPublishMethod>FileSystem</WebPublishMethod>
+    <WebRoot>wwwroot</WebRoot>
+    <publishUrl>{0}</publishUrl>
+    <DeleteExistingFiles>False</DeleteExistingFiles>
+  </PropertyGroup>
+</Project>
+'@
+    It 'Can read a .pubxml file.'{
+        $samplepath = 'get-propsfrompubxml\sample01.pubxml'
+        Setup -File -Path $samplepath -Content $script:samplepubxml01
+        $path = Join-Path $TestDrive $samplepath
+
+        $result = Get-PropertiesFromPublishProfile $path
+
+        $result | Should not be $null
+        $result.Count | Should be 18
+        $result['WebPublishMethod'] | Should be 'MSDeploy'
+        $result['WebRoot'] | Should be 'wwwroot'
+        $result['MSDeployPublishMethod'] | Should be 'WMSVC'
+        $result['_SavePWD'] | Should be 'True'
+    }
+
+    It 'can publish to file sys with pubxml'{
+        $tempdir = (Join-Path $TestDrive 'pubxmlfilesystemp01')
+        New-Item -ItemType Directory -Path $tempdir
+        $contents = ($script:samplepubxml01 -f $tempdir)
+        $samplePath = 'get-propsfrompubxml\sample02.pubxml'
+        Setup -File -Path $samplePath -Content $contents
+        $path = Join-Path $TestDrive $samplePath
+
+        #Publish-AspNet -Confirm
+    }
+}
