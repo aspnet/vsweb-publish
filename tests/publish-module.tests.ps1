@@ -279,3 +279,12 @@ Describe 'settings tests'{
         Import-Module $modulePath -Global -DisableNameChecking | Out-Null
     }
 }
+
+Describe 'Escape-TextForRegularExpressions tests'{
+    It 'will escape\'{
+        $input = 'c:\temp\some\dir\here'
+        $expected = 'c:\\temp\\some\\dir\\here'
+
+        Escape-TextForRegularExpressions -text $input | Should be $expected
+    }
+}

@@ -372,8 +372,7 @@ function Escape-TextForRegularExpressions{
         [string]$text
     )
     process{
-        # TODO: Get code from EscapeTextForRegularExpressions task
-        $text.Replace('\','\\')
+        [regex]::Escape($text)
     }
 }
 
