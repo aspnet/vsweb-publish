@@ -309,6 +309,7 @@ function Publish-AspNet{
         [System.IO.FileInfo]$pubProfilePath
     )
     process{
+		'inside custom publish module'|Write-Output
         if($publishProperties['WebPublishMethodOverride']){
             'Overriding publish method from $publishProperties[''WebPublishMethodOverride''] to [{0}]' -f  ($publishProperties['WebPublishMethodOverride']) | Write-Verbose
             $publishProperties['WebPublishMethod'] = $publishProperties['WebPublishMethodOverride']
@@ -598,6 +599,7 @@ function Execute-CommandString{
         $ignoreErrors
     )
     process{
+    'inside execute-commandstring'|Write-Output
         foreach($cmdToExec in $command){
             'Executing command [{0}]' -f $cmdToExec | Write-Verbose
             if($useInvokeExpression){
@@ -612,12 +614,17 @@ function Execute-CommandString{
                 }
             }
             else {
-                cmd.exe /D /C $cmdToExec
-
+                # cmd.exe /D /C $cmdToExec
+				# Start-Process -FilePath cmd.exe '/C copy C:\temp\aspnet.targets C:\temp\copy-asp.net.targets' -WindowStyle Hidden -Wait
+				$process = Start-Process -FilePath cmd.exe ('/D /C ' + $command) -WindowStyle Hidden -Wait -PassThru
+                
+				# see http://stackoverflow.com/questions/8761888/powershell-capturing-standard-out-and-error-with-start-process for possible info
+				<#
                 if(-not $ignoreErrors -and ($LASTEXITCODE -ne 0)){
                     $msg = ('The command [{0}] exited with code [{1}]' -f $cmdToExec, $LASTEXITCODE)
                     throw $msg
                 }
+				#>
             }
         }
     }
