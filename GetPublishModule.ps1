@@ -4,7 +4,7 @@
 [cmdletbinding()]
 param(
     [Parameter(Position=0)]
-    $versionToInstall = '1.0.2',
+    $versionToInstall = '1.0.2-beta1',
     [Parameter(Position=1)]
     $toolsDir = ("$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\tools\"),
     [Parameter(Position=2)]
@@ -16,7 +16,7 @@ $script:moduleName = 'publish-module'
 function GetPublishModuleFile{
     [cmdletbinding()]
     param(
-        $versionToInstall = '1.0.2',
+        $versionToInstall = '1.0.2-beta1',
         $toolsDir = ("$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\tools\"),
         $nugetDownloadUrl = 'http://nuget.org/nuget.exe'
     )

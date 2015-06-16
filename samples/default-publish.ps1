@@ -5,7 +5,7 @@
 param($publishProperties=@{}, $packOutput,$pubProfilePath, $nugetUrl)
 
 # to learn more about this file visit http://go.microsoft.com/fwlink/?LinkId=524327
-$publishModuleVersion = '1.0.2'
+$publishModuleVersion = '1.0.2-beta1'
 function Get-VisualStudio2015InstallPath{
     [cmdletbinding()]
     param()
@@ -32,10 +32,10 @@ function Get-VisualStudio2015InstallPath{
 }
 
 $vsInstallPath = Get-VisualStudio2015InstallPath
-$publishModulePath = "{0}Extensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f $vsInstallPath,'1.0.2'
+$publishModulePath = "{0}Extensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f $vsInstallPath,'1.0.2-beta1'
 
 if(!(Test-Path $publishModulePath)){
-	$publishModulePath = "{0}VWDExpressExtensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f $vsInstallPath,'1.0.2'
+	$publishModulePath = "{0}VWDExpressExtensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f $vsInstallPath,'1.0.2-beta1'
 }
 
 $defaultPublishSettings = New-Object psobject -Property @{
