@@ -189,16 +189,16 @@ function GetInternal-SharedMSDeployParametersFrom{
             $offlineArgs = GetInternal-PublishAppOfflineProperties -publishProperties $publishProperties
             $sharedArgs.ExtraArgs += $offlineArgs.AdditionalArguments
             $sharedArgs.DestFragment += $offlineArgs.DestFragment
-	        
-			if($publishProperties['SkipExtraFilesOnServer'] -eq $true){
-		        $sharedArgs.ExtraArgs += '-enableRule:DoNotDeleteRule'
-		    }
+            
+            if($publishProperties['SkipExtraFilesOnServer'] -eq $true){
+                $sharedArgs.ExtraArgs += '-enableRule:DoNotDeleteRule'
+            }
         }
 
-		if($publishProperties['WebPublishMethod'] -eq 'FileSystem'){
-			if($publishProperties['DeleteExistingFiles'] -eq $false){
-		        $sharedArgs.ExtraArgs += '-enableRule:DoNotDeleteRule'
-		    }
+        if($publishProperties['WebPublishMethod'] -eq 'FileSystem'){
+            if($publishProperties['DeleteExistingFiles'] -eq $false){
+                $sharedArgs.ExtraArgs += '-enableRule:DoNotDeleteRule'
+            }
         }
 
         if($publishProperties['retryAttempts']){
@@ -383,8 +383,11 @@ function Publish-AspNetMSDeploy{
             $publishArgs += $sharedArgs.ExtraArgs
 
             $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
+            
+            if (! [String]::IsNullOrEmpty($publishPwd)) {
             $command.Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}') | Print-CommandString
-            $command | Execute-CommandString
+            }
+            Execute-Command -exePath (Get-MSDeploy) -arguments ($publishArgs -join ' ')
         }
         else{
             throw 'publishProperties is empty, cannot publish'
@@ -457,7 +460,7 @@ function Publish-AspNetMSDeployPackage{
             
             $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
             $command | Print-CommandString
-            $command | Execute-CommandString
+            Execute-Command -exePath (Get-MSDeploy) -arguments ($publishArgs -join ' ')
         }
         else{
             throw 'publishProperties is empty, cannot publish'
@@ -532,7 +535,7 @@ function Publish-AspNetFileSystem{
 
         $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
         $command | Print-CommandString
-        $command | Execute-CommandString
+        Execute-Command -exePath (Get-MSDeploy) -arguments ($publishArgs -join ' ')
     }
 }
 
@@ -623,6 +626,47 @@ function Execute-CommandString{
     }
 }
 
+function Execute-Command {
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+        [String]$exePath,
+        [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
+        [String]$arguments
+        )
+	process{
+        $psi = New-Object -TypeName System.Diagnostics.ProcessStartInfo
+        $psi.CreateNoWindow = $true
+        $psi.UseShellExecute = $false
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError=$true
+        $psi.FileName = $exePath
+        $psi.Arguments = $arguments
+
+        $process = New-Object -TypeName System.Diagnostics.Process
+        $process.StartInfo = $psi
+        $process.EnableRaisingEvents=$true
+
+        # Register the event handler for error
+        $stdErrEvent = Register-ObjectEvent -InputObject $process  -EventName 'ErrorDataReceived' -Action {
+            if (! [String]::IsNullOrEmpty($EventArgs.Data)) {
+             $EventArgs.Data | Write-Error 
+            }
+        }
+
+        # Starting process.
+        $process.Start() | Out-Null
+        $process.BeginErrorReadLine() | Out-Null
+        $output = $process.StandardOutput.ReadToEnd()
+        $process.WaitForExit() | Out-Null
+        $output | Write-Output
+        
+        # UnRegister the event handler for error
+        Unregister-Event -SourceIdentifier $stdErrEvent.Name | Out-Null
+    }
+}
+
+
 function Get-MSDeploy{
     [cmdletbinding()]
     param()
@@ -634,7 +678,7 @@ function Get-MSDeploy{
 
             foreach($keyToCheck in $keysToCheck){
                 if(Test-Path $keyToCheck){
-                    $installPath = (Get-itemproperty $keyToCheck -Name InstallPath | select -ExpandProperty InstallPath)
+                    $installPath = (Get-itemproperty $keyToCheck -Name InstallPath -ErrorAction SilentlyContinue | select -ExpandProperty InstallPath -ErrorAction SilentlyContinue)
                 }
 
                 if($installPath){
