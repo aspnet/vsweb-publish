@@ -12,16 +12,16 @@ The name of the environment variable should use "Publish" as a
 prefix and the names below. For example:
 
     $env:PublishMSDeployUseChecksum = $true
-    $env:PublishWebRoot = 'customwwwroot'
+    $env:PublishWwwRootOut = 'customwwwroot'
 #>
 $global:AspNetPublishSettings = New-Object -TypeName PSCustomObject @{
     MsdeployDefaultProperties = @{
         'MSDeployUseChecksum'=$false
-        'WebRoot'='wwwroot'
+        'WwwRootOut'='wwwroot'
         'SkipExtraFilesOnServer'=$true
         'retryAttempts' = 2
         'EnableMSDeployBackup' = $false
-	    'DeleteExistingFiles' = $false
+        'DeleteExistingFiles' = $false
         'AllowUntrustedCertificate'= $false
         'MSDeployPackageContentFoldername'='website\'
     }
@@ -366,8 +366,8 @@ function Publish-AspNetMSDeploy{
                 $serviceMethod = $publishProperties['MSDeployPublishMethod']
             }
 
-            # WebRoot is a required property which has a default
-            $webroot = $publishProperties['WebRoot']
+            # WwwRootOut is a required property which has a default
+            $webroot = $publishProperties['WwwRootOut']
 
             $webrootOutputFolder = (get-item (Join-Path $packOutput $webroot)).FullName
             $publishArgs = @()
@@ -444,8 +444,8 @@ function Publish-AspNetMSDeployPackage{
 
             $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties 
 
-            # WebRoot is a required property which has a default
-            $webroot = $publishProperties['WebRoot']
+            # WwwRootOut is a required property which has a default
+            $webroot = $publishProperties['WwwRootOut']
 
             $webrootOutputFolder = (get-item (Join-Path $packOutput $webroot)).FullName
             $publishArgs = @()
@@ -634,7 +634,7 @@ function Execute-Command {
         [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
         [String]$arguments
         )
-	process{
+    process{
         $psi = New-Object -TypeName System.Diagnostics.ProcessStartInfo
         $psi.CreateNoWindow = $true
         $psi.UseShellExecute = $false

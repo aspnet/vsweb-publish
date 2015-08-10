@@ -264,16 +264,16 @@ Describe 'settings tests'{
         # $global:AspNetPublishSettings
         # InternalOverrideSettingsFromEnv
         $env:PublishMSDeployUseChecksum = $true
-        $env:PublishWebRoot = 'customwwwroot'
+        $env:PublishWwwRootOut = 'customwwwroot'
 
         # InternalOverrideSettingsFromEnv
         Import-Module $modulePath -Global -DisableNameChecking | Out-Null
 
         $global:AspNetPublishSettings.MsdeployDefaultProperties.MSDeployUseChecksum | Should be $env:PublishMSDeployUseChecksum
-        $global:AspNetPublishSettings.MsdeployDefaultProperties.WebRoot | Should be $env:PublishWebRoot
+        $global:AspNetPublishSettings.MsdeployDefaultProperties.WwwRootOut | Should be $env:PublishWwwRootOut
 
         Remove-Item -Path env:PublishMSDeployUseChecksum
-        Remove-Item -Path env:PublishWebRoot
+        Remove-Item -Path env:PublishWwwRootOut
 
         Remove-Module $moduleName -Force | Out-Null
         Import-Module $modulePath -Global -DisableNameChecking | Out-Null
