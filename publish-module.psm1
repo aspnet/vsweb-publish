@@ -118,7 +118,7 @@ function GetInternal-ExcludeFilesArg{
                 $excludePath = $exclude['absolutepath']
 
                 # output the result to the return list
-                ('-skip:objectName={0},absolutePath={1}' -f $objName, $excludePath)
+                ('-skip:objectName={0},absolutePath=''{1}''' -f $objName, $excludePath)
             }	
         }
     }
