@@ -5,7 +5,7 @@
 param($publishProperties=@{}, $packOutput,$pubProfilePath, $nugetUrl)
 
 # to learn more about this file visit http://go.microsoft.com/fwlink/?LinkId=524327
-$publishModuleVersion = '1.0.2-beta1'
+$publishModuleVersion = '1.0.2-beta2'
 function Get-VisualStudio2015InstallPath{
     [cmdletbinding()]
     param()

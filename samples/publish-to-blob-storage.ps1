@@ -7,7 +7,7 @@ param($publishProperties, $packOutput, $nugetUrl)
 $env:msdeployinstallpath = 'C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\'
 
 # to learn more about this file visit http://go.microsoft.com/fwlink/?LinkId=524327
-$publishModuleVersion = '1.0.2-beta1'
+$publishModuleVersion = '1.0.2-beta2'
 function Get-VisualStudio2015InstallPath{
     [cmdletbinding()]
     param()
@@ -30,7 +30,7 @@ function Get-VisualStudio2015InstallPath{
 }
 
 $defaultPublishSettings = New-Object psobject -Property @{
-    LocalInstallDir = ("{0}Extensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f (Get-VisualStudio2015InstallPath),'1.0.2-beta1' )
+    LocalInstallDir = ("{0}Extensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f (Get-VisualStudio2015InstallPath),'1.0.2-beta2' )
 }
 
 function Enable-PackageDownloader{

@@ -5,7 +5,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">  
   <metadata>
     <id>publish-module</id>
-    <version>1.0.2-beta1</version>
+    <version>1.0.2-beta2</version>
     <authors>Microsoft Open Technologies, Inc.</authors>
     <owners>Microsoft Open Technologies, Inc.</owners>
     <description>
