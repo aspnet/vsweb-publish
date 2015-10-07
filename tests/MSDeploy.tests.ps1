@@ -76,6 +76,24 @@ Describe 'MSDeploy unit tests' {
         $lastCommand.Contains('-disablerule:BackupRule') | Should Be $true
     }
 
+    It 'Can publish and not pass contentLibExtension' {
+        $publishDest = (Join-Path $TestDrive 'e2eFileSystem\Basic01')
+
+        Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
+            'WebPublishMethod'='MSDeploy'
+            'MSDeployServiceURL'='contoso.scm.azurewebsites.net:443';`
+            'DeployIisAppPath'='contoso';'Username'='$contoso';'Password'="somepassword-here"
+            'EnableLinkContentLibExtension'=$false
+        }
+
+        [string]$lastCommand = ($global:lastCommandToGetMSDeploy)
+        $lastCommand.Contains('-usechecksum') | Should Be $false
+        $lastCommand.Contains('-enableLink:contentLibExtension') | Should Not Be $true
+        $lastCommand.Contains("-enableRule:DoNotDeleteRule") | Should Be $true
+        $lastCommand.Contains("-retryAttempts:2") | Should Be $true
+        $lastCommand.Contains('-disablerule:BackupRule') | Should Be $true
+    }
+
     <#  
     It 'Passing whatif passes the appropriate switch' {        
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{

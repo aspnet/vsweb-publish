@@ -24,6 +24,7 @@ $global:AspNetPublishSettings = New-Object -TypeName PSCustomObject @{
         'DeleteExistingFiles' = $false
         'AllowUntrustedCertificate'= $false
         'MSDeployPackageContentFoldername'='website\'
+        'EnableLinkContentLibExtension'=$true
     }
 }
 
@@ -379,8 +380,16 @@ function Publish-AspNetMSDeploy{
                                     $publishPwd,
                                     $sharedArgs.DestFragment)
             $publishArgs += '-verb:sync'
-            $publishArgs += '-enableLink:contentLibExtension'
             $publishArgs += $sharedArgs.ExtraArgs
+
+            [bool]$addContentLib = $true
+            if( ($publishProperties['EnableLinkContentLibExtension'] -ne $null) -and (-not ([string]::IsNullOrWhiteSpace($publishProperties['EnableLinkContentLibExtension'])))){
+                $addContentLib = $publishProperties['EnableLinkContentLibExtension']
+            }
+
+            if($addContentLib){
+                $publishArgs += '-enableLink:contentLibExtension'
+            }
 
             $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
             
