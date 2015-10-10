@@ -258,7 +258,7 @@ function LoadPester{
     [cmdletbinding()]
     param(
         $pesterDir = (Join-Path $scriptDir 'OutputRoot\contrib\pester\'),
-        $pesterVersion = '3.3.6'
+        $pesterVersion = '3.3.11'
     )
     process{
         $pesterModulepath = (Join-Path $pesterDir ('Pester.{0}\tools\Pester.psm1' -f $pesterVersion))
@@ -272,7 +272,7 @@ function LoadPester{
             Push-Location
             try{
                 cd $pesterDir
-                &(Get-Nuget) install pester -version $pesterVersion
+                &(Get-Nuget) install pester -version $pesterVersion -source https://www.nuget.org/api/v2/
             }
             finally{
                 Pop-Location
@@ -288,7 +288,6 @@ function LoadPester{
 
         Import-Module $pesterModulepath -Force
     }
-
 }
 
 function Run-Tests{
