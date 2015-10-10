@@ -261,7 +261,7 @@ function LoadPester{
         $pesterVersion = '3.3.11'
     )
     process{
-        $pesterModulepath = (Join-Path $pesterDir ('Pester.{0}\tools\Pester.psm1' -f $pesterVersion))
+        $pesterModulepath = (Join-Path $pesterDir ('Pester.{0}\tools\Pester.psd1' -f $pesterVersion))
         if(!(Test-Path $pesterModulepath)){
             if(!(Test-Path $pesterDir)){
                 New-Item -Path $pesterDir -ItemType Directory
