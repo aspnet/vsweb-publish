@@ -352,3 +352,30 @@ Describe 'Get-PropertiesFromPublishProfile tests'{
         #Publish-AspNet -Confirm
     }
 }
+
+Describe 'Create Manifest XML File tests'{   
+    It 'generate source manifest file ' {
+        $xmlFile = Join-Path $TestDrive "source.xml"
+        $iisApp = "TestWebApp"
+        #
+        InternalNew-ManifestXml -xmlFile $xmlFile -iisAppName $iisApp -webRootName "wwwroot" -packOutput $scriptDir -isSourceManifest
+        #
+        (Test-Path -Path $xmlFile) | Should be $true 
+        [xml]$content = [xml](Get-Content -Path $xmlFile -Raw)
+        $content = Get-Content -Path $xmlFile -Raw
+        $node = $content.SelectSingleNode('/sitemanifest/iisApp')
+        ($node -ne $null) | Should be $true
+    }
+    
+    It 'generate destination manifest file ' {
+        $xmlFile = Join-Path $TestDrive "dest.xml"
+        $iisApp = "TestWebApp"
+        #
+        InternalNew-ManifestXml -xmlFile $xmlFile -iisAppName $iisApp -webRootName "wwwroot" -packOutput $scriptDir
+        #
+        (Test-Path -Path $xmlFile) | Should be $true 
+        [xml]$content = [xml](Get-Content -Path $xmlFile -Raw)
+        $node = $content.SelectSingleNode('/sitemanifest/iisApp')
+        ($node -ne $null) | Should be $true 
+    }
+}
