@@ -388,8 +388,10 @@ function Publish-AspNetMSDeploy{
             }
 
             if($addContentLib){
-                $publishArgs += '-enableLink:contentLibExtension'
+                $publishArgs += '-enableLink:contentAspNetCoreExtension'
             }
+
+
 
             $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
             
