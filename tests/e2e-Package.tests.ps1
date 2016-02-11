@@ -1,4 +1,4 @@
-﻿[cmdletbinding()]
+[cmdletbinding()]
 param(
     $useCustomMSDeploy
 )
@@ -18,6 +18,7 @@ $moduleName = 'publish-module'
 $modulePath = (Join-Path $scriptDir ('..\{0}.psm1' -f $moduleName))
 $samplesdir = (Join-Path $scriptDir 'SampleFiles')
 $msdeployDownloadUrl = 'https://sayed02.blob.core.windows.net/download/msdeploy-v3-01-.zip'
+$WebAppName = 'contoso'
 
 if(Test-Path $modulePath){
     "Importing module from [{0}]" -f $modulePath | Write-Verbose
@@ -91,7 +92,8 @@ Describe 'Package e2e publish tests' {
         Extract-ZipFile -file $publishDest -destination ($extractDir.FullName)
         # check to see that the files exist
         $filesafter = (Get-ChildItem $extractDir -Recurse) | Where-Object { !$_.PSIsContainer }
-        $filesafter.length | Should Be $numPublishFiles
+        $filesafter.length | Should Be $numPublishFiles   
+             
     }
 
     It 'The result is in package under website folder' {
@@ -110,7 +112,7 @@ Describe 'Package e2e publish tests' {
 
         $extractDir = (New-Item -ItemType Directory -Path (Join-Path $TestDrive 'e2ePackage\Basic02-CopiedFiles\'))
         Extract-ZipFile -file $publishDest -destination ($extractDir.FullName)
-        Test-Path (Join-Path $extractDir Content) | Should Be $true
+        Test-Path (Join-Path $extractDir Content) | Should Be $true               
     }
 
     <#

@@ -1,4 +1,4 @@
-﻿[cmdletbinding()]
+[cmdletbinding()]
 param()
 
 function Get-ScriptDirectory
@@ -11,6 +11,7 @@ $scriptDir = ((Get-ScriptDirectory) + "\")
 $moduleName = 'publish-module'
 $modulePath = (Join-Path $scriptDir ('..\{0}.psm1' -f $moduleName))
 $samplesdir = (Join-Path $scriptDir 'SampleFiles')
+$WebAppName = 'contoso'
 
 if(Test-Path $modulePath){
     "Importing module from [{0}]" -f $modulePath | Write-Verbose
@@ -37,8 +38,8 @@ Describe 'FileSystem e2e publish tests' {
 
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='FileSystem'
-            'publishUrl'="$publishDest"
-        }
+                'publishUrl'="$publishDest"
+            }
         
         # check to see that the files exist
         $filesafter = (Get-ChildItem $publishDest -Recurse) | Where-Object { !$_.PSIsContainer }
@@ -65,7 +66,7 @@ Describe 'FileSystem e2e publish tests' {
 
         # check to see that the files exist
         $filesafter = (Get-ChildItem $publishDest -Recurse) | Where-Object { !$_.PSIsContainer }
-        $filesafter.length | Should Be $numPublishFiles
+        $filesafter.length | Should Be $numPublishFiles                
     }
 
     It 'Publish file system can publish to a dir with a space' {
@@ -74,7 +75,7 @@ Describe 'FileSystem e2e publish tests' {
         # verify the folder is empty
         $filesbefore = (Get-ChildItem $publishDest -Recurse -File -ErrorAction SilentlyContinue)
         $filesbefore.length | Should Be 0
-
+        
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='FileSystem'
             'publishUrl'="$publishDest"
@@ -82,7 +83,7 @@ Describe 'FileSystem e2e publish tests' {
         
         # check to see that the files exist
         $filesafter = (Get-ChildItem $publishDest -Recurse -File)
-        $filesafter.length | Should Be $numPublishFiles
+        $filesafter.length | Should Be $numPublishFiles        
     }
 
     It 'Can publish with a relative path for publishUrl' {
@@ -94,7 +95,7 @@ Describe 'FileSystem e2e publish tests' {
 
         Push-Location
         Set-Location $mvcPackDir
-
+    
         Publish-AspNet -packOutput .\ -publishProperties @{
             'WebPublishMethod'='FileSystem'
             'publishUrl'="$publishDest"
@@ -104,7 +105,8 @@ Describe 'FileSystem e2e publish tests' {
 
         # check to see that the files exist
         $filesafter = (Get-ChildItem $publishDest -Recurse) | Where-Object { !$_.PSIsContainer }
-        $filesafter.length | Should Be $numPublishFiles
+        $filesafter.length | Should Be $numPublishFiles        
+
     }
 
     It 'Can exclude files when a single file is passed in' {
@@ -117,13 +119,14 @@ Describe 'FileSystem e2e publish tests' {
             'WebPublishMethod'='FileSystem'
             'publishUrl'="$publishDest"
             'ExcludeFiles'=@(
-		            @{'absolutepath'='approot\\src\\MvcApplication\\Views\\Home'}
+		            @{'absolutepath'='approot\\src\\contoso\\Views\\Home'}
             )
         }
         
         # check to see that the files exist
         $filesafter = (Get-ChildItem $publishDest -Recurse) | Where-Object { !$_.PSIsContainer }
-        $filesafter.length | Should Be ($numPublishFiles-1)
+        $filesafter.length | Should Be ($numPublishFiles-1)        
+      
     }
 
     It 'Can exclude files when a multiple files are passed in' {
@@ -136,14 +139,15 @@ Describe 'FileSystem e2e publish tests' {
             'WebPublishMethod'='FileSystem'
             'publishUrl'="$publishDest"
             'ExcludeFiles'=@(
-		            @{'absolutepath'='approot\\src\\MvcApplication\\Views\\Home'},
+		            @{'absolutepath'='approot\\src\\contoso\\Views\\Home'},
 		            @{'absolutepath'='wwwroot\\web.config'}
             )
         }
         
         # check to see that the files exist
         $filesafter = (Get-ChildItem $publishDest -Recurse) | Where-Object { !$_.PSIsContainer }
-        $filesafter.length | Should Be ($numPublishFiles-2)
+        $filesafter.length | Should Be ($numPublishFiles-2)        
+       
     }
 
     It 'Performs replacements when one replacement is passed' {
@@ -165,7 +169,8 @@ Describe 'FileSystem e2e publish tests' {
 
         $filePathInPublishDir = (resolve-path (Join-Path $publishDest 'wwwroot\tobereplaced.txt'))
         $filePathInPublishDir | Should Not Contain $textToReplace
-        $filePathInPublishDir | Should Contain $textReplacemnet
+        $filePathInPublishDir | Should Contain $textReplacemnet        
+       
     }
 
     It 'Performs replacements when more than one replacement is passed' {
@@ -199,7 +204,7 @@ Describe 'FileSystem e2e publish tests' {
 
         $webConfigInPublishDir = (resolve-path (Join-Path $publishDest 'wwwroot\web.config'))
         $webConfigInPublishDir | Should Not Contain $textToReplaceWebConfig
-        $webConfigInPublishDir | Should Contain $textReplacemnetWebConfig
+        $webConfigInPublishDir | Should Contain $textReplacemnetWebConfig              
     }
 
     It 'throws if publishUrl is empty' {
@@ -208,7 +213,7 @@ Describe 'FileSystem e2e publish tests' {
 
         {Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='FileSystem'
-        }} | Should throw
+        }} | Should throw        
     }
     $script:samplepubxmlfilesys01 = @'
 <?xml version="1.0" encoding="utf-8"?>
@@ -237,7 +242,9 @@ Describe 'FileSystem e2e publish tests' {
 
         # check to see that the files exist
         $filesafter = (Get-ChildItem $publishDest -Recurse) | Where-Object { !$_.PSIsContainer }
-        $filesafter.length | Should Be $numPublishFiles
+        $filesafter.length | Should Be $numPublishFiles        
+        
     }
+    
 }
 

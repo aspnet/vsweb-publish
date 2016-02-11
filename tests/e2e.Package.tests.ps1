@@ -1,4 +1,4 @@
-﻿[cmdletbinding()]
+[cmdletbinding()]
 param()
 
 function Get-ScriptDirectory
@@ -11,6 +11,7 @@ $scriptDir = ((Get-ScriptDirectory) + "\")
 $moduleName = 'publish-module'
 $modulePath = (Join-Path $scriptDir ('..\{0}.psm1' -f $moduleName))
 $samplesdir = (Join-Path $scriptDir 'SampleFiles')
+$WebAppName = 'contoso'
 
 if(Test-Path $modulePath){
     "Importing module from [{0}]" -f $modulePath | Write-Verbose
@@ -34,8 +35,9 @@ Describe 'Package e2e publish tests' {
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='Package'
             'DesktopBuildPackageLocation'="$publishDest"
+            'WebAppName' = "$WebAppName"
         }
-        $publishDest | Should Exist
+        $publishDest | Should Exist               
     }
     
     It 'Can publish with a relative path for DesktopBuildPackageLocation' {
@@ -49,43 +51,50 @@ Describe 'Package e2e publish tests' {
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='Package'
             'DesktopBuildPackageLocation'='.\webpkg.zip'
+            'WebAppName' = "$WebAppName"
         }
         
         Pop-Location
 
-        "$publishDest\webpkg.zip" | Should Exist
+        "$publishDest\webpkg.zip" | Should Exist                      
     }
 
     It 'throws when DesktopBuildPackageLocation is missing'{
+
         {Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='Package'
-        }} | Should Throw
+            'WebAppName' = "$WebAppName"
+        }} | Should Throw        
+
     }
 
     It 'Can package to a path with a space' {
         # publish the pack output to a new temp folder
         $publishDest = (Join-Path $TestDrive 'e2ePackage\PublishUrl WithSpace\webpkg.zip')
-        
+
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='Package'
             'DesktopBuildPackageLocation'="$publishDest"
+            'WebAppName' = "$WebAppName"
         }
         
-        $publishDest | Should Exist        
+        $publishDest | Should Exist         
     }
 
     It 'Can exclude files when a single file is passed in' {
         $publishDest = (Join-Path $TestDrive 'e2ePackage\exclude01\pkg.zip')
-        
+
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='Package'
             'DesktopBuildPackageLocation'="$publishDest"
+            'WebAppName' = "$WebAppName"
             'ExcludeFiles'=@(
-		            @{'absolutepath'='approot\\src\\MvcApplication\\Views\\Home'}
+		            @{'absolutepath'='approot\\src\\contoso\\Views\\Home'}
             )
         }
         
-        # todo: check to see that the file was skipped
+        # todo: check to see that the file was skipped        
+              
     }
 
     It 'Can exclude files when a multiple files are passed in' {
@@ -94,13 +103,15 @@ Describe 'Package e2e publish tests' {
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='Package'
             'DesktopBuildPackageLocation'="$publishDest"
+            'WebAppName' = "$WebAppName"
             'ExcludeFiles'=@(
-		            @{'absolutepath'='approot\\src\\MvcApplication\\Views\\Home'},
+		            @{'absolutepath'='approot\\src\\contoso\\Views\\Home'},
 		            @{'absolutepath'='wwwroot\\web.config'}
             )
         }
         
-        # todo: check to see that the files were skipped
+        # todo: check to see that the files were skipped        
+             
     }
 
     It 'Performs replacements when one replacement is passed' {
@@ -112,12 +123,13 @@ Describe 'Package e2e publish tests' {
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='Package'
             'DesktopBuildPackageLocation'="$publishDest"
+            'WebAppName' = "$WebAppName"
             'Replacements' = @(
 		        @{'file'='tobereplaced.txt$';'match'="$textToReplace";'newValue'="$textReplacemnet"})
         } 
 
         $publishDest | Should Exist
-        # todo: check that the text was replaced see file system tests
+        # todo: check that the text was replaced see file system tests                      
     }
 
     It 'Performs replacements when more than one replacement is passed' {
@@ -131,12 +143,13 @@ Describe 'Package e2e publish tests' {
         Publish-AspNet -packOutput $mvcPackDir -publishProperties @{
             'WebPublishMethod'='Package'
             'DesktopBuildPackageLocation'="$publishDest"
+            'WebAppName' = "$WebAppName"
             'Replacements' = @(
 		        @{'file'='tobereplaced.txt$';'match'="$textToReplaceTextFile";'newValue'="$textReplacemnetTextFile"},
                 @{'file'='web.config$';'match'="$textToReplaceWebConfig";'newValue'="$textReplacemnetWebConfig"})
         } 
 
         $publishDest | Should Exist
-        # todo: check that the text was replaced see file system tests
+        # todo: check that the text was replaced see file system tests                      
     }
 }
