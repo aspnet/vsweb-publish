@@ -121,7 +121,7 @@ function GetInternal-ExcludeFilesArg{
 
                 # output the result to the return list
                 ('-skip:objectName={0},absolutePath=''{1}''' -f $objName, $excludePath)
-            }	
+            }   
         }
     }
 }
@@ -388,20 +388,21 @@ function InternalNew-ManifestForProvider {
     )
     process {
         $siteNode = $xmlDocument.SelectSingleNode("/sitemanifest")
-        if ($siteNode -ne $null) {
-            foreach ($providerName in $providerData.Keys) {
-                $providerContent = $providerData[$providerName]
-                $xmlNode = $xmlDocument.CreateElement($providerName)
-                foreach ($contentKey in $providerContent.Keys) {                    
-                    $xmlNode.SetAttribute($contentKey, $providerContent[$contentKey])                    
-                }
-                $siteNode.AppendChild($xmlNode) | Out-Null 
-            }
+        if ($siteNode -eq $null) {
+            throw 'sitemnifest element is missing in xml object'
         }
+        foreach ($providerName in $providerData.Keys) {
+            $providerContent = $providerData[$providerName]
+            $xmlNode = $xmlDocument.CreateElement($providerName)
+            foreach ($contentKey in $providerContent.Keys) {                    
+                $xmlNode.SetAttribute($contentKey, $providerContent[$contentKey]) | Out-Null
+            }
+            $siteNode.AppendChild($xmlNode) | Out-Null 
+        }        
     }
 } 
 
-function InternalNew-PubArtifactPath {
+function InternalNew-PublishArtifactsPath {
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true, Position=0)]
@@ -410,7 +411,7 @@ function InternalNew-PubArtifactPath {
     process {
         $pubArtDir = Join-Path $packOutput '..\obj'
         if (!(Test-Path -Path $pubArtDir)) {
-            New-Item $pubArtDir -type directory | Out-Null
+            New-Item -Path $pubArtDir -type directory | Out-Null
         }
         # return 
         [System.IO.FileInfo]$pubArtDir
@@ -419,70 +420,72 @@ function InternalNew-PubArtifactPath {
 
 function InternalGet-DotNetExePath {
     process {
-        $exePath = "dotnet.exe"
+        $exePath = 'dotnet.exe'
         $DotNetRegItem = Get-ItemProperty -Path "hklm:\software\dotnet\setup\"
         if ($DotNetRegItem -and $DotNetRegItem.InstallDir){
             $exePath = Join-Path $DotNetRegItem.InstallDir -ChildPath "bin\" | Join-Path -ChildPath $exePath
         }
         elseif ($env:DOTNET_HOME) {
-            $tempExePath = Join-Path $env:DOTNET_HOME -ChildPath "bin\" | Join-Path -ChildPath $exePath
-            if (Test-Path $tempExePath){
-                $exePath = $tempExePath
-            }
+            $exePath = Join-Path $env:DOTNET_HOME -ChildPath "bin\" | Join-Path -ChildPath $exePath
         }
-        $exePath
+        if (!(Test-Path $exePath)){
+            throw 'dotnet.exe cannot be found'
+        }
+        # return
+        [System.IO.FileInfo]$exePath
     }
 }
 
 function InternalNew-ManifestFile {
-	[cmdletbinding()]
-	param(
-		[Parameter(Mandatory=$true,Position=0)]
-		[System.IO.FileInfo]$packOutput,
-		[Parameter(Mandatory=$true,Position=1)]
-		$publishProperties,
-		[Parameter(Position=2)]
-		[HashTable]$EFMigrationData,
-		[switch]$isSource
-	)
-	process{
-		$xmlObj = InternalNew-ManifestDocument
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [System.IO.FileInfo]$packOutput,
+        [Parameter(Mandatory=$true,Position=1)]
+        $publishProperties,
+        [Parameter(Position=2)]
+        [HashTable]$EFMigrationData,
+        [switch]$isSource
+    )
+    process{
+        $xmlObj = InternalNew-ManifestDocument
         $publishMethod = $publishProperties['WebPublishMethod']
-		if ($publishMethod -eq 'FileSystem') {
-			if ($isSource) {
-				$manifestAttribute = @{'path'="$packOutput"}
-			}
-			else {
+        if ($publishMethod -eq 'FileSystem') {
+            if ($isSource) {
+                $manifestAttribute = @{'path'="$packOutput"}
+            }
+            else {
                 $publishUrl = $publishProperties['publishUrl']
-				$manifestAttribute = @{'path'="$publishUrl"}
-			}
-			$manifestData = @{'contentPath'=$manifestAttribute }
-			InternalNew-ManifestForProvider -xmlDocument $xmlObj -providerData $manifestData
-		}
-		else {
-			if($publishMethod -eq 'MSDeploy' -or $publishMethod -eq 'Package') {
-				if ($isSource) {
-					$iisAppPath = Join-Path $packOutput $publishProperties['WwwRootOut'] 
-				}
-				else {
-					$iisAppPath = $publishProperties['DeployIisAppPath']
-				}
-			}
-			$manifestAttribute = @{'path'="$iisAppPath"}
-			$manifestData = @{'iisApp'=$manifestAttribute }
-			InternalNew-ManifestForProvider -xmlDocument $xmlObj -providerData $manifestData
-		}
-		$paDir = InternalNew-PubArtifactPath -packOutput $packOutput
-		if ($isSource) {
-			$XMLFile = Join-Path $paDir 'SourceManifest.xml'
-		}
-		else {
-			$XMLFile = Join-Path $paDir 'DestManifest.xml'
-		}
-		$xmlObj.OuterXml | Set-Content -path $XMLFile -Force
+                $manifestAttribute = @{'path'="$publishUrl"}
+            }
+            $manifestData = @{'contentPath'=$manifestAttribute }
+            InternalNew-ManifestForProvider -xmlDocument $xmlObj -providerData $manifestData
+        }
+        elseif($publishMethod -eq 'MSDeploy' -or $publishMethod -eq 'Package') {
+            if ($isSource) {
+                $iisAppPath = Join-Path $packOutput $publishProperties['WwwRootOut'] 
+            }
+            else {
+                $iisAppPath = $publishProperties['DeployIisAppPath']
+            }
+            $manifestAttribute = @{'path'="$iisAppPath"}
+            $manifestData = @{'iisApp'=$manifestAttribute }
+            InternalNew-ManifestForProvider -xmlDocument $xmlObj -providerData $manifestData
+        }
+        else {
+            throw ('The publish method - {0} - is not supported' -f $publishMethod)
+        }
+        $paDir = InternalNew-PublishArtifactsPath -packOutput $packOutput
+        if ($isSource) {
+            $XMLFile = Join-Path $paDir 'SourceManifest.xml'
+        }
+        else {
+            $XMLFile = Join-Path $paDir 'DestManifest.xml'
+        }
+        $xmlObj.OuterXml | Set-Content -path $XMLFile -Force
         # return 
         [System.IO.FileInfo]$XMLFile
-	} 
+    } 
 }
 
 function Publish-AspNetMSDeploy{
@@ -509,13 +512,12 @@ function Publish-AspNetMSDeploy{
   
             <#
             "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe" 
-                -source:IisApp='C:\Users\contoso\AppData\Local\Temp\AspNetPublish\WebApplication1\wwwroot' 
-                -dest:IisApp='vramak4',ComputerName='https://contoso.scm.azurewebsites.net/msdeploy.axd',UserName='$contoso',Password='<PWD>',IncludeAcls='False',AuthType='Basic' 
+                -source:manifest='C:\Users\testuser\AppData\Local\Temp\PublishTemp\obj\SourceManifest.xml' 
+                -dest:manifest='C:\Users\testuser\AppData\Local\Temp\PublishTemp\obj\DestManifest.xml',ComputerName='https://contoso.scm.azurewebsites.net/msdeploy.axd',UserName='$contoso',Password='<PWD>',IncludeAcls='False',AuthType='Basic' 
                 -verb:sync 
                 -enableRule:DoNotDeleteRule 
-                -enableLink:contentLibExtension 
-                -retryAttempts=2 
-                -userAgent="VS14.0:PublishDialog:WTE14.0.51027.0"
+                -enableLink:contentAspNetCoreExtension 
+                -retryAttempts=2"
             #>
 
              
@@ -602,11 +604,11 @@ function Publish-AspNetMSDeployPackage{
 
             <#
             "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe" 
-                -source:IisApp='C:\Users\contoso\AppData\Local\Temp\AspNetPublish\WebApplication1\wwwroot' 
+                -source:manifest='C:\Users\testuser\AppData\Local\Temp\PublishTemp\obj\SourceManifest.xml'
                 -dest:package=c:\temp\path\contosoweb.zip
                 -verb:sync 
                 -enableRule:DoNotDeleteRule 
-                -enableLink:contentLibExtension 
+                -enableLink:contentAspNetCoreExtension 
                 -retryAttempts=2 
             #>
 
@@ -690,7 +692,7 @@ function Publish-AspNetFileSystem{
         'Publishing files to {0}' -f $pubOut | Write-Output
 
         # we use msdeploy.exe because it supports incremental publish/skips/replacements/etc
-        # msdeploy.exe -verb:sync -source:contentPath='C:\srcpath' -dest:contentPath='c:\destpath'
+        # msdeploy.exe -verb:sync -source:manifest='C:\Users\testuser\AppData\Local\Temp\PublishTemp\obj\SourceManifest.xml' -dest:manifest='C:\Users\testuser\AppData\Local\Temp\PublishTemp\obj\DestManifest.xml'
         
         $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties
 
