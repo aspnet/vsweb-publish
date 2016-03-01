@@ -443,8 +443,6 @@ function InternalNew-ManifestFile {
         [System.IO.FileInfo]$packOutput,
         [Parameter(Mandatory=$true,Position=1)]
         $publishProperties,
-        [Parameter(Position=2)]
-        [HashTable]$EFMigrationData,
         [switch]$isSource
     )
     process{
@@ -542,7 +540,7 @@ function Publish-AspNetMSDeploy{
                                     $sharedArgs.DestFragment)
             $publishArgs += '-verb:sync'
             $publishArgs += $sharedArgs.ExtraArgs
-
+			
             [bool]$addContentLib = $true
             if( ($publishProperties['EnableLinkContentLibExtension'] -ne $null) -and (-not ([string]::IsNullOrWhiteSpace($publishProperties['EnableLinkContentLibExtension'])))){
                 $addContentLib = $publishProperties['EnableLinkContentLibExtension']
