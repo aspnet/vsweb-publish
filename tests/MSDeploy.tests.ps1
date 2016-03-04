@@ -1,4 +1,4 @@
-﻿[cmdletbinding()]
+[cmdletbinding()]
 param()
 
 function Get-ScriptDirectory
@@ -56,7 +56,7 @@ Describe 'MSDeploy unit tests' {
         $lastCommand.Contains('UserName=''$contoso''') | Should Be $true
         $lastCommand.Contains("AuthType='Basic'") | Should Be $true
         $lastCommand.Contains('-verb:sync') | Should Be $true
-        $lastCommand.Contains("$mvcPackDir") | Should Be $true
+        $lastCommand.Contains("-enableLink:contentAspNetCoreExtension") | Should Be $true
     }
 
     It 'Default parameters in args to msdeploy' {
@@ -70,7 +70,7 @@ Describe 'MSDeploy unit tests' {
 
         [string]$lastCommand = ($global:lastCommandToGetMSDeploy)
         $lastCommand.Contains('-usechecksum') | Should Be $false
-        $lastCommand.Contains('-enableLink:contentLibExtension') | Should Be $true
+        $lastCommand.Contains('-enableLink:contentAspNetCoreExtension') | Should Be $true
         $lastCommand.Contains("-enableRule:DoNotDeleteRule") | Should Be $true
         $lastCommand.Contains("-retryAttempts:2") | Should Be $true
         $lastCommand.Contains('-disablerule:BackupRule') | Should Be $true
