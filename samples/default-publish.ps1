@@ -6,37 +6,44 @@ param($publishProperties=@{}, $packOutput,$pubProfilePath, $nugetUrl)
 
 # to learn more about this file visit http://go.microsoft.com/fwlink/?LinkId=524327
 $publishModuleVersion = '1.0.2-beta2'
-function Get-VisualStudio2015InstallPath{
+
+function Get-PublishModulePath{
     [cmdletbinding()]
     param()
     process{
-        $keysToCheck = @('hklm:\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\14.0',
-                         'hklm:\SOFTWARE\Microsoft\VisualStudio\14.0',
-                         'hklm:\SOFTWARE\Wow6432Node\Microsoft\VWDExpress\14.0',
-                         'hklm:\SOFTWARE\Microsoft\VWDExpress\14.0'
+        $keysToCheck = @('hklm:\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\{0}',
+                         'hklm:\SOFTWARE\Microsoft\VisualStudio\{0}',
+                         'hklm:\SOFTWARE\Wow6432Node\Microsoft\VWDExpress\{0}',
+                         'hklm:\SOFTWARE\Microsoft\VWDExpress\{0}'
                          )
-        [string]$vsInstallPath=$null
+        $versions = @('14.0', '15.0')
 
-        foreach($keyToCheck in $keysToCheck){
-            if(Test-Path $keyToCheck){
-                $vsInstallPath = (Get-itemproperty $keyToCheck -Name InstallDir -ErrorAction SilentlyContinue | select -ExpandProperty InstallDir -ErrorAction SilentlyContinue)
-            }
-
-            if($vsInstallPath){
-                break;
+        [string]$publishModulePath=$null
+        :outer foreach($keyToCheck in $keysToCheck){
+            foreach($version in $versions){
+                if(Test-Path ($keyToCheck -f $version) ){
+                    $vsInstallPath = (Get-itemproperty ($keyToCheck -f $version) -Name InstallDir -ErrorAction SilentlyContinue | select -ExpandProperty InstallDir -ErrorAction SilentlyContinue)
+                    
+                    if($vsInstallPath){
+                        $installedPublishModulePath = "{0}Extensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f $vsInstallPath, $publishModuleVersion
+                        if(!(Test-Path $installedPublishModulePath)){
+                            $vsInstallPath = $vsInstallPath + 'VWDExpress'
+                            $installedPublishModulePath = "{0}Extensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f  $vsInstallPath, $publishModuleVersion
+                        }
+                        if(Test-Path $installedPublishModulePath){
+                            $publishModulePath = $installedPublishModulePath
+                            break outer;
+                        }
+                    }
+                }
             }
         }
 
-        $vsInstallPath
+        $publishModulePath
     }
 }
 
-$vsInstallPath = Get-VisualStudio2015InstallPath
-$publishModulePath = "{0}Extensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f $vsInstallPath, $publishModuleVersion
-
-if(!(Test-Path $publishModulePath)){
-    $publishModulePath = "{0}VWDExpressExtensions\Microsoft\Web Tools\Publish\Scripts\{1}\" -f $vsInstallPath, $publishModuleVersion
-}
+$publishModulePath = Get-PublishModulePath
 
 $defaultPublishSettings = New-Object psobject -Property @{
     LocalInstallDir = $publishModulePath
