@@ -91,7 +91,7 @@ Describe 'Package e2e publish tests' {
         Extract-ZipFile -file $publishDest -destination ($extractDir.FullName)
         # check to see that the files exist
         $filesafter = (Get-ChildItem $extractDir -Recurse) | Where-Object { !$_.PSIsContainer }
-        $filesafter.length | Should Be $numPublishFiles
+        $filesafter.length - 2 | Should Be $numPublishFiles
     }
 
     It 'The result is in package under website folder' {
