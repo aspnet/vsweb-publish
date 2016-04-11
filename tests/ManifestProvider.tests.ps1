@@ -27,11 +27,9 @@ else{
 Describe 'Create manifest xml file tests' {
 	It 'generate source manifest file for iisApp provider' {
 		$rootDir = Join-Path $TestDrive 'ManifestFileCase00'
-        $webRootName = 'wwwroot'
-        $iisAppPath = Join-Path $rootDir "$webRootName"
+        $iisAppPath = $rootDir
         $publishProperties =@{
             'WebPublishMethod'='MSDeploy'
-            'WwwRootOut'="$webRootName"
         }
         
         $xmlFile = InternalNew-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -isSource
@@ -95,11 +93,9 @@ Describe 'Create manifest xml file tests' {
     
 	It 'generate source manifest file for Package provider' {
 		$rootDir = Join-Path $TestDrive 'ManifestFileCase30'        
-        $webRootName = 'wwwroot'
-        $iisAppPath = Join-Path $rootDir "$webRootName"
+        $iisAppPath = $rootDir
         $publishProperties =@{
             'WebPublishMethod'='Package'
-            'WwwRootOut'='wwwroot'
         }
         
         $xmlFile = InternalNew-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -isSource
