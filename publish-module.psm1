@@ -766,7 +766,7 @@ function Publish-AspNetMSDeployPackage{
                 -retryAttempts=2 
             #>
 
-            $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties 
+            $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties -packOutput $packOutput
 
             # create source manifest
             [System.IO.FileInfo]$sourceXMLFile = InternalNew-ManifestFile -packOutput $packOutput -publishProperties $publishProperties -isSource 
@@ -980,7 +980,7 @@ function Execute-Command {
         $psi.RedirectStandardError=$true
         $psi.FileName = $exePath
         $psi.Arguments = $arguments
-		if(Test-Path -Path $workingDirectory) {
+		if($workingDirectory -and (Test-Path -Path $workingDirectory)) {
 		    $psi.WorkingDirectory = $workingDirectory
 		}
 
