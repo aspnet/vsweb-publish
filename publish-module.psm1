@@ -1,4 +1,4 @@
-﻿# Copyright (c) Microsoft Open Technologies, Inc. All rights reserved.
+# Copyright (c) Microsoft Open Technologies, Inc. All rights reserved.
 # Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 [cmdletbinding(SupportsShouldProcess=$true)]
@@ -163,12 +163,15 @@ function GetInternal-SharedMSDeployParametersFrom{
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true,Position=0)]
-        $publishProperties
+        [HashTable]$publishProperties,
+        [Parameter(Mandatory=$true,Position=1)]
+        [System.IO.FileInfo]$packOutput
     )
     process{
         $sharedArgs = New-Object psobject -Property @{
             ExtraArgs = @()
             DestFragment = ''
+            EFMigrationData = @{}
         }
 
         # add default properties if they are missing
@@ -220,6 +223,35 @@ function GetInternal-SharedMSDeployParametersFrom{
         $sharedArgs.ExtraArgs += (GetInternal-ExcludeFilesArg -publishProperties $publishProperties)
         # add replacements
         $sharedArgs.ExtraArgs += (GetInternal-ReplacementsMSDeployArgs -publishProperties $publishProperties)
+
+        # add EF Migration
+        if (($publishProperties['EfMigrations'] -ne $null) -and $publishProperties['EfMigrations'].Count -gt 0){
+            if (!(Test-Path -Path $publishProperties['ProjectPath'])) {
+                throw 'ProjectPath does not exist when there exists EF migration'
+            }
+            try
+            {
+                # generate T-SQL files
+                $EFSqlFile = InternalGet-EFMigrationScript -projectPath $publishProperties['ProjectPath'] -packOutput $packOutput -EFConnectionString $publishProperties['EfMigrations']
+                $sharedArgs.EFMigrationData.Add('EFSqlFile',$EFSqlFile)
+            }
+            catch
+            {
+                throw ('An error occurred while generating EF migrations. {0} {1}' -f $_.Exception,(Get-PSCallStack))
+            }
+        }
+        # add connection string update
+        if (($publishProperties['DestinationConnectionStrings'] -ne $null) -and $publishProperties['DestinationConnectionStrings'].Count -gt 0) {
+            try
+            {
+                # create/update appsettings.[environment].json
+                InternalSave-ConfigEnvironmentFile -packOutput $packOutput -environmentName $publishProperties['EnvironmentName'] -connectionString $publishProperties['DestinationConnectionStrings']
+            }
+            catch
+            {
+                throw ('An error occurred while generating the publish appsettings file. {0} {1}' -f $_.Exception,(Get-PSCallStack))
+            }
+        }
 
         # return the args
         $sharedArgs
@@ -404,7 +436,7 @@ function InternalNew-PublishArtifactsPath {
         [System.IO.FileInfo]$packOutput
     )
     process {
-        $pubArtDir = Join-Path $packOutput '..\obj'
+        $pubArtDir = Join-Path (Get-Item $packOutput).Parent.FullName 'obj'
         if (!(Test-Path -Path $pubArtDir)) {
             New-Item -Path $pubArtDir -type directory | Out-Null
         }
@@ -419,10 +451,10 @@ function InternalGet-DotNetExePath {
         if (!$dotnetinstallpath) {
             $DotNetRegItem = Get-ItemProperty -Path 'hklm:\software\dotnet\setup\'
             if ($DotNetRegItem -and $DotNetRegItem.InstallDir){
-                $dotnetinstallpath = Join-Path $DotNetRegItem.InstallDir -ChildPath "bin\" | Join-Path -ChildPath 'dotnet.exe'
+                $dotnetinstallpath = Join-Path $DotNetRegItem.InstallDir -ChildPath 'dotnet.exe'
             }
             elseif ($env:DOTNET_HOME) {
-                $dotnetinstallpath = Join-Path $env:DOTNET_HOME -ChildPath "bin\" | Join-Path -ChildPath 'dotnet.exe'
+                $dotnetinstallpath = Join-Path $env:DOTNET_HOME -ChildPath 'dotnet.exe'
             }
         }
         if (!(Test-Path $dotnetinstallpath)) {
@@ -433,6 +465,130 @@ function InternalGet-DotNetExePath {
     }
 }
 
+function InternalGet-EFMigrationScript {
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [System.IO.FileInfo]$projectPath,
+        [Parameter(Mandatory=$true,Position=1)]
+        [System.IO.FileInfo]$packOutput,
+        [Parameter(Position=2)]
+        [HashTable]$EFConnectionString
+    )
+    process {          
+        $files = @{}
+        $dotnetExePath = InternalGet-DotNetExePath
+        foreach ($dbContextName in $EFConnectionString.Keys) {
+            try 
+            {
+                $tempDir = InternalNew-PublishArtifactsPath -packOutput $packOutput
+                $efScriptFile = Join-Path $tempDir ('{0}.sql' -f $dbContextName)
+                $arg = ('ef migrations script -i -o {0} -c {1}' -f
+                                       $efScriptFile,
+                                       $dbContextName)
+
+                Execute-Command $dotnetExePath $arg $projectPath | Out-Null
+                if (Test-Path -Path $efScriptFile) {
+                    if (!($files.ContainsKey($dbContextName))) {
+                        $files.Add($dbContextName, $efScriptFile) | Out-Null
+                    }
+                }            
+            }
+            catch
+            {
+                throw 'error occured when executing dotnet.exe to generate EF T-SQL file'
+            }
+        }
+        # return files object
+        $files
+    }
+}
+
+function InternalSave-ConfigEnvironmentFile {
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory = $true,Position=0)]
+        [System.IO.FileInfo]$packOutput,
+        [Parameter(Mandatory = $true,Position=1)]
+        [string]$environmentName,
+        [Parameter(Position=2)]
+        [HashTable]$connectionString
+    )
+    process {    
+        $configProdJsonFile = 'appsettings.{0}.json' -f $environmentName
+        $configProdJsonFilePath = Join-Path -Path $packOutput -ChildPath $configProdJsonFile 
+
+        if ([string]::IsNullOrEmpty($configProdJsonFilePath)) {
+            throw ('The path of {0} is empty' -f $configProdJsonFilePath)
+        }
+        
+        if(!(Test-Path -Path $configProdJsonFilePath)) {
+            # create new file
+            '{}' | Set-Content -path $configProdJsonFilePath -Force
+        }
+        
+        $originalJsonString = Get-Content -Path $configProdJsonFilePath -Raw
+        $jsonObj = ConvertFrom-Json -InputObject $originalJsonString
+        # update when there exists one or more connection strings
+        if ($connectionString -ne $null) {            
+            foreach ($name in $connectionString.Keys) {
+                #$key1 = "Data"
+                #check for hierarchy style
+                if ($jsonObj.$name.ConnectionString) {
+                    $jsonObj.$name.ConnectionString = $connectionString[$name]
+                    continue
+                }
+                #check for horizontal style
+                $horizontalName = '{0}:ConnectionString' -f $name
+                if ($jsonObj.$horizontalName) {
+                    $jsonObj.$horizontalName = $connectionString[$name]
+                    continue
+                }
+                # create new one
+                if (!($jsonObj.$name)) {
+                    $contentForDefaultConnection = @'
+{{
+    "ConnectionString" : "{0}"
+}}
+'@
+                    $contentForDefaultConnection = $contentForDefaultConnection -f $connectionString[$name]
+                    $jsonObj | Add-Member -name $name -value (ConvertFrom-Json -InputObject $contentForDefaultConnection) -MemberType NoteProperty | Out-Null
+                }
+                elseif (!($jsonObj.$name.ConnectionString)) {
+                    $jsonObj.$name | Add-Member -name "ConnectionString" -value $connectionString[$name] -MemberType NoteProperty | Out-Null  
+                }
+            }            
+        }            
+        
+        $resultJsonString = ConvertTo-Json -InputObject $jsonObj
+        $diffObj = Compare-Object $originalJsonString $resultJsonString
+        if ($diffObj.Count -gt 0) { 
+            # save when there exists new content
+            $resultJsonString | Set-Content -Path $configProdJsonFilePath -Force
+        }            
+        #return the path of config.[environment].json
+        $configProdJsonFilePath
+    }
+}
+
+function InternalNew-CopyFileToFolder {
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0)]
+        [System.IO.DirectoryInfo]$destDir,
+        [Parameter(Mandatory=$true,Position=1)]
+        [System.IO.FileInfo]$filePath
+    )
+    process{        
+        if (Test-Path -Path $filePath) {
+            if (!(Test-Path -Path $destDir)) {
+                New-Item $destDir -type Directory | Out-Null
+            }
+            Copy-Item $filePath -Destination $destDir -Force | Out-Null
+        }                
+    }
+}
+
 function InternalNew-ManifestFile {
     [cmdletbinding()]
     param(
@@ -440,6 +596,8 @@ function InternalNew-ManifestFile {
         [System.IO.FileInfo]$packOutput,
         [Parameter(Mandatory=$true,Position=1)]
         $publishProperties,
+        [Parameter(Position=2)]
+        [HashTable]$EFMigrationData,
         [switch]$isSource
     )
     process{
@@ -466,6 +624,24 @@ function InternalNew-ManifestFile {
             $manifestAttribute = @{'path'="$iisAppPath"}
             $manifestData = @{'iisApp'=$manifestAttribute }
             InternalNew-ManifestForProvider -xmlDocument $xmlObj -providerData $manifestData
+            if ($publishMethod -eq 'MSDeploy') {
+                if ($isSource -and $EFMigrationData -ne $null -and $EFMigrationData.Contains('EFSqlFile')) {
+                    foreach ($sqlFile in $EFMigrationData['EFSqlFile'].Values) {
+                        $manifestData = @{}
+                        $manifestAttribute = @{'path'="$sqlFile"}
+                        $manifestData.Add('dbFullSql',$manifestAttribute)
+                        InternalNew-ManifestForProvider -xmlDocument $xmlObj -providerData $manifestData                        
+                    }
+                }
+                elseif ($publishProperties['DestinationConnectionStrings'] -ne $null -and $publishProperties['DestinationConnectionStrings'].Count -gt 0) {
+                    foreach ($connectionString in $publishProperties['DestinationConnectionStrings'].Values) {
+                        $manifestData = @{}
+                        $manifestAttribute = @{'path'="$connectionString"}
+                        $manifestData.Add('dbFullSql',$manifestAttribute)
+                        InternalNew-ManifestForProvider -xmlDocument $xmlObj -providerData $manifestData
+                    }
+                }
+            }
         }
         else {
             throw ('The publish method - {0} - is not supported' -f $publishMethod)
@@ -495,15 +671,15 @@ function Publish-AspNetMSDeploy{
         if($publishProperties){
             $publishPwd = $publishProperties['Password']
             
-            $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties
+            $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties -packOutput $packOutput
             
             $iisAppPath = $publishProperties['DeployIisAppPath']
             
             # create source manifest
-            [System.IO.FileInfo]$sourceXMLFile = InternalNew-ManifestFile -packOutput $packOutput -publishProperties $publishProperties -isSource
+            [System.IO.FileInfo]$sourceXMLFile = InternalNew-ManifestFile -packOutput $packOutput -publishProperties $publishProperties -EFMigrationData $sharedArgs.EFMigrationData -isSource
             
             # create destination manifest   
-            [System.IO.FileInfo]$destXMLFile = InternalNew-ManifestFile -packOutput $packOutput -publishProperties $publishProperties
+            [System.IO.FileInfo]$destXMLFile = InternalNew-ManifestFile -packOutput $packOutput -publishProperties $publishProperties -EFMigrationData $sharedArgs.EFMigrationData
   
             <#
             "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe" 
@@ -577,8 +753,8 @@ function Publish-AspNetMSDeployPackage{
 
             # if the dir doesn't exist create it
             $pkgDir = ((new-object -typename System.IO.FileInfo($packageDestFilepah)).Directory)
-            if(!($pkgDir.Exists)) {
-                $pkgDir.Create() | Out-Null
+            if(!(Test-Path -Path $pkgDir)) {
+                New-Item $pkgDir -type Directory | Out-Null
             }
 
             <#
@@ -586,8 +762,7 @@ function Publish-AspNetMSDeployPackage{
                 -source:manifest='C:\Users\testuser\AppData\Local\Temp\PublishTemp\obj\SourceManifest.xml'
                 -dest:package=c:\temp\path\contosoweb.zip
                 -verb:sync 
-                -enableRule:DoNotDeleteRule 
-                -enableLink:contentAspNetCoreExtension 
+                -enableRule:DoNotDeleteRule  
                 -retryAttempts=2 
             #>
 
@@ -672,7 +847,7 @@ function Publish-AspNetFileSystem{
         # we use msdeploy.exe because it supports incremental publish/skips/replacements/etc
         # msdeploy.exe -verb:sync -source:manifest='C:\Users\testuser\AppData\Local\Temp\PublishTemp\obj\SourceManifest.xml' -dest:manifest='C:\Users\testuser\AppData\Local\Temp\PublishTemp\obj\DestManifest.xml'
         
-        $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties
+        $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties -packOutput $packOutput
 
         #create source manifest
         [System.IO.FileInfo]$sourceXMLFile = InternalNew-ManifestFile -packOutput $packOutput -publishProperties $publishProperties -isSource 
@@ -689,6 +864,14 @@ function Publish-AspNetFileSystem{
         $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
         $command | Print-CommandString
         Execute-Command -exePath (Get-MSDeploy) -arguments ($publishArgs -join ' ')
+        
+        # copy sql script to script folder
+        if (($sharedArgs.EFMigrationData['EFSqlFile'] -ne $null) -and ($sharedArgs.EFMigrationData['EFSqlFile'].Count -gt 0)) {
+            $scriptDir = Join-Path $pubOut 'script'
+            foreach ($sqlFile in $sharedArgs.EFMigrationData['EFSqlFile'].Values) {
+                InternalNew-CopyFileToFolder -destDir $scriptDir -file $sqlFile
+            }
+        }
     }
 }
 
@@ -785,7 +968,9 @@ function Execute-Command {
         [Parameter(Mandatory = $true,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
         [String]$exePath,
         [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
-        [String]$arguments
+        [String]$arguments,
+		[Parameter(Position=2)]
+		[System.IO.FileInfo]$workingDirectory
         )
     process{
         $psi = New-Object -TypeName System.Diagnostics.ProcessStartInfo
@@ -795,6 +980,9 @@ function Execute-Command {
         $psi.RedirectStandardError=$true
         $psi.FileName = $exePath
         $psi.Arguments = $arguments
+		if(Test-Path -Path $workingDirectory) {
+		    $psi.WorkingDirectory = $workingDirectory
+		}
 
         $process = New-Object -TypeName System.Diagnostics.Process
         $process.StartInfo = $psi
