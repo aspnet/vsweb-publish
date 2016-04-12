@@ -16,7 +16,7 @@ namespace RC2_WebApp_EF
         {
             // Set up configuration sources.
             var builder = new ConfigurationBuilder()
-				.SetBasePath(Directory.GetCurrentDirectory())
+                .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json")
                 .AddEnvironmentVariables();
             Configuration = builder.Build();
@@ -27,15 +27,13 @@ namespace RC2_WebApp_EF
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-			var connstr = Configuration["Data:DefaultConnection:ConnectionString"];
-			connstr = string.Concat(connstr,string.Format("AttachDbFilename={0}\\EFTest.mdf;",Directory.GetCurrentDirectory()));
-			 
+            var connstr = Configuration["Data:DefaultConnection:ConnectionString"];
+             
             services.AddEntityFramework()
                     .AddDbContext<BlogsContext>(o => o.UseSqlServer(connstr));
-					//.AddDbContext<StudentsContext>(o => o.UseSqlServer(connstr));
             
             // Add framework services.
-            //services.AddMvc();
+            services.AddMvc();
         }
  
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -43,23 +41,19 @@ namespace RC2_WebApp_EF
         {
             loggerFactory.AddConsole(Configuration.GetSection("Logging")); 
             loggerFactory.AddDebug();   
- 
-            //app.UseIISPlatformHandler();
   
             app.UseStaticFiles();
-
-			//app.UseMvcWithDefaultRoute();
-            //app.UseMvc(routes => 
-            //{
-            //    routes.MapRoute(
-            //        name: "default",
-            //        template: "{controller=Home}/{action=Index}/{id?}");
-            //});
+            
+            app.UseMvc(routes => 
+            {
+                routes.MapRoute(
+                    name: "default",
+                    template: "{controller=Home}/{action=Index}/{id?}");
+            });
         }
-		
-		public static void Main(string[] args)
+        
+        public static void Main(string[] args)
         {
-
             var host = new WebHostBuilder()
                 .UseKestrel() 
                 .UseDefaultHostingConfiguration(args)
