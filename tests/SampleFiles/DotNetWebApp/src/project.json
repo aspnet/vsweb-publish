@@ -1,0 +1,66 @@
+﻿{
+  "version": "1.0.0-*",
+
+  "description": "This is a web app sample on RC2 and dotnet.exe",
+
+  "compilationOptions": {
+    "preserveCompilationContext": true,
+    "emitEntryPoint": true
+  },
+
+  "content": [
+    "wwwroot",
+    "Views",
+    "appSettings.json",
+	"web.config"
+  ],
+
+  "dependencies": {
+    "Microsoft.AspNetCore.Mvc": "1.0.0-*",
+    "Microsoft.AspNetCore.Mvc.TagHelpers": "1.0.0-*",
+    "Microsoft.AspNetCore.Server.Kestrel": "1.0.0-*",
+    "Microsoft.AspNetCore.StaticFiles": "1.0.0-*",
+    "Microsoft.Extensions.Configuration.FileProviderExtensions": "1.0.0-*",
+    "Microsoft.Extensions.Configuration.Json": "1.0.0-*",
+    "Microsoft.Extensions.Logging": "1.0.0-*",
+    "Microsoft.Extensions.Logging.Console": "1.0.0-*",
+    "Microsoft.Extensions.Logging.Debug": "1.0.0-*",
+    "Microsoft.EntityFrameworkCore": "1.0.0-*",
+	"Microsoft.EntityFrameworkCore.Commands": "1.0.0-*",
+	"Microsoft.EntityFrameworkCore.SqlServer": "1.0.0-*",
+	"Microsoft.NETCore.App": "1.0.0-*"
+  },
+
+  "frameworks": {
+    "netstandardapp1.5": {
+		"imports": ["dnxcore50", "portable-net45+win8"],
+		"dependencies": {
+			"Microsoft.NETCore.App": "1.0.0-*"
+		}
+    }
+  },
+  
+  "runtimes" : {
+	"win7-x64" : {}
+  },
+  
+  "tools": {
+    "dotnet-publish-iis": "1.0.0-*",
+    "dotnet-ef": "1.0.0-*"
+  },
+
+  "exclude": [
+    "wwwroot",
+    "node_modules"
+  ],
+
+  "publishExclude": [
+    "*.user",
+    "*.vspscc"
+  ],
+
+  "scripts": {
+     
+    "postpublish": "dotnet publish-iis --publish-folder %publish:OutputPath%"
+  }
+}
