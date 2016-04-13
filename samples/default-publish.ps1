@@ -4,7 +4,7 @@
 [cmdletbinding(SupportsShouldProcess=$true)]
 param($publishProperties=@{}, $packOutput,$pubProfilePath, $nugetUrl)
 
-# to learn more about this file visit http://go.microsoft.com/fwlink/?LinkId=524327
+# to learn more about this file visit https://go.microsoft.com/fwlink/?LinkId=524327
 $publishModuleVersion = '1.0.2-beta2'
 
 function Get-PublishModulePath{
@@ -53,7 +53,7 @@ function Enable-PackageDownloader{
     [cmdletbinding()]
     param(
         $toolsDir = "$env:LOCALAPPDATA\Microsoft\Web Tools\Publish\package-downloader-$publishModuleVersion\",
-        $pkgDownloaderDownloadUrl = 'http://go.microsoft.com/fwlink/?LinkId=524325') # package-downloader.psm1
+        $pkgDownloaderDownloadUrl = 'https://go.microsoft.com/fwlink/?LinkId=524325') # package-downloader.psm1
     process{
         if(get-module package-downloader){
             remove-module package-downloader | Out-Null
