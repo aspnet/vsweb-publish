@@ -1,0 +1,30 @@
+@model IEnumerable<RC2_WebApp_EF.Student>
+
+@{
+    ViewBag.Title = "Students";
+}
+
+<h2>Students</h2>
+
+<p>
+    <a asp-controller="Students" asp-action="Create">Create New</a>
+</p>
+
+<table class="table">
+    <tr>
+        <th>Id</th>
+        <th>Url</th>
+    </tr>
+
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Id)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Name)
+            </td>
+        </tr>
+    }
+</table>
