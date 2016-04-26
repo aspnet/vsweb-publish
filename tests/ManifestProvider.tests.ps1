@@ -31,6 +31,10 @@ Describe 'Create manifest xml file tests' {
         $publishProperties =@{
             'WebPublishMethod'='MSDeploy'
         }
+		if(!(Test-Path rootDir))
+		{
+			mkdir $rootDir
+		}
         
         $xmlFile = InternalNew-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -isSource
         # verify
@@ -47,7 +51,11 @@ Describe 'Create manifest xml file tests' {
             'WebPublishMethod'='MSDeploy'
             'DeployIisAppPath'='WebSiteName'
         }
-        
+        if(!(Test-Path rootDir))
+		{
+			mkdir $rootDir
+		}
+		
         $xmlFile = InternalNew-ManifestFile -packOutput $rootDir -publishProperties $publishProperties
         # verify
         (Test-Path -Path $xmlFile) | should be $true
@@ -63,7 +71,11 @@ Describe 'Create manifest xml file tests' {
         $publishProperties =@{
             'WebPublishMethod'='FileSystem'           
         }
-        
+        if(!(Test-Path rootDir))
+		{
+			mkdir $rootDir
+		}
+		
         $xmlFile = InternalNew-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -isSource
         # verify
         (Test-Path -Path $xmlFile) | should be $true
@@ -75,6 +87,10 @@ Describe 'Create manifest xml file tests' {
     
 	It 'generate dest manifest file for FileSystem provider' {
 		$rootDir = Join-Path $TestDrive 'ManifestFileCase21'
+		if(!(Test-Path rootDir))
+		{
+			mkdir $rootDir
+		}
         $webRootName = 'wwwroot'
         $publishURL = 'c:\Samples'
         $publishProperties =@{
@@ -92,7 +108,11 @@ Describe 'Create manifest xml file tests' {
     }    
     
 	It 'generate source manifest file for Package provider' {
-		$rootDir = Join-Path $TestDrive 'ManifestFileCase30'        
+		$rootDir = Join-Path $TestDrive 'ManifestFileCase30'  
+		if(!(Test-Path rootDir))
+		{
+			mkdir $rootDir
+		}		
         $iisAppPath = $rootDir
         $publishProperties =@{
             'WebPublishMethod'='Package'
