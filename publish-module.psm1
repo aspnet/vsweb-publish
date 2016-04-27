@@ -227,7 +227,7 @@ function GetInternal-SharedMSDeployParametersFrom{
         # add EF Migration
         if (($publishProperties['EfMigrations'] -ne $null) -and $publishProperties['EfMigrations'].Count -gt 0){
             if (!(Test-Path -Path $publishProperties['ProjectPath'])) {
-                throw 'ProjectPath does not exist when there exists EF migration'
+                throw 'ProjectPath property needs to be defined in the pubxml for EF migration.'
             }
             try
             {
@@ -429,19 +429,19 @@ function InternalNew-ManifestForProvider {
     }
 } 
 
-function InternalNew-PublishArtifactsPath {
+function InternalNew-PublishTempPath {
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true, Position=0)]
         [System.IO.FileInfo]$packOutput
     )
     process {
-        $pubArtDir = Join-Path (Get-Item $packOutput).Parent.FullName 'obj'
-        if (!(Test-Path -Path $pubArtDir)) {
-            New-Item -Path $pubArtDir -type directory | Out-Null
+        $publishTempDir = Join-Path (Get-Item $packOutput).Parent.FullName 'obj'
+        if (!(Test-Path -Path $publishTempDir)) {
+            New-Item -Path $publishTempDir -type directory | Out-Null
         }
         # return 
-        [System.IO.FileInfo]$pubArtDir
+        [System.IO.FileInfo]$publishTempDir
     }
 }
 
@@ -450,11 +450,11 @@ function InternalGet-DotNetExePath {
         $dotnetinstallpath = $env:dotnetinstallpath
         if (!$dotnetinstallpath) {
             $DotNetRegItem = Get-ItemProperty -Path 'hklm:\software\dotnet\setup\'
-            if ($DotNetRegItem -and $DotNetRegItem.InstallDir){
-                $dotnetinstallpath = Join-Path $DotNetRegItem.InstallDir -ChildPath 'dotnet.exe'
-            }
-            elseif ($env:DOTNET_HOME) {
+            if ($env:DOTNET_HOME) {
                 $dotnetinstallpath = Join-Path $env:DOTNET_HOME -ChildPath 'dotnet.exe'
+            }
+            elseif ($DotNetRegItem -and $DotNetRegItem.InstallDir){
+                $dotnetinstallpath = Join-Path $DotNetRegItem.InstallDir -ChildPath 'dotnet.exe'
             }
         }
         if (!(Test-Path $dotnetinstallpath)) {
@@ -481,9 +481,9 @@ function InternalGet-EFMigrationScript {
         foreach ($dbContextName in $EFConnectionString.Keys) {
             try 
             {
-                $tempDir = InternalNew-PublishArtifactsPath -packOutput $packOutput
+                $tempDir = InternalNew-PublishTempPath -packOutput $packOutput
                 $efScriptFile = Join-Path $tempDir ('{0}.sql' -f $dbContextName)
-                $arg = ('ef migrations script -i -o {0} -c {1}' -f
+                $arg = ('ef migrations script --idempotent --output {0} --context {1}' -f
                                        $efScriptFile,
                                        $dbContextName)
 
@@ -527,44 +527,39 @@ function InternalSave-ConfigEnvironmentFile {
             '{}' | Set-Content -path $configProdJsonFilePath -Force
         }
         
-        $originalJsonString = Get-Content -Path $configProdJsonFilePath -Raw
-        $jsonObj = ConvertFrom-Json -InputObject $originalJsonString
+        $jsonObj = ConvertFrom-Json -InputObject (Get-Content -Path $configProdJsonFilePath -Raw)
         # update when there exists one or more connection strings
         if ($connectionString -ne $null) {            
             foreach ($name in $connectionString.Keys) {
                 #check for hierarchy style
-                if ($jsonObj.$name.ConnectionString) {
-                    $jsonObj.$name.ConnectionString = $connectionString[$name]
+                if ($jsonObj.ConnectionStrings.$name) {
+                    $jsonObj.ConnectionStrings.$name = $connectionString[$name]
                     continue
                 }
                 #check for horizontal style
-                $horizontalName = '{0}:ConnectionString' -f $name
+                $horizontalName = 'ConnectionStrings.{0}:' -f $name
                 if ($jsonObj.$horizontalName) {
                     $jsonObj.$horizontalName = $connectionString[$name]
                     continue
                 }
                 # create new one
-                if (!($jsonObj.$name)) {
+                if (!($jsonObj.ConnectionStrings)) {
                     $contentForDefaultConnection = @'
 {{
-    "ConnectionString" : "{0}"
+    "{0}" : "{1}"
 }}
 '@
-                    $contentForDefaultConnection = $contentForDefaultConnection -f $connectionString[$name]
-                    $jsonObj | Add-Member -name $name -value (ConvertFrom-Json -InputObject $contentForDefaultConnection) -MemberType NoteProperty | Out-Null
+                    $contentForDefaultConnection = $contentForDefaultConnection -f $name, $connectionString[$name]
+                    $jsonObj | Add-Member -name 'ConnectionStrings' -value (ConvertFrom-Json -InputObject $contentForDefaultConnection) -MemberType NoteProperty | Out-Null
                 }
-                elseif (!($jsonObj.$name.ConnectionString)) {
-                    $jsonObj.$name | Add-Member -name "ConnectionString" -value $connectionString[$name] -MemberType NoteProperty | Out-Null  
+                elseif (!($jsonObj.ConnectionStrings.$name)) {
+                    $jsonObj.ConnectionStrings | Add-Member -name $name -value $connectionString[$name] -MemberType NoteProperty | Out-Null
                 }
             }            
-        }            
+        }
         
-        $resultJsonString = ConvertTo-Json -InputObject $jsonObj
-        $diffObj = Compare-Object $originalJsonString $resultJsonString
-        if ($diffObj.Count -gt 0) { 
-            # save when there exists new content
-            $resultJsonString | Set-Content -Path $configProdJsonFilePath -Force
-        }            
+        $jsonObj | ConvertTo-Json | Set-Content -Path $configProdJsonFilePath -Force
+          
         #return the path of config.[environment].json
         $configProdJsonFilePath
     }
@@ -597,13 +592,13 @@ function InternalNew-ManifestFile {
         $publishProperties,
         [Parameter(Position=2)]
         [HashTable]$EFMigrationData,
-        [switch]$isSource
+        [switch]$isSourceManifest
     )
     process{
         $xmlObj = InternalNew-ManifestDocument
         $publishMethod = $publishProperties['WebPublishMethod']
         if ($publishMethod -eq 'FileSystem') {
-            if ($isSource) {
+            if ($isSourceManifest) {
                 $manifestAttribute = @{'path'="$packOutput"}
             }
             else {
@@ -614,7 +609,7 @@ function InternalNew-ManifestFile {
             InternalNew-ManifestForProvider -xmlDocument $xmlObj -providerData $manifestData
         }
         elseif($publishMethod -eq 'MSDeploy' -or $publishMethod -eq 'Package') {
-            if ($isSource) {
+            if ($isSourceManifest) {
                 $iisAppPath = $packOutput
             }
             else {
@@ -624,7 +619,7 @@ function InternalNew-ManifestFile {
             $manifestData = @{'iisApp'=$manifestAttribute }
             InternalNew-ManifestForProvider -xmlDocument $xmlObj -providerData $manifestData
             if ($publishMethod -eq 'MSDeploy') {
-                if ($isSource -and $EFMigrationData -ne $null -and $EFMigrationData.Contains('EFSqlFile')) {
+                if ($isSourceManifest -and $EFMigrationData -ne $null -and $EFMigrationData.Contains('EFSqlFile')) {
                     foreach ($sqlFile in $EFMigrationData['EFSqlFile'].Values) {
                         $manifestData = @{}
                         $manifestAttribute = @{'path'="$sqlFile"}
@@ -645,8 +640,8 @@ function InternalNew-ManifestFile {
         else {
             throw ('The publish method - {0} - is not supported' -f $publishMethod)
         }
-        $paDir = InternalNew-PublishArtifactsPath -packOutput $packOutput
-        if ($isSource) {
+        $paDir = InternalNew-PublishTempPath -packOutput $packOutput
+        if ($isSourceManifest) {
             $XMLFile = Join-Path $paDir 'SourceManifest.xml'
         }
         else {
@@ -655,7 +650,7 @@ function InternalNew-ManifestFile {
         $xmlObj.OuterXml | Set-Content -path $XMLFile -Force
         # return 
         [System.IO.FileInfo]$XMLFile
-    } 
+    }
 }
 
 function Publish-AspNetMSDeploy{
@@ -968,8 +963,8 @@ function Execute-Command {
         [String]$exePath,
         [Parameter(Mandatory = $true,Position=1,ValueFromPipelineByPropertyName=$true)]
         [String]$arguments,
-		[Parameter(Position=2)]
-		[System.IO.FileInfo]$workingDirectory
+        [Parameter(Position=2)]
+        [System.IO.FileInfo]$workingDirectory
         )
     process{
         $psi = New-Object -TypeName System.Diagnostics.ProcessStartInfo
@@ -979,9 +974,9 @@ function Execute-Command {
         $psi.RedirectStandardError=$true
         $psi.FileName = $exePath
         $psi.Arguments = $arguments
-		if($workingDirectory -and (Test-Path -Path $workingDirectory)) {
-		    $psi.WorkingDirectory = $workingDirectory
-		}
+        if($workingDirectory -and (Test-Path -Path $workingDirectory)) {
+            $psi.WorkingDirectory = $workingDirectory
+        }
 
         $process = New-Object -TypeName System.Diagnostics.Process
         $process.StartInfo = $psi
@@ -1168,5 +1163,3 @@ if($env:IsDeveloperMachine){
 
 # register the handlers so that Publish-AspNet can be called
 InternalRegister-AspNetKnownPublishHandlers
-
-
