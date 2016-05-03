@@ -1,4 +1,4 @@
-﻿[cmdletbinding()]
+[cmdletbinding()] 
 param()
 
 function Get-ScriptDirectory
