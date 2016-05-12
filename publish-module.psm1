@@ -50,7 +50,7 @@ function InternalOverrideSettingsFromEnv{
 
             }
 
-            foreach($name in ($settingNames.Clone())){
+            foreach($name in @($settingNames)){
                 $fullname = ('{0}{1}' -f $prefix,$name)
                 if(Test-Path "env:$fullname"){
                     $settingsObj.$name = ((get-childitem "env:$fullname").Value)
