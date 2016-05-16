@@ -542,15 +542,10 @@ function InternalSave-ConfigEnvironmentFile {
                 }
                 # create new one
                 if (!($jsonObj.ConnectionStrings)) {
-                    $contentForDefaultConnection = @'
-{{
-    "{0}" : "{1}"
-}}
-'@
-                    $contentForDefaultConnection = $contentForDefaultConnection -f $name, $connectionString[$name]
+                    $contentForDefaultConnection = '{}'
                     $jsonObj | Add-Member -name 'ConnectionStrings' -value (ConvertFrom-Json -InputObject $contentForDefaultConnection) -MemberType NoteProperty | Out-Null
                 }
-                elseif (!($jsonObj.ConnectionStrings.$name)) {
+                if (!($jsonObj.ConnectionStrings.$name)) {
                     $jsonObj.ConnectionStrings | Add-Member -name $name -value $connectionString[$name] -MemberType NoteProperty | Out-Null
                 }
             }            
@@ -625,8 +620,8 @@ function InternalNew-ManifestFile {
                         InternalNew-ManifestForProvider -xmlDocument $xmlObj -providerData $manifestData                        
                     }
                 }
-                elseif ($publishProperties['DestinationConnectionStrings'] -ne $null -and $publishProperties['DestinationConnectionStrings'].Count -gt 0) {
-                    foreach ($connectionString in $publishProperties['DestinationConnectionStrings'].Values) {
+                elseif ($publishProperties['EfMigrations'] -ne $null -and $publishProperties['EfMigrations'].Count -gt 0) {
+                    foreach ($connectionString in $publishProperties['EfMigrations'].Values) {
                         $manifestData = @{}
                         $manifestAttribute = @{'path'="$connectionString"}
                         $manifestData.Add('dbFullSql',$manifestAttribute)
@@ -1158,3 +1153,4 @@ if($env:IsDeveloperMachine){
 
 # register the handlers so that Publish-AspNet can be called
 InternalRegister-AspNetKnownPublishHandlers
+
