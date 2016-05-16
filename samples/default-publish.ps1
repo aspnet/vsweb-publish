@@ -5,7 +5,7 @@
 param($publishProperties=@{}, $packOutput,$pubProfilePath, $nugetUrl)
 
 # to learn more about this file visit https://go.microsoft.com/fwlink/?LinkId=524327
-$publishModuleVersion = '1.0.2-beta2'
+$publishModuleVersion = '1.1.0'
 
 function Get-PublishModulePath{
     [cmdletbinding()]
