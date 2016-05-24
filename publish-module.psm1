@@ -680,13 +680,18 @@ function Publish-AspNetMSDeploy{
             if(-not [string]::IsNullOrWhiteSpace($publishProperties['MSDeployPublishMethod'])){
                 $serviceMethod = $publishProperties['MSDeployPublishMethod']
             }
+            
+            $msdeployComputerName= InternalNormalize-MSDeployUrl -serviceUrl $publishProperties['MSDeployServiceURL'] -siteName $iisAppPath -serviceMethod $serviceMethod
+            if($publishProperties['UseMSDeployServiceURLAsIs'] -eq $true){
+               $msdeployComputerName = $publishProperties['MSDeployServiceURL']
+            }
 
             $publishArgs = @()
             #use manifest to publish
             $publishArgs += ('-source:manifest=''{0}''' -f $sourceXMLFile.FullName)
             $publishArgs += ('-dest:manifest=''{0}'',ComputerName=''{1}'',UserName=''{2}'',Password=''{3}'',IncludeAcls=''False'',AuthType=''Basic''{4}' -f 
                                     $destXMLFile.FullName,
-                                    (InternalNormalize-MSDeployUrl -serviceUrl $publishProperties['MSDeployServiceURL'] -serviceMethod $serviceMethod),
+                                    $msdeployComputerName,
                                     $publishProperties['UserName'],
                                     $publishPwd,
                                     $sharedArgs.DestFragment)
@@ -1030,6 +1035,8 @@ function InternalNormalize-MSDeployUrl{
         [Parameter(Position=0,Mandatory=$true)]
         [string]$serviceUrl,
 
+        [string] $siteName,
+        
         [ValidateSet('WMSVC','RemoteAgent','InProc')]
         [string]$serviceMethod = 'WMSVC'
     )
@@ -1061,6 +1068,11 @@ function InternalNormalize-MSDeployUrl{
                 # if no path then add one
                 if([string]::Compare('/',$serviceUriBuilder.Path,[StringComparison]::OrdinalIgnoreCase) -eq 0){
                     $serviceUriBuilder.Path = $msdeployAxd
+                }
+                
+                if ([string]::IsNullOrEmpty($serviceUriBuilder.Query) -and -not([string]::IsNullOrEmpty($siteName)))
+                {
+                    $serviceUriBuilder.Query = "site=" + $siteName;
                 }
 
                 $resultUrl = $serviceUriBuilder.Uri.AbsoluteUri

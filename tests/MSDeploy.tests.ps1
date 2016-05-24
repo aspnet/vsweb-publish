@@ -52,7 +52,7 @@ Describe 'MSDeploy unit tests' {
         }
 
         [string]$lastCommand = ($global:lastCommandToGetMSDeploy)
-        $lastCommand.Contains("ComputerName='https://contoso.scm.azurewebsites.net/msdeploy.axd'") | Should Be $true
+        $lastCommand.Contains("ComputerName='https://contoso.scm.azurewebsites.net/msdeploy.axd?site=contoso'") | Should Be $true
         $lastCommand.Contains('UserName=''$contoso''') | Should Be $true
         $lastCommand.Contains("AuthType='Basic'") | Should Be $true
         $lastCommand.Contains('-verb:sync') | Should Be $true
