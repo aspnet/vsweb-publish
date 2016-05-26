@@ -22,6 +22,7 @@ $global:AspNetPublishSettings = New-Object -TypeName PSCustomObject @{
         'AllowUntrustedCertificate'= $false
         'MSDeployPackageContentFoldername'='website\'
         'EnvironmentName' = 'Production'
+        'AuthType'='Basic'
     }
 }
 
@@ -689,11 +690,12 @@ function Publish-AspNetMSDeploy{
             $publishArgs = @()
             #use manifest to publish
             $publishArgs += ('-source:manifest=''{0}''' -f $sourceXMLFile.FullName)
-            $publishArgs += ('-dest:manifest=''{0}'',ComputerName=''{1}'',UserName=''{2}'',Password=''{3}'',IncludeAcls=''False'',AuthType=''Basic''{4}' -f 
+            $publishArgs += ('-dest:manifest=''{0}'',ComputerName=''{1}'',UserName=''{2}'',Password=''{3}'',IncludeAcls=''False'',AuthType=''{4}''{5}' -f 
                                     $destXMLFile.FullName,
                                     $msdeployComputerName,
                                     $publishProperties['UserName'],
                                     $publishPwd,
+                                    $publishProperties['AuthType'],
                                     $sharedArgs.DestFragment)
             $publishArgs += '-verb:sync'
             $publishArgs += $sharedArgs.ExtraArgs
