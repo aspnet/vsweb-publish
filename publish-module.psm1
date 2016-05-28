@@ -523,7 +523,7 @@ function InternalSave-ConfigEnvironmentFile {
         
         if(!(Test-Path -Path $configProdJsonFilePath)) {
             # create new file
-            '{}' | Set-Content -path $configProdJsonFilePath -Force
+            '{}' | out-file -encoding utf8 -filePath $configProdJsonFilePath -Force
         }
         
         $jsonObj = ConvertFrom-Json -InputObject (Get-Content -Path $configProdJsonFilePath -Raw)
@@ -552,7 +552,7 @@ function InternalSave-ConfigEnvironmentFile {
             }            
         }
         
-        $jsonObj | ConvertTo-Json | Set-Content -Path $configProdJsonFilePath -Force
+        $jsonObj | ConvertTo-Json | out-file -encoding utf8 -filePath $configProdJsonFilePath -Force
           
         #return the path of config.[environment].json
         $configProdJsonFilePath
@@ -641,7 +641,7 @@ function InternalNew-ManifestFile {
         else {
             $XMLFile = Join-Path $paDir 'DestManifest.xml'
         }
-        $xmlObj.OuterXml | Set-Content -path $XMLFile -Force
+        $xmlObj.OuterXml | out-file -encoding utf8 -filePath $XMLFile -Force
         # return 
         [System.IO.FileInfo]$XMLFile
     }
