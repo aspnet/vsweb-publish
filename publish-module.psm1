@@ -23,6 +23,7 @@ $global:AspNetPublishSettings = New-Object -TypeName PSCustomObject @{
         'MSDeployPackageContentFoldername'='website\'
         'EnvironmentName' = 'Production'
         'AuthType'='Basic'
+        'MSDeployPublishMethod'='WMSVC'
     }
 }
 
@@ -677,12 +678,11 @@ function Publish-AspNetMSDeploy{
                 -retryAttempts=2"
             #>
 
-            $serviceMethod = 'WMSVC'
             if(-not [string]::IsNullOrWhiteSpace($publishProperties['MSDeployPublishMethod'])){
                 $serviceMethod = $publishProperties['MSDeployPublishMethod']
             }
             
-            $msdeployComputerName= InternalNormalize-MSDeployUrl -serviceUrl $publishProperties['MSDeployServiceURL'] -siteName $iisAppPath -serviceMethod $serviceMethod
+            $msdeployComputerName= InternalNormalize-MSDeployUrl -serviceUrl $publishProperties['MSDeployServiceURL'] -siteName $iisAppPath -serviceMethod $publishProperties['MSDeployPublishMethod']
             if($publishProperties['UseMSDeployServiceURLAsIs'] -eq $true){
                $msdeployComputerName = $publishProperties['MSDeployServiceURL']
             }
