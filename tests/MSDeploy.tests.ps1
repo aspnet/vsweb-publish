@@ -196,7 +196,6 @@ Describe 'MSDeploy App Offline' {
 
         [string]$lastCommand = ($global:lastCommandToGetMSDeploy).ToLowerInvariant()
         $lastCommand.Contains('-enablerule:appoffline') | Should Be $true
-        $lastCommand.Contains(',appofflinetemplate="offline-template.html"') | Should Be $true
     }
 }
 
