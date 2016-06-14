@@ -35,11 +35,18 @@ Describe 'Create manifest xml file tests' {
 		{
 			mkdir $rootDir
 		}
+
+        [System.Collections.ArrayList]$providerDataArray = @()
+
+        $iisAppSourceKeyValue=@{"iisApp" = @{"path"=$iisAppPath}}
+        $providerDataArray.Add($iisAppSourceKeyValue) | Out-Null
+
         
-        $xmlFile = InternalNew-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -isSource
+        $xmlFile = GenerateInternal-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -providerDataArray $providerDataArray -manifestFileName 'SourceManifest.xml'
         # verify
         (Test-Path -Path $xmlFile) | should be $true
-        $pubArtifactDir = Join-Path $TestDrive 'obj'
+
+        $pubArtifactDir = [io.path]::combine([io.path]::GetTempPath(),'PublishTemp','obj','ManifestFileCase00')
         ((Join-Path $pubArtifactDir 'SourceManifest.xml') -eq $xmlFile.FullName) | should be $true 
         $xmlResult = [xml](Get-Content $xmlFile -Raw)
         ($xmlResult.sitemanifest.iisApp.path -eq "$iisAppPath") | should be $true 
@@ -55,12 +62,17 @@ Describe 'Create manifest xml file tests' {
 		{
 			mkdir $rootDir
 		}
+
+        [System.Collections.ArrayList]$providerDataArray = @()
+
+        $iisAppDestinationKeyValue=@{"iisApp" = @{"path"=$publishProperties['DeployIisAppPath']}}
+        $providerDataArray.Add($iisAppDestinationKeyValue) | Out-Null
 		
-        $xmlFile = InternalNew-ManifestFile -packOutput $rootDir -publishProperties $publishProperties
+        $xmlFile = GenerateInternal-ManifestFile -packOutput $rootDir -publishProperties $publishProperties  -providerDataArray $providerDataArray -manifestFileName 'DestinationManifest.xml'
         # verify
         (Test-Path -Path $xmlFile) | should be $true
-        $pubArtifactDir = Join-Path $TestDrive 'obj'
-        ((Join-Path $pubArtifactDir 'DestManifest.xml') -eq $xmlFile.FullName) | should be $true 
+        $pubArtifactDir = [io.path]::combine([io.path]::GetTempPath(),'PublishTemp','obj','ManifestFileCase01')
+        ((Join-Path $pubArtifactDir 'DestinationManifest.xml') -eq $xmlFile.FullName) | should be $true 
         $xmlResult = [xml](Get-Content $xmlFile -Raw)
         ($xmlResult.sitemanifest.iisApp.path -eq 'WebSiteName') | should be $true        
     }   
@@ -75,11 +87,15 @@ Describe 'Create manifest xml file tests' {
 		{
 			mkdir $rootDir
 		}
+
+        [System.Collections.ArrayList]$providerDataArray = @()
+        $contentPathSourceKeyValue=@{"contentPath" = @{"path"=$rootDir}}
+        $providerDataArray.Add($contentPathSourceKeyValue) | Out-Null
 		
-        $xmlFile = InternalNew-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -isSource
+        $xmlFile = GenerateInternal-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -providerDataArray $providerDataArray -manifestFileName 'SourceManifest.xml'
         # verify
         (Test-Path -Path $xmlFile) | should be $true
-        $pubArtifactDir = Join-Path $TestDrive 'obj'
+        $pubArtifactDir = [io.path]::combine([io.path]::GetTempPath(),'PublishTemp','obj','ManifestFileCase20')
         ((Join-Path $pubArtifactDir 'SourceManifest.xml') -eq $xmlFile.FullName) | should be $true 
         $xmlResult = [xml](Get-Content $xmlFile -Raw)
         ($xmlResult.sitemanifest.contentPath.path -eq "$rootDir") | should be $true         
@@ -98,11 +114,15 @@ Describe 'Create manifest xml file tests' {
             'publishUrl'="$publishURL"
         }
         
-        $xmlFile = InternalNew-ManifestFile -packOutput $rootDir -publishProperties $publishProperties
+        [System.Collections.ArrayList]$providerDataArray = @()
+        $contentPathDestinationKeyValue=@{"contentPath" = @{"path"=$publishUrl}}
+        $providerDataArray.Add($contentPathDestinationKeyValue) | Out-Null
+
+        $xmlFile = GenerateInternal-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -providerDataArray $providerDataArray -manifestFileName 'DestinationManifest.xml'
         # verify
         (Test-Path -Path $xmlFile) | should be $true
-        $pubArtifactDir = Join-Path $TestDrive 'obj'
-        ((Join-Path $pubArtifactDir 'DestManifest.xml') -eq $xmlFile.FullName) | should be $true 
+        $pubArtifactDir = [io.path]::combine([io.path]::GetTempPath(),'PublishTemp','obj','ManifestFileCase21')
+        ((Join-Path $pubArtifactDir 'DestinationManifest.xml') -eq $xmlFile.FullName) | should be $true 
         $xmlResult = [xml](Get-Content $xmlFile -Raw)
         ($xmlResult.sitemanifest.contentPath.path -eq "$publishURL") | should be $true        
     }    
@@ -118,10 +138,13 @@ Describe 'Create manifest xml file tests' {
             'WebPublishMethod'='Package'
         }
         
-        $xmlFile = InternalNew-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -isSource
+        [System.Collections.ArrayList]$providerDataArray = @()
+        $iisAppSourceKeyValue=@{"iisApp" = @{"path"=$rootDir}}
+        $providerDataArray.Add($iisAppSourceKeyValue) | Out-Null
+        $xmlFile = GenerateInternal-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -providerDataArray $providerDataArray -manifestFileName 'SourceManifest.xml'
         # verify
         (Test-Path -Path $xmlFile) | should be $true
-        $pubArtifactDir = Join-Path $TestDrive 'obj'
+        $pubArtifactDir = [io.path]::combine([io.path]::GetTempPath(),'PublishTemp','obj','ManifestFileCase30')
         ((Join-Path $pubArtifactDir 'SourceManifest.xml') -eq $xmlFile.FullName) | should be $true 
         $xmlResult = [xml](Get-Content $xmlFile -Raw)
         ($xmlResult.sitemanifest.iisApp.path -eq "$iisAppPath") | should be $true        

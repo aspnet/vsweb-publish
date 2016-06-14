@@ -157,7 +157,7 @@ function GetInternal-ReplacementsMSDeployArgs{
 <#
 .SYNOPSIS
 Returns an array of msdeploy arguments that are used across different providers.
-For example this wil handle useChecksum, appOffline, etc.
+For example this will handle useChecksum, AppOffline etc.
 This will also add default properties if they are missing.
 #>
 function GetInternal-SharedMSDeployParametersFrom{
@@ -188,11 +188,11 @@ function GetInternal-SharedMSDeployParametersFrom{
             $sharedArgs.ExtraArgs += '-usechecksum'
         }
 
-        if($publishProperties['WebPublishMethod'] -eq 'MSDeploy'){
-            $offlineArgs = GetInternal-PublishAppOfflineProperties -publishProperties $publishProperties
-            $sharedArgs.ExtraArgs += $offlineArgs.AdditionalArguments
-            $sharedArgs.DestFragment += $offlineArgs.DestFragment
-            
+        if($publishProperties['EnableMSDeployAppOffline'] -eq $true){
+            $sharedArgs.ExtraArgs += '-enablerule:AppOffline'
+        }
+
+        if($publishProperties['WebPublishMethod'] -eq 'MSDeploy'){           
             if($publishProperties['SkipExtraFilesOnServer'] -eq $true){
                 $sharedArgs.ExtraArgs += '-enableRule:DoNotDeleteRule'
             }
@@ -233,8 +233,8 @@ function GetInternal-SharedMSDeployParametersFrom{
             try
             {
                 # generate T-SQL files
-                $EFSqlFile = InternalGet-EFMigrationScript -projectPath $publishProperties['ProjectPath'] -packOutput $packOutput -EFConnectionString $publishProperties['EfMigrations']
-                $sharedArgs.EFMigrationData.Add('EFSqlFile',$EFSqlFile)
+                $EFSqlFiles = GenerateInternal-EFMigrationScripts -projectPath $publishProperties['ProjectPath'] -packOutput $packOutput -EFMigrations $publishProperties['EfMigrations']
+                $sharedArgs.EFMigrationData.Add('EFSqlFiles',$EFSqlFiles)
             }
             catch
             {
@@ -246,7 +246,7 @@ function GetInternal-SharedMSDeployParametersFrom{
             try
             {
                 # create/update appsettings.[environment].json
-                InternalSave-ConfigEnvironmentFile -packOutput $packOutput -environmentName $publishProperties['EnvironmentName'] -connectionString $publishProperties['DestinationConnectionStrings']
+                GenerateInternal-AppSettingsFile -packOutput $packOutput -environmentName $publishProperties['EnvironmentName'] -connectionStrings $publishProperties['DestinationConnectionStrings']
             }
             catch
             {
@@ -365,107 +365,68 @@ function Publish-AspNet{
     }
 }
 
-function InternalNew-ManifestDocument {
-    [cmdletbinding()]
-    param()
-    process {
-        $xmlDocument = [xml]'<?xml version="1.0" encoding="utf-8"?><sitemanifest></sitemanifest>'
-        #return xml object
-        $xmlDocument
-    }
-}
-
 <#
 .SYNOPSIS
-This will append elements and attributes for a manifest provider
 
-.PARAMETER xmlDocument
-This is a XML document object containing the manifest properties. 
+Inputs:
 
-.PARAMETER providerData
-This is a hash table containing the data to create the elements and attributes for manifest XML. 
-See the examples here for more info on how to use this parameter.
+Example of $xmlDocument: '<?xml version="1.0" encoding="utf-8"?><sitemanifest></sitemanifest>'
+Example of $providerDataArray:
 
-.EXAMPLE Create a manifest xml for iisApp provider and assign web site path
-$xmlDocument = [xml]'<?xml version="1.0" encoding="utf-8"?><sitemanifest></sitemanifest>'
-$attributeData = @{'path'='MyWebSite'}
-$providerData = @{'iisApp'=$attributeData}
-InternalNew-ManifestForProvider -xmlDocument $xmlDocument -providerData $providerData 
+    [System.Collections.ArrayList]$providerDataArray = @()
 
-.EXAMPLE Create a manifest xml for contentPath provider and assign directory path
-$xmlDocument = [xml]'<?xml version="1.0" encoding="utf-8"?><sitemanifest></sitemanifest>'
-$attributeData = @{'path'='c:\samples'}
-$providerData = @{'contentPath'=$attributeData}
-InternalNew-ManifestForProvider -xmlDocument $xmlDocument -providerData $providerData 
+    $iisAppSourceKeyValue=@{"iisApp" = @{"path"='c:\temp\pathtofiles';"appOfflineTemplate" ='offline-template.html'}}
+    $providerDataArray.Add($iisAppSourceKeyValue)
 
-.EXAMPLE Create a manifest xml for dbFullSql provider and assign a database connection
-$xmlDocument = [xml]'<?xml version="1.0" encoding="utf-8"?><sitemanifest></sitemanifest>'
-$attributeData = @{'path'='server=serverName;database=dbName;user id=userName;password=userPassword'}
-$providerData = @{'dbFullSql'=$attributeData}
-InternalNew-ManifestForProvider -xmlDocument $xmlDocument -providerData $providerData  
+    $dbfullsqlKeyValue=@{"dbfullsql" = @{"path"="c:\Temp\PathToSqlFile"}}
+    $providerDataArray.Add($dbfullsqlKeyValue)
 
+    $dbfullsqlKeyValue=@{"dbfullsql" = @{"path"="c:\Temp\PathToSqlFile2"}}
+    $providerDataArray.Add($dbfullsqlKeyValue)
+
+    Manifest File content:
+            <?xml version="1.0" encoding="utf-8"?>
+            <sitemanifest>
+            <iisApp path="c:\temp\pathtofiles" appOfflineTemplate=”offline-template.html" />
+            <dbFullSql path="c:\Temp\PathToSqlFile" />
+            <dbFullSql path="c:\Temp\PathToSqlFile2" />
+            </sitemanifest>
 #>
-function InternalNew-ManifestForProvider {
+function AddInternal-ProviderDataToManifest {
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true, Position=0)]
         [XML]$xmlDocument,
         [Parameter(Position=1)]
-        [HashTable]$providerData
+        [System.Collections.ArrayList]$providerDataArray
     )
     process {
         $siteNode = $xmlDocument.SelectSingleNode("/sitemanifest")
         if ($siteNode -eq $null) {
-            throw 'sitemnifest element is missing in xml object'
+            throw 'sitemanifest element is missing in the xml object'
         }
-        foreach ($providerName in $providerData.Keys) {
-            $providerContent = $providerData[$providerName]
-            $xmlNode = $xmlDocument.CreateElement($providerName)
-            foreach ($contentKey in $providerContent.Keys) {
-                $xmlNode.SetAttribute($contentKey, $providerContent[$contentKey]) | Out-Null
+        foreach ($providerData in $providerDataArray) {
+            foreach ($providerName in $providerData.Keys) {
+                $providerValue = $providerData[$providerName]
+                $xmlNode = $xmlDocument.CreateElement($providerName)
+                foreach ($providerValueKey in $providerValue.Keys) {
+                    $xmlNode.SetAttribute($providerValueKey, $providerValue[$providerValueKey]) | Out-Null
+                }
+                $siteNode.AppendChild($xmlNode) | Out-Null 
             }
-            $siteNode.AppendChild($xmlNode) | Out-Null 
         }
     }
 } 
 
-function InternalNew-PublishTempPath {
-    [cmdletbinding()]
-    param(
-        [Parameter(Mandatory=$true, Position=0)]
-        [System.IO.FileInfo]$packOutput
-    )
-    process {
-        $publishTempDir = Join-Path (Get-Item $packOutput).Parent.FullName 'obj'
-        if (!(Test-Path -Path $publishTempDir)) {
-            New-Item -Path $publishTempDir -type directory | Out-Null
-        }
-        # return 
-        [System.IO.FileInfo]$publishTempDir
-    }
-}
+<#
+.SYNOPSIS
 
-function InternalGet-DotNetExePath {
-    process {
-        $dotnetinstallpath = $env:dotnetinstallpath
-        if (!$dotnetinstallpath) {
-            $DotNetRegItem = Get-ItemProperty -Path 'hklm:\software\dotnet\setup\'
-            if ($env:DOTNET_HOME) {
-                $dotnetinstallpath = Join-Path $env:DOTNET_HOME -ChildPath 'dotnet.exe'
-            }
-            elseif ($DotNetRegItem -and $DotNetRegItem.InstallDir){
-                $dotnetinstallpath = Join-Path $DotNetRegItem.InstallDir -ChildPath 'dotnet.exe'
-            }
-        }
-        if (!(Test-Path $dotnetinstallpath)) {
-            throw 'Unable to find dotnet.exe, please install it and try again'
-        }
-        # return
-        [System.IO.FileInfo]$dotnetinstallpath
-    }
-}
+Example of $EFMigrations:
+            $EFMigrations = @{'CarContext'='Car Context ConnectionString';'MovieContext'='Movie Context Connection String'}
 
-function InternalGet-EFMigrationScript {
+#>
+
+function GenerateInternal-EFMigrationScripts {
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true,Position=0)]
@@ -473,15 +434,15 @@ function InternalGet-EFMigrationScript {
         [Parameter(Mandatory=$true,Position=1)]
         [System.IO.FileInfo]$packOutput,
         [Parameter(Position=2)]
-        [HashTable]$EFConnectionString
+        [HashTable]$EFMigrations
     )
     process {          
         $files = @{}
-        $dotnetExePath = InternalGet-DotNetExePath
-        foreach ($dbContextName in $EFConnectionString.Keys) {
+        $dotnetExePath = GetInternal-DotNetExePath
+        foreach ($dbContextName in $EFMigrations.Keys) {
             try 
             {
-                $tempDir = InternalNew-PublishTempPath -packOutput $packOutput
+                $tempDir = GetInternal-PublishTempPath -packOutput $packOutput
                 $efScriptFile = Join-Path $tempDir ('{0}.sql' -f $dbContextName)
                 $arg = ('ef migrations script --idempotent --output {0} --context {1}' -f
                                        $efScriptFile,
@@ -504,7 +465,14 @@ function InternalGet-EFMigrationScript {
     }
 }
 
-function InternalSave-ConfigEnvironmentFile {
+<#
+.SYNOPSIS
+
+Example of $connectionStrings:
+            $connectionStrings = @{'DefaultConnection'='Default ConnectionString';'CarConnection'='Car Connection String'}
+
+#>
+function GenerateInternal-AppSettingsFile {
     [cmdletbinding()]
     param(
         [Parameter(Mandatory = $true,Position=0)]
@@ -512,7 +480,7 @@ function InternalSave-ConfigEnvironmentFile {
         [Parameter(Mandatory = $true,Position=1)]
         [string]$environmentName,
         [Parameter(Position=2)]
-        [HashTable]$connectionString
+        [HashTable]$connectionStrings
     )
     process {    
         $configProdJsonFile = 'appsettings.{0}.json' -f $environmentName
@@ -529,17 +497,17 @@ function InternalSave-ConfigEnvironmentFile {
         
         $jsonObj = ConvertFrom-Json -InputObject (Get-Content -Path $configProdJsonFilePath -Raw)
         # update when there exists one or more connection strings
-        if ($connectionString -ne $null) {            
-            foreach ($name in $connectionString.Keys) {
+        if ($connectionStrings -ne $null) {            
+            foreach ($name in $connectionStrings.Keys) {
                 #check for hierarchy style
                 if ($jsonObj.ConnectionStrings.$name) {
-                    $jsonObj.ConnectionStrings.$name = $connectionString[$name]
+                    $jsonObj.ConnectionStrings.$name = $connectionStrings[$name]
                     continue
                 }
                 #check for horizontal style
                 $horizontalName = 'ConnectionStrings.{0}:' -f $name
                 if ($jsonObj.$horizontalName) {
-                    $jsonObj.$horizontalName = $connectionString[$name]
+                    $jsonObj.$horizontalName = $connectionStrings[$name]
                     continue
                 }
                 # create new one
@@ -548,7 +516,7 @@ function InternalSave-ConfigEnvironmentFile {
                     $jsonObj | Add-Member -name 'ConnectionStrings' -value (ConvertFrom-Json -InputObject $contentForDefaultConnection) -MemberType NoteProperty | Out-Null
                 }
                 if (!($jsonObj.ConnectionStrings.$name)) {
-                    $jsonObj.ConnectionStrings | Add-Member -name $name -value $connectionString[$name] -MemberType NoteProperty | Out-Null
+                    $jsonObj.ConnectionStrings | Add-Member -name $name -value $connectionStrings[$name] -MemberType NoteProperty | Out-Null
                 }
             }            
         }
@@ -560,91 +528,73 @@ function InternalSave-ConfigEnvironmentFile {
     }
 }
 
-function InternalNew-CopyFileToFolder {
-    [cmdletbinding()]
-    param(
-        [Parameter(Mandatory=$true,Position=0)]
-        [System.IO.DirectoryInfo]$destDir,
-        [Parameter(Mandatory=$true,Position=1)]
-        [System.IO.FileInfo]$filePath
-    )
-    process{        
-        if (Test-Path -Path $filePath) {
-            if (!(Test-Path -Path $destDir)) {
-                New-Item $destDir -type Directory | Out-Null
-            }
-            Copy-Item $filePath -Destination $destDir -Force | Out-Null
-        }                
-    }
-}
+<#
+.SYNOPSIS
 
-function InternalNew-ManifestFile {
+Inputs:
+Example of $providerDataArray:
+
+    [System.Collections.ArrayList]$providerDataArray = @()
+
+    $iisAppSourceKeyValue=@{"iisApp" = @{"path"='c:\temp\pathtofiles';"appOfflineTemplate" ='offline-template.html'}}
+    $providerDataArray.Add($iisAppSourceKeyValue)
+
+    $dbfullsqlKeyValue=@{"dbfullsql" = @{"path"="c:\Temp\PathToSqlFile"}}
+    $providerDataArray.Add($dbfullsqlKeyValue)
+
+    $dbfullsqlKeyValue=@{"dbfullsql" = @{"path"="c:\Temp\PathToSqlFile2"}}
+    $providerDataArray.Add($dbfullsqlKeyValue)
+
+    Manifest File content:
+        <?xml version="1.0" encoding="utf-8"?>
+        <sitemanifest>
+        <iisApp path="c:\temp\pathtofiles" appOfflineTemplate=”offline-template.html" />
+        <dbFullSql path="c:\Temp\PathToSqlFile" />
+        <dbFullSql path="c:\Temp\PathToSqlFile2" />
+        </sitemanifest>
+
+#>
+
+function GenerateInternal-ManifestFile {
     [cmdletbinding()]
     param(
         [Parameter(Mandatory=$true,Position=0)]
         [System.IO.FileInfo]$packOutput,
         [Parameter(Mandatory=$true,Position=1)]
         $publishProperties,
-        [Parameter(Position=2)]
-        [HashTable]$EFMigrationData,
-        [switch]$isSourceManifest
+        [Parameter(Mandatory=$true,Position=2)]
+        [System.Collections.ArrayList]$providerDataArray,
+        [Parameter(Mandatory=$true,Position=3)]
+        [ValidateNotNull()]
+        $manifestFileName
     )
     process{
-        $xmlObj = InternalNew-ManifestDocument
-        $publishMethod = $publishProperties['WebPublishMethod']
-        if ($publishMethod -eq 'FileSystem') {
-            if ($isSourceManifest) {
-                $manifestAttribute = @{'path'="$packOutput"}
-            }
-            else {
-                $publishUrl = $publishProperties['publishUrl']
-                $manifestAttribute = @{'path'="$publishUrl"}
-            }
-            $manifestData = @{'contentPath'=$manifestAttribute }
-            InternalNew-ManifestForProvider -xmlDocument $xmlObj -providerData $manifestData
-        }
-        elseif($publishMethod -eq 'MSDeploy' -or $publishMethod -eq 'Package') {
-            if ($isSourceManifest) {
-                $iisAppPath = $packOutput
-            }
-            else {
-                $iisAppPath = $publishProperties['DeployIisAppPath']
-            }
-            $manifestAttribute = @{'path'="$iisAppPath"}
-            $manifestData = @{'iisApp'=$manifestAttribute }
-            InternalNew-ManifestForProvider -xmlDocument $xmlObj -providerData $manifestData
-            if ($publishMethod -eq 'MSDeploy') {
-                if ($isSourceManifest -and $EFMigrationData -ne $null -and $EFMigrationData.Contains('EFSqlFile')) {
-                    foreach ($sqlFile in $EFMigrationData['EFSqlFile'].Values) {
-                        $manifestData = @{}
-                        $manifestAttribute = @{'path'="$sqlFile"}
-                        $manifestData.Add('dbFullSql',$manifestAttribute)
-                        InternalNew-ManifestForProvider -xmlDocument $xmlObj -providerData $manifestData                        
-                    }
-                }
-                elseif ($publishProperties['EfMigrations'] -ne $null -and $publishProperties['EfMigrations'].Count -gt 0) {
-                    foreach ($connectionString in $publishProperties['EfMigrations'].Values) {
-                        $manifestData = @{}
-                        $manifestAttribute = @{'path'="$connectionString"}
-                        $manifestData.Add('dbFullSql',$manifestAttribute)
-                        InternalNew-ManifestForProvider -xmlDocument $xmlObj -providerData $manifestData
-                    }
-                }
-            }
-        }
-        else {
-            throw ('The publish method - {0} - is not supported' -f $publishMethod)
-        }
-        $paDir = InternalNew-PublishTempPath -packOutput $packOutput
-        if ($isSourceManifest) {
-            $XMLFile = Join-Path $paDir 'SourceManifest.xml'
-        }
-        else {
-            $XMLFile = Join-Path $paDir 'DestManifest.xml'
-        }
-        $xmlObj.OuterXml | out-file -encoding utf8 -filePath $XMLFile -Force
+        $xmlDocument = [xml]'<?xml version="1.0" encoding="utf-8"?><sitemanifest></sitemanifest>'
+        AddInternal-ProviderDataToManifest -xmlDocument $xmlDocument -providerDataArray $providerDataArray | Out-Null
+        $publishTempDir = GetInternal-PublishTempPath -packOutput $packOutput
+        $XMLFile = Join-Path $publishTempDir $manifestFileName
+        $xmlDocument.OuterXml | out-file -encoding utf8 -filePath $XMLFile -Force
+        
         # return 
         [System.IO.FileInfo]$XMLFile
+    }
+}
+
+function GetInternal-PublishTempPath {
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true, Position=0)]
+        [System.IO.FileInfo]$packOutput
+    )
+    process {
+        $tempDir = [io.path]::GetTempPath()
+        $packOutputFolderName = Split-Path $packOutput -Leaf
+        $publishTempDir = [io.path]::combine($tempDir,'PublishTemp','obj',$packOutputFolderName)
+        if (!(Test-Path -Path $publishTempDir)) {
+            New-Item -Path $publishTempDir -type directory | Out-Null
+        }
+        # return 
+        [System.IO.FileInfo]$publishTempDir
     }
 }
 
@@ -660,14 +610,59 @@ function Publish-AspNetMSDeploy{
             $publishPwd = $publishProperties['Password']
             
             $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties -packOutput $packOutput
-            
             $iisAppPath = $publishProperties['DeployIisAppPath']
             
             # create source manifest
-            [System.IO.FileInfo]$sourceXMLFile = InternalNew-ManifestFile -packOutput $packOutput -publishProperties $publishProperties -EFMigrationData $sharedArgs.EFMigrationData -isSource
+
+            # e.g
+            # <?xml version="1.0" encoding="utf-8"?>
+            # <sitemanifest>
+            # <iisApp path="C:\Temp\PublishTemp\WebApplication\" appOfflineTemplate=”offline-template.html" />
+            # <dbFullSql path="C:\Temp\PublishTemp\obj\WebApplication.Data.ApplicationDbContext.sql" />
+            # <dbFullSql path="C:\Temp\PublishTemp\obj\WebApplication.Data.CarContext.sql" />
+            # </sitemanifest>
+
+            [System.Collections.ArrayList]$providerDataArray = @()
+            $iisAppValues = @{"path"=$packOutput};
+            $iisAppSourceKeyValue=@{"iisApp" = $iisAppValues}
+            $providerDataArray.Add($iisAppSourceKeyValue) | Out-Null
+
+            if ($sharedArgs.EFMigrationData -ne $null -and $sharedArgs.EFMigrationData.Contains('EFSqlFiles')) { 
+                foreach ($sqlFile in $sharedArgs.EFMigrationData['EFSqlFiles'].Values) { 
+                    $dbFullSqlSourceKeyValue=@{"dbFullSql" = @{"path"=$sqlFile}}
+                    $providerDataArray.Add($dbFullSqlSourceKeyValue) | Out-Null       
+                }
+            }
             
+            [System.IO.FileInfo]$sourceXMLFile = GenerateInternal-ManifestFile -packOutput $packOutput -publishProperties $publishProperties -providerDataArray $providerDataArray -manifestFileName 'SourceManifest.xml'
+            
+            $providerDataArray.Clear() | Out-Null
             # create destination manifest   
-            [System.IO.FileInfo]$destXMLFile = InternalNew-ManifestFile -packOutput $packOutput -publishProperties $publishProperties -EFMigrationData $sharedArgs.EFMigrationData
+
+            # e.g
+            # <?xml version="1.0" encoding="utf-8"?>
+            # <sitemanifest><iisApp path="WebApplication8020160609015407" />
+            # <dbFullSql path="Data Source=tcp:webapplicationdbserver.database.windows.net,1433;Initial Catalog=WebApplication_db;User Id=sqladmin@webapplicationdbserver;Password=<password>" />
+            # <dbFullSql path="Data Source=tcp:webapplicationdbserver.database.windows.net,1433;Initial Catalog=WebApplication_db;User Id=sqladmin@webapplicationdbserver;Password=<password>" />
+            # </sitemanifest>
+
+            $iisAppValues = @{"path"=$iisAppPath};
+            if(-not [string]::IsNullOrWhiteSpace($publishProperties['AppOfflineTemplate'])){
+                $iisAppValues.Add("appOfflineTemplate", $publishProperties['AppOfflineTemplate']) | Out-Null
+            }
+
+            $iisAppDestinationKeyValue=@{"iisApp" = $iisAppValues}
+            $providerDataArray.Add($iisAppDestinationKeyValue) | Out-Null
+
+            if ($publishProperties['EfMigrations'] -ne $null -and $publishProperties['EfMigrations'].Count -gt 0) { 
+                foreach ($connectionString in $publishProperties['EfMigrations'].Values) { 
+                    $dbFullSqlDestinationKeyValue=@{"dbFullSql" = @{"path"=$connectionString}}
+                    $providerDataArray.Add($dbFullSqlDestinationKeyValue) | Out-Null       
+                }
+            }
+
+
+            [System.IO.FileInfo]$destXMLFile = GenerateInternal-ManifestFile -packOutput $packOutput -publishProperties $publishProperties -providerDataArray $providerDataArray -manifestFileName 'DestinationManifest.xml'
   
             <#
             "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe" 
@@ -733,18 +728,18 @@ function Publish-AspNetMSDeployPackage{
     )
     process{
         if($publishProperties){
-            $packageDestFilepah = $publishProperties['DesktopBuildPackageLocation']
+            $packageDestinationFilepath = $publishProperties['DesktopBuildPackageLocation']
 
-            if(!$packageDestFilepah){
+            if(!$packageDestinationFilepath){
                 throw ('The package destination property (DesktopBuildPackageLocation) was not found in the publish properties')
             }
 
-            if(!([System.IO.Path]::IsPathRooted($packageDestFilepah))){
-                $packageDestFilepah = [System.IO.Path]::GetFullPath((Join-Path $pwd $packageDestFilepah))
+            if(!([System.IO.Path]::IsPathRooted($packageDestinationFilepath))){
+                $packageDestinationFilepath = [System.IO.Path]::GetFullPath((Join-Path $pwd $packageDestinationFilepath))
             }
 
             # if the dir doesn't exist create it
-            $pkgDir = ((new-object -typename System.IO.FileInfo($packageDestFilepah)).Directory)
+            $pkgDir = ((new-object -typename System.IO.FileInfo($packageDestinationFilepath)).Directory)
             if(!(Test-Path -Path $pkgDir)) {
                 New-Item $pkgDir -type Directory | Out-Null
             }
@@ -761,11 +756,22 @@ function Publish-AspNetMSDeployPackage{
             $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties -packOutput $packOutput
 
             # create source manifest
-            [System.IO.FileInfo]$sourceXMLFile = InternalNew-ManifestFile -packOutput $packOutput -publishProperties $publishProperties -isSource 
+
+            # e.g
+            # <?xml version="1.0" encoding="utf-8"?>
+            # <sitemanifest>
+            # <iisApp path="C:\Temp\PublishTemp\WebApplication\" />
+            # </sitemanifest>
+
+            [System.Collections.ArrayList]$providerDataArray = @()
+            $iisAppSourceKeyValue=@{"iisApp" = @{"path"=$packOutput}}
+            $providerDataArray.Add($iisAppSourceKeyValue) | Out-Null
+
+            [System.IO.FileInfo]$sourceXMLFile = GenerateInternal-ManifestFile -packOutput $packOutput -publishProperties $publishProperties -providerDataArray $providerDataArray -manifestFileName 'SourceManifest.xml' 
 
             $publishArgs = @()
             $publishArgs += ('-source:manifest=''{0}''' -f $sourceXMLFile.FullName)
-            $publishArgs += ('-dest:package=''{0}''' -f $packageDestFilepah)
+            $publishArgs += ('-dest:package=''{0}''' -f $packageDestinationFilepath)
             $publishArgs += '-verb:sync'
             $packageContentFolder = $publishProperties['MSDeployPackageContentFoldername']
             if(!$packageContentFolder){ $packageContentFolder = 'website' }
@@ -778,37 +784,6 @@ function Publish-AspNetMSDeployPackage{
         }
         else{
             throw 'publishProperties is empty, cannot publish'
-        }
-    }
-}
-
-<#
-.SYNOPSIS
-If the passed in $publishProperties has values for appOffline the
-needed arguments will be in the return object. If there is no such configuraion
-then nothing is returned.
-#>
-function GetInternal-PublishAppOfflineProperties{
-    [cmdletbinding()]
-    param(
-        [Parameter(Mandatory=$true,Position=0)]
-        $publishProperties
-    )
-    process{
-        $extraArg = '';
-        $destFragment = ''
-        if($publishProperties['EnableMSDeployAppOffline'] -eq $true){
-            $extraArg = '-enablerule:AppOffline'
-
-            $appOfflineTemplate = $publishProperties['AppOfflineTemplate']
-            if($appOfflineTemplate){
-                $destFragment = (',appOfflineTemplate="{0}"' -f $appOfflineTemplate)
-            }
-        }
-        # return an object with both the properties that need to be in the command.
-        New-Object psobject -Property @{
-            AdditionalArguments = $extraArg
-            DestFragment = $destFragment
         }
     }
 }
@@ -840,11 +815,36 @@ function Publish-AspNetFileSystem{
         
         $sharedArgs = GetInternal-SharedMSDeployParametersFrom -publishProperties $publishProperties -packOutput $packOutput
 
-        #create source manifest
-        [System.IO.FileInfo]$sourceXMLFile = InternalNew-ManifestFile -packOutput $packOutput -publishProperties $publishProperties -isSource 
-        
-        #create destination manifest
-        [System.IO.FileInfo]$destXMLFile = InternalNew-ManifestFile -packOutput $packOutput -publishProperties $publishProperties
+        # create source manifest
+
+        # e.g
+        # <?xml version="1.0" encoding="utf-8"?>
+        # <sitemanifest>
+        # <contentPath path="C:\Temp\PublishTemp\WebApplication\" appOfflineTemplate=”offline-template.html" />
+        # </sitemanifest>
+
+        [System.Collections.ArrayList]$providerDataArray = @()
+        $contentPathValues = @{"path"=$packOutput};
+        $contentPathSourceKeyValue=@{"contentPath" = $contentPathValues}
+        $providerDataArray.Add($contentPathSourceKeyValue) | Out-Null
+            
+        [System.IO.FileInfo]$sourceXMLFile = GenerateInternal-ManifestFile -packOutput $packOutput -publishProperties $publishProperties -providerDataArray $providerDataArray -manifestFileName 'SourceManifest.xml'
+            
+        $providerDataArray.Clear() | Out-Null
+        # create destination manifest   
+
+        # e.g
+        # <?xml version="1.0" encoding="utf-8"?>
+        # <sitemanifest><contentPath path="C:\Temp\PublishTemp\WebApplicationDestination\" />
+        # </sitemanifest>
+        $contentPathValues = @{"path"=$publishProperties['publishUrl']};
+        if(-not [string]::IsNullOrWhiteSpace($publishProperties['AppOfflineTemplate'])){
+            $contentPathValues.Add("appOfflineTemplate", $publishProperties['AppOfflineTemplate']) | Out-Null
+        }
+        $contentPathDestinationKeyValue=@{"contentPath" = $contentPathValues}
+        $providerDataArray.Add($contentPathDestinationKeyValue) | Out-Null
+
+        [System.IO.FileInfo]$destXMLFile = GenerateInternal-ManifestFile -packOutput $packOutput -publishProperties $publishProperties -providerDataArray $providerDataArray -manifestFileName 'DestinationManifest.xml'
         
         $publishArgs = @()
         $publishArgs += ('-source:manifest=''{0}''' -f $sourceXMLFile.FullName)
@@ -857,10 +857,15 @@ function Publish-AspNetFileSystem{
         Execute-Command -exePath (Get-MSDeploy) -arguments ($publishArgs -join ' ')
         
         # copy sql script to script folder
-        if (($sharedArgs.EFMigrationData['EFSqlFile'] -ne $null) -and ($sharedArgs.EFMigrationData['EFSqlFile'].Count -gt 0)) {
-            $scriptDir = Join-Path $pubOut 'script'
-            foreach ($sqlFile in $sharedArgs.EFMigrationData['EFSqlFile'].Values) {
-                InternalNew-CopyFileToFolder -destDir $scriptDir -file $sqlFile
+        if (($sharedArgs.EFMigrationData['EFSqlFiles'] -ne $null) -and ($sharedArgs.EFMigrationData['EFSqlFiles'].Count -gt 0)) {
+            $scriptsDir = Join-Path $pubOut 'efscripts'
+
+            if (!(Test-Path -Path $scriptsDir)) {
+                New-Item -Path $scriptsDir -type directory | Out-Null
+            }
+
+            foreach ($sqlFile in $sharedArgs.EFMigrationData['EFSqlFiles'].Values) {
+                Copy-Item $sqlFile -Destination $scriptsDir -Force -Recurse | Out-Null
             }
         }
     }
@@ -998,6 +1003,26 @@ function Execute-Command {
     }
 }
 
+
+function GetInternal-DotNetExePath {
+    process {
+        $dotnetinstallpath = $env:dotnetinstallpath
+        if (!$dotnetinstallpath) {
+            $DotNetRegItem = Get-ItemProperty -Path 'hklm:\software\dotnet\setup\'
+            if ($env:DOTNET_HOME) {
+                $dotnetinstallpath = Join-Path $env:DOTNET_HOME -ChildPath 'dotnet.exe'
+            }
+            elseif ($DotNetRegItem -and $DotNetRegItem.InstallDir){
+                $dotnetinstallpath = Join-Path $DotNetRegItem.InstallDir -ChildPath 'dotnet.exe'
+            }
+        }
+        if (!(Test-Path $dotnetinstallpath)) {
+            throw 'Unable to find dotnet.exe, please install it and try again'
+        }
+        # return
+        [System.IO.FileInfo]$dotnetinstallpath
+    }
+}
 
 function Get-MSDeploy{
     [cmdletbinding()]

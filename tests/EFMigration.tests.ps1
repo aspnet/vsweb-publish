@@ -56,7 +56,7 @@ Describe 'create/update appSettings.Production.Json file test' {
 
         # null connection string
         $defaultConnStrings = $null
-        InternalSave-ConfigEnvironmentFile -packOutput $rootDir -environmentName $environmentName -connectionString $defaultConnStrings 
+        GenerateInternal-AppSettingsFile -packOutput $rootDir -environmentName $environmentName -connectionStrings $defaultConnStrings 
         # verify
         $result = Get-Content (Join-Path $rootDir $configProdJsonFile) -Raw
         $emptyTarget = @'
@@ -78,7 +78,7 @@ Describe 'create/update appSettings.Production.Json file test' {
         # empty connection string object
         $defaultConnStrings = New-Object 'system.collections.generic.dictionary[[string],[string]]'
         
-        InternalSave-ConfigEnvironmentFile -packOutput $rootDir -environmentName $environmentName -connectionString $defaultConnStrings 
+        GenerateInternal-AppSettingsFile -packOutput $rootDir -environmentName $environmentName -connectionStrings $defaultConnStrings 
         
         $result = Get-Content (Join-Path $rootDir $configProdJsonFile) -Raw
         $emptyTarget = @'
@@ -96,12 +96,12 @@ Describe 'create/update appSettings.Production.Json file test' {
         
         $environmentName = 'Production'
         $configProdJsonFile = 'appsettings.{0}.json' -f $environmentName
-        # non-emtpy connection string object
+        # non-empty connection string object
         $defaultConnStrings = New-Object 'system.collections.generic.dictionary[[string],[string]]'
         $defaultConnStrings.Add("connection1","server=server1;database=db1;")
         $defaultConnStrings.Add("connection2","server=server2;database=db2;")           
         
-        InternalSave-ConfigEnvironmentFile -packOutput $rootDir -environmentName $environmentName -connectionString $defaultConnStrings
+        GenerateInternal-AppSettingsFile -packOutput $rootDir -environmentName $environmentName -connectionStrings $defaultConnStrings
 
         $finalJsonContent = Get-Content (join-path $rootDir $configProdJsonFile) -Raw
         $emptyTarget = @'
@@ -138,7 +138,7 @@ Describe 'create/update appSettings.Production.Json file test' {
         # create appSettings.production.json for test purpose
         $originalJsonContent | Set-Content -Path $configProdJsonPath -Force
         
-        InternalSave-ConfigEnvironmentFile -packOutput $rootDir -environmentName $environmentName
+        GenerateInternal-AppSettingsFile -packOutput $rootDir -environmentName $environmentName
         
         $finalJsonContent = Get-Content (join-path $rootDir $configProdJsonFile) -Raw
         $emptyTarget = @'
@@ -174,7 +174,7 @@ Describe 'create/update appSettings.Production.Json file test' {
         # create appSettings.Production.json for test purpose
         $originalJsonContent | Set-Content -Path (Join-Path $rootDir $configProdJsonFile) -Force            
         
-        InternalSave-ConfigEnvironmentFile -packOutput $rootDir -environmentName $environmentName -connectionString $defaultConnStrings 
+        GenerateInternal-AppSettingsFile -packOutput $rootDir -environmentName $environmentName -connectionStrings $defaultConnStrings 
                     
         $finalJsonContent = Get-Content (join-path $rootDir $configProdJsonFile) -Raw
         $emptyTarget = @'
@@ -214,7 +214,7 @@ Describe 'create/update appSettings.Production.Json file test' {
         # create appSettings.Production.Json for test purpose
         $originalJsonContent | Set-Content -Path (Join-Path $rootDir $configProdJsonFile) -Force
         
-        InternalSave-ConfigEnvironmentFile -packOutput $rootDir -environmentName $environmentName -connectionString $defaultConnStrings 
+        GenerateInternal-AppSettingsFile -packOutput $rootDir -environmentName $environmentName -connectionStrings $defaultConnStrings 
         
         $finalJsonContent = Get-Content (Join-Path $rootDir $configProdJsonFile) -Raw
         $emptyTarget = @'
@@ -252,7 +252,7 @@ Describe 'generate EF migration TSQL script test' {
 			$env:dotnetinstallpath = '' # force the script to find dotnet.exe
 			$EFConnectionString = @{"$DBContextName"='some-EF-migrations-string'}
 			#run dotnet restore first to generate project.lock.json
-			$dotnetpath = InternalGet-DotNetExePath
+			$dotnetpath = GetInternal-DotNetExePath
 			(Test-Path -Path $dotnetpath) | should be $true 
 			Execute-Command $dotnetpath 'restore' "$rootDir\src"
 			
@@ -284,7 +284,7 @@ Describe 'generate EF migration TSQL script test' {
         {
             $env:dotnetinstallpath = 'pretend-invalid-path'
             $EFConnectionString = @{'dbContext1'='some-EF-connection-string'}
-            {InternalGet-EFMigrationScript -projectPath '' -packOutput $rootDir -EFConnectionString $EFConnectionString} | should throw
+            {GenerateInternal-EFMigrationScripts -projectPath '' -packOutput $rootDir -EFMigrations $EFConnectionString} | should throw
         }
         finally
         {
@@ -306,10 +306,10 @@ Describe 'generate EF migration TSQL script test' {
         try
         {
             $EFConnectionString = @{'BlogsContext'='some-EF-migrations-string'}
-            $dotnetpath = InternalGet-DotNetExePath
+            $dotnetpath = GetInternal-DotNetExePath
             (Test-Path -Path $dotnetpath) | should be $true 
             Execute-Command $dotnetpath 'restore' "$rootDir\src"
-            $sqlFiles = InternalGet-EFMigrationScript -projectPath "$rootDir\src" -packOutput "$rootDir\src" -EFConnectionString $EFConnectionString
+            $sqlFiles = GenerateInternal-EFMigrationScripts -projectPath "$rootDir\src" -packOutput "$rootDir\src" -EFMigrations $EFConnectionString
             ($sqlFiles -eq $null) | Should be $false
 #           ($sqlFiles.Values.Count -gt 0) | should be $true
             foreach ($file in $sqlFiles.Values) {
@@ -343,11 +343,14 @@ Describe 'create manifest xml file tests' {
         $efData = @{
             'EFSqlFile'=$EFMigration
         }
-        
-        $xmlFile = InternalNew-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -EFMigrationData $efData -isSource
+        [System.Collections.ArrayList]$providerDataArray = @()
+        $providerDataArray.Add(@{"iisApp" = @{"path"=$iisAppPath}}) | Out-Null
+        $providerDataArray.Add(@{"dbfullsql" = @{"path"=$sqlFile}}) | Out-Null
+
+        $xmlFile = GenerateInternal-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -providerDataArray $providerDataArray -manifestFileName 'SourceManifest.xml'
         # verify
         (Test-Path -Path $xmlFile) | should be $true
-        $pubArtifactDir = Join-Path $TestDrive 'obj'
+        $pubArtifactDir = [io.path]::combine([io.path]::GetTempPath(),'PublishTemp','obj','ManifestFileCase10')
         ((Join-Path $pubArtifactDir 'SourceManifest.xml') -eq $xmlFile.FullName) | should be $true 
         $xmlResult = [xml](Get-Content $xmlFile -Raw)
         ($xmlResult.sitemanifest.iisApp.path -eq "$iisAppPath") | should be $true 
@@ -376,12 +379,17 @@ Describe 'create manifest xml file tests' {
             'EfMigrations'=$EFMigration
             'DestinationConnectionStrings'=$DBConnStrings
         }
+
+        [System.Collections.ArrayList]$providerDataArray = @()
+        $providerDataArray.Add(@{"iisApp" = @{"path"=$publishProperties['DeployIisAppPath']}}) | Out-Null
+        $providerDataArray.Add(@{"dbfullsql" = @{"path"=$sqlConnString}}) | Out-Null
+
+        $xmlFile = GenerateInternal-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -providerDataArray $providerDataArray -manifestFileName 'DestinationManifest.xml'
         
-        $xmlFile = InternalNew-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -EFMigrationData $efData
         # verify
         (Test-Path -Path $xmlFile) | should be $true
-        $pubArtifactDir = Join-Path $TestDrive 'obj'
-        ((Join-Path $pubArtifactDir 'DestManifest.xml') -eq $xmlFile.FullName) | should be $true 
+        $pubArtifactDir = [io.path]::combine([io.path]::GetTempPath(),'PublishTemp','obj','ManifestFileCase11')
+        ((Join-Path $pubArtifactDir 'DestinationManifest.xml') -eq $xmlFile.FullName) | should be $true 
         $xmlResult = [xml](Get-Content $xmlFile -Raw)
         ($xmlResult.sitemanifest.iisApp.path -eq 'WebSiteName') | should be $true
         ($xmlResult.sitemanifest.dbFullSql.path -eq "$sqlConnString") | should be $true 
@@ -409,11 +417,17 @@ Describe 'create manifest xml file tests' {
             'WwwRootOut'="$webRootName"
             'EfMigrations'=$EFMigration
         }
+
+        [System.Collections.ArrayList]$providerDataArray = @()
+        $providerDataArray.Add(@{"iisApp" = @{"path"=$iisAppPath}}) | Out-Null
+        $providerDataArray.Add(@{"dbfullsql" = @{"path"=$sqlFile1}}) | Out-Null
+        $providerDataArray.Add(@{"dbfullsql" = @{"path"=$sqlFile2}}) | Out-Null
+
+        $xmlFile = GenerateInternal-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -providerDataArray $providerDataArray -manifestFileName 'SourceManifest.xml'
         
-        $xmlFile = InternalNew-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -EFMigrationData $efData -isSource
         # verify
         (Test-Path -Path $xmlFile) | should be $true
-        $pubArtifactDir = Join-Path $TestDrive 'obj'
+        $pubArtifactDir = [io.path]::combine([io.path]::GetTempPath(),'PublishTemp','obj','ManifestFileCase12')
         ((Join-Path $pubArtifactDir 'SourceManifest.xml') -eq $xmlFile.FullName) | should be $true
         $xmlResult = [xml](Get-Content $xmlFile -Raw)
         ($xmlResult.sitemanifest.iisApp.path -eq "$iisAppPath") | should be $true 
@@ -444,12 +458,18 @@ Describe 'create manifest xml file tests' {
             'EfMigrations'=$EFMigration
             'DestinationConnectionStrings'=$connStrings
         }
-        
-        $xmlFile = InternalNew-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -EFMigrationData $efData
+
+        [System.Collections.ArrayList]$providerDataArray = @()
+        $providerDataArray.Add(@{"iisApp" = @{"path"=$publishProperties['DeployIisAppPath']}}) | Out-Null
+        $providerDataArray.Add(@{"dbfullsql" = @{"path"=$firstString}}) | Out-Null
+        $providerDataArray.Add(@{"dbfullsql" = @{"path"=$secondString}}) | Out-Null
+
+        $xmlFile = GenerateInternal-ManifestFile -packOutput $rootDir -publishProperties $publishProperties -providerDataArray $providerDataArray -manifestFileName 'DestinationManifest.xml'
+
         # verify
         (Test-Path -Path $xmlFile) | should be $true
-        $pubArtifactDir = Join-Path $TestDrive 'obj'
-        ((Join-Path $pubArtifactDir 'DestManifest.xml') -eq $xmlFile.FullName) | should be $true 
+        $pubArtifactDir = [io.path]::combine([io.path]::GetTempPath(),'PublishTemp','obj','ManifestFileCase13')
+        ((Join-Path $pubArtifactDir 'DestinationManifest.xml') -eq $xmlFile.FullName) | should be $true 
         $xmlResult = [xml](Get-Content $xmlFile -Raw)
         ($xmlResult.sitemanifest.iisApp.path -eq 'WebSiteName') | should be $true
         ($xmlResult.sitemanifest.dbFullSql[0].path -eq "$firstString") | should be $true
