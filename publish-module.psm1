@@ -230,28 +230,28 @@ function GetInternal-SharedMSDeployParametersFrom{
             if (!(Test-Path -Path $publishProperties['ProjectPath'])) {
                 throw 'ProjectPath property needs to be defined in the pubxml for EF migration.'
             }
-            try
-            {
+            try {
                 # generate T-SQL files
                 $EFSqlFiles = GenerateInternal-EFMigrationScripts -projectPath $publishProperties['ProjectPath'] -packOutput $packOutput -EFMigrations $publishProperties['EfMigrations']
                 $sharedArgs.EFMigrationData.Add('EFSqlFiles',$EFSqlFiles)
             }
-            catch
-            {
+            catch {
                 throw ('An error occurred while generating EF migrations. {0} {1}' -f $_.Exception,(Get-PSCallStack))
             }
         }
         # add connection string update
         if (($publishProperties['DestinationConnectionStrings'] -ne $null) -and $publishProperties['DestinationConnectionStrings'].Count -gt 0) {
-            try
-            {
+            try {
                 # create/update appsettings.[environment].json
                 GenerateInternal-AppSettingsFile -packOutput $packOutput -environmentName $publishProperties['EnvironmentName'] -connectionStrings $publishProperties['DestinationConnectionStrings']
             }
-            catch
-            {
+            catch {
                 throw ('An error occurred while generating the publish appsettings file. {0} {1}' -f $_.Exception,(Get-PSCallStack))
             }
+        }
+
+        if(-not [string]::IsNullOrWhiteSpace($publishProperties['ProjectGuid'])) {
+            AddInternal-ProjectGuidToWebConfig -publishProperties $publishProperties -packOutput $packOutput
         }
 
         # return the args
@@ -417,6 +417,41 @@ function AddInternal-ProviderDataToManifest {
         }
     }
 } 
+
+function AddInternal-ProjectGuidToWebConfig {
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0)]
+        [HashTable]$publishProperties,
+        [Parameter(Position=1)]
+        [System.IO.FileInfo]$packOutput
+    )
+    process {
+        try {
+            [Reflection.Assembly]::LoadWithPartialName("System.Xml.Linq") | Out-Null
+            $webConfigPath = Join-Path $packOutput 'web.config'
+            $projectGuidCommentValue = 'ProjectGuid: {0}' -f $publishProperties['ProjectGuid']
+            $xDoc = [System.Xml.Linq.XDocument]::Load($webConfigPath)
+            $allNodes = $xDoc.DescendantNodes() 
+            $projectGuidComment = $allNodes | Where-Object { $_.NodeType -eq [System.Xml.XmlNodeType]::Comment -and $_.Value -eq $projectGuidCommentValue } | Select -First 1    
+            if($projectGuidComment -ne $null) {
+                if($publishProperties['IgnoreProjectGuid'] -eq $true) {
+                   $projectGuidComment.Remove() | Out-Null
+                   $xDoc.Save($webConfigPath) | Out-Null
+                }
+            }
+            else {
+                if(-not ($publishProperties['IgnoreProjectGuid'] -eq $true)) {
+                   $projectGuidComment = New-Object -TypeName System.Xml.Linq.XComment -ArgumentList $projectGuidCommentValue
+                   $xDoc.LastNode.AddAfterSelf($projectGuidComment) | Out-Null
+                   $xDoc.Save($webConfigPath) | Out-Null
+                }
+            }
+        }
+        catch {
+        }
+    }
+}
 
 <#
 .SYNOPSIS
@@ -898,6 +933,9 @@ function Get-PropertiesFromPublishProfile{
         'Reading publish properties from profile [{0}]' -f $filepath | Write-Verbose
         # use MSBuild to get the project and read properties
         $projectCollection = (New-Object Microsoft.Build.Evaluation.ProjectCollection)
+        if(!([System.IO.Path]::IsPathRooted($filepath))){
+            $filepath = [System.IO.Path]::GetFullPath((Join-Path $pwd $filepath))
+        }
         $project = ([Microsoft.Build.Construction.ProjectRootElement]::Open([string]$filepath.Fullname, $projectCollection))
 
         $properties = @{}
