@@ -387,7 +387,7 @@ Example of $providerDataArray:
     Manifest File content:
             <?xml version="1.0" encoding="utf-8"?>
             <sitemanifest>
-            <iisApp path="c:\temp\pathtofiles" appOfflineTemplate=봮ffline-template.html" />
+            <iisApp path="c:\temp\pathtofiles" appOfflineTemplate=혬offline-template.html" />
             <dbFullSql path="c:\Temp\PathToSqlFile" />
             <dbFullSql path="c:\Temp\PathToSqlFile2" />
             </sitemanifest>
@@ -492,7 +492,7 @@ function GenerateInternal-EFMigrationScripts {
             }
             catch
             {
-                throw 'error occured when executing dotnet.exe to generate EF T-SQL file'
+                throw 'error occurred when executing dotnet.exe to generate EF T-SQL file'
             }
         }
         # return files object
@@ -583,7 +583,7 @@ Example of $providerDataArray:
     Manifest File content:
         <?xml version="1.0" encoding="utf-8"?>
         <sitemanifest>
-        <iisApp path="c:\temp\pathtofiles" appOfflineTemplate=봮ffline-template.html" />
+        <iisApp path="c:\temp\pathtofiles" appOfflineTemplate=혬offline-template.html" />
         <dbFullSql path="c:\Temp\PathToSqlFile" />
         <dbFullSql path="c:\Temp\PathToSqlFile2" />
         </sitemanifest>
@@ -652,7 +652,7 @@ function Publish-AspNetMSDeploy{
             # e.g
             # <?xml version="1.0" encoding="utf-8"?>
             # <sitemanifest>
-            # <iisApp path="C:\Temp\PublishTemp\WebApplication\" appOfflineTemplate=봮ffline-template.html" />
+            # <iisApp path="C:\Temp\PublishTemp\WebApplication\" appOfflineTemplate=혬offline-template.html" />
             # <dbFullSql path="C:\Temp\PublishTemp\obj\WebApplication.Data.ApplicationDbContext.sql" />
             # <dbFullSql path="C:\Temp\PublishTemp\obj\WebApplication.Data.CarContext.sql" />
             # </sitemanifest>
@@ -855,7 +855,7 @@ function Publish-AspNetFileSystem{
         # e.g
         # <?xml version="1.0" encoding="utf-8"?>
         # <sitemanifest>
-        # <contentPath path="C:\Temp\PublishTemp\WebApplication\" appOfflineTemplate=봮ffline-template.html" />
+        # <contentPath path="C:\Temp\PublishTemp\WebApplication\" appOfflineTemplate=혬offline-template.html" />
         # </sitemanifest>
 
         [System.Collections.ArrayList]$providerDataArray = @()
@@ -911,7 +911,7 @@ function Publish-AspNetFileSystem{
     This can be used to read a publish profile to extract the property values into a hashtable.
 
 .PARAMETER filepath
-    Path to the publish profile to get the properties from. Currenlty this only supports reading
+    Path to the publish profile to get the properties from. Currently this only supports reading
     .pubxml files.
 
 .EXAMPLE
