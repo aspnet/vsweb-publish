@@ -733,7 +733,9 @@ function Publish-AspNetMSDeploy{
             $command = '"{0}" {1}' -f (Get-MSDeploy),($publishArgs -join ' ')
             
             if (! [String]::IsNullOrEmpty($publishPwd)) {
-            $command.Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}') | Print-CommandString
+                $command.Replace($publishPwd,'{PASSWORD-REMOVED-FROM-LOG}') | Print-CommandString
+            } else {
+                $command | Print-CommandString
             }
             Execute-Command -exePath (Get-MSDeploy) -arguments ($publishArgs -join ' ')
         }
